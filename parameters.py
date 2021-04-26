@@ -1,0 +1,12 @@
+import numpy as np
+REL_TOL = 1e-8
+ABS_TOL = 1e-8
+PRECISION_FACTOR = 100.
+
+MIN_FREQ = 1000.
+MAX_FREQ = 1e8
+FREQ_P_FACTOR = 0.2
+
+MIN_POS = 0
+MAX_POS = 100
+POS_P_FACTOR = 0.2
