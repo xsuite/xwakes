@@ -1,4 +1,4 @@
-from impedance_budget_toolbox.element import Element
+from element import Element
 from typing import List
 
 

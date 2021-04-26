@@ -1,6 +1,6 @@
-from impedance_budget_toolbox.element import Element, Component
-from impedance_budget_toolbox.test.test_common import functions
-from impedance_budget_toolbox.parameters import *
+from element import Element, Component
+from test.test_common import functions
+from parameters import *
 from typing import List
 from random import choice, uniform
 from itertools import product

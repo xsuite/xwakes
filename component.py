@@ -1,5 +1,5 @@
 from __future__ import annotations
-from impedance_budget_toolbox.parameters import *
+from parameters import *
 from typing import Optional, Callable, Tuple, Union, List
 import numpy as np
 import sortednp as snp

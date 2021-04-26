@@ -1,6 +1,6 @@
-from impedance_budget_toolbox.component import Component
-from impedance_budget_toolbox.test.test_common import functions, relative_error
-from impedance_budget_toolbox.parameters import *
+from component import Component
+from test.test_common import functions, relative_error
+from parameters import *
 from itertools import product
 from pytest import raises
 from random import choice

@@ -1,5 +1,5 @@
-from impedance_budget_toolbox.interface import import_data_iw2d, create_component_from_data
-from impedance_budget_toolbox.parameters import *
+from interface import import_data_iw2d, create_component_from_data
+from parameters import *
 
 from pytest import raises
 from pathlib import Path
@@ -9,7 +9,7 @@ import numpy as np
 
 def test_duplicate_component_iw2d_import():
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("impedance_budget_toolbox/test/test_data/iw2d/duplicate_components").resolve(),
+        import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
     assert error_message.value.args[0] == "The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and " \
@@ -19,18 +19,18 @@ def test_duplicate_component_iw2d_import():
 
 def test_no_matching_filename_iw2d_import():
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("impedance_budget_toolbox/test/test_data/iw2d/valid_directory").resolve(),
+        import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
                          common_string="this_string_matches_no_file")
 
     expected_error_message = f"No files in " \
-                             f"'{Path('impedance_budget_toolbox/test/test_data/iw2d/valid_directory').resolve()}'" \
+                             f"'{Path('test/test_data/iw2d/valid_directory').resolve()}'" \
                              f" matched the common string 'this_string_matches_no_file'."
 
     assert error_message.value.args[0] == expected_error_message
 
 
 def test_valid_iw2d_component_import():
-    recipes = import_data_iw2d(directory=Path("impedance_budget_toolbox/test/test_data/iw2d/valid_directory").resolve(),
+    recipes = import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
                                common_string="precise")
     for recipe in recipes:
         component = create_component_from_data(*recipe)

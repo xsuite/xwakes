@@ -1,6 +1,6 @@
 from __future__ import annotations
 from typing import List, Optional
-from impedance_budget_toolbox.component import Component, Union
+from component import Component, Union
 from collections import defaultdict
 from scipy.special import comb
 import numpy as np

@@ -1,8 +1,8 @@
-from impedance_budget_toolbox.component import Component
-from impedance_budget_toolbox.element import Element
-from impedance_budget_toolbox.budget import Budget
-from impedance_budget_toolbox.test.test_common import functions
-from impedance_budget_toolbox.test.test_element import create_n_elements
+from component import Component
+from element import Element
+from budget import Budget
+from test.test_common import functions
+from test.test_element import create_n_elements
 from random import choice, seed
 import matplotlib.pyplot as plt
 import numpy as np

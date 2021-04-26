@@ -1,5 +1,5 @@
-from impedance_budget_toolbox.component import Component
-from impedance_budget_toolbox.element import Element
+from component import Component
+from element import Element
 from yaml import load, SafeLoader
 from numpy import vectorize
 from math import exp, sqrt, pi, sin, cos

@@ -1,7 +1,7 @@
-from impedance_budget_toolbox.utilities import create_resonator_component, create_resonator_element
-from impedance_budget_toolbox.test.test_common import relative_error
-from impedance_budget_toolbox.parameters import *
-from impedance_budget_toolbox.interface import THIS_PATH
+from utilities import create_resonator_component, create_resonator_element
+from test.test_common import relative_error
+from parameters import *
+from interface import THIS_PATH
 from typing import Dict
 from pytest import raises
 
