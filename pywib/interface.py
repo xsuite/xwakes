@@ -321,11 +321,8 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
-    config_path = THIS_PATH.joinpath("config/iw2d_settings.yaml")
-    file = open(config_path)
-    config = load(file, Loader=BaseLoader)
-    bin_path = Path(config['binary_directory'])
-    projects_path = Path(config['project_directory'])
+    bin_path = Path(get_iw2d_config_value('binary_directory'))
+    projects_path = Path(get_iw2d_config_value('project_directory'))
 
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     delete_removed_projects()
@@ -371,11 +368,8 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
 
 
 def verify_iw2d_config_file() -> bool:
-    config_path = "config/iw2d_settings.yaml"
-    file = open(config_path)
-    config = load(file, Loader=BaseLoader)
-    bin_path = Path(config['binary_directory'])
-    projects_path = Path(config['project_directory'])
+    bin_path = Path(get_iw2d_config_value('binary_directory'))
+    projects_path = Path(get_iw2d_config_value('project_directory'))
     if not bin_path.exists() or not projects_path.exists():
         return False
 
@@ -396,17 +390,14 @@ def delete_removed_projects() -> None:
     the user.
     :return: Nothing
     """
-    config_path = THIS_PATH.joinpath("config/iw2d_settings.yaml")
-    file = open(config_path)
-    config = load(file, Loader=BaseLoader)
-    projects_path = config['project_directory']
-    with open(projects_path + '/hashmap.pickle', 'rb') as pickle_file:
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+    with open(projects_path.joinpath('/hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
     projects = listdir(projects_path)
     new_dict = {k: v for k, v in hashmap.items() if v in projects}
 
-    with open(projects_path + '/hashmap.pickle', 'wb') as handle:
+    with open(projects_path.joinpath('/hashmap.pickle'), 'wb') as handle:
         pickle.dump(new_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -508,16 +499,13 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
-    config_path = THIS_PATH.joinpath("config/iw2d_settings.yaml")
-    file = open(config_path)
-    config = load(file, Loader=BaseLoader)
-    bin_path = config['binary_directory']
-    projects_path = config['project_directory']
+    bin_path = Path(get_iw2d_config_value('binary_directory'))
+    projects_path = Path(get_iw2d_config_value('project_directory'))
     delete_removed_projects()
     read_ready = [False for _ in iw2d_inputs]
     input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
 
-    with open(projects_path + '/hashmap.pickle', 'rb') as pickle_file:
+    with open(projects_path.joinpath('/hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
         for i, ih in enumerate(input_hashes):
 
@@ -542,7 +530,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
         bin_path=bin_path
     ) for i in range(len(names)))
 
-    with open(projects_path + '/hashmap.pickle', 'wb') as pickle_file:
+    with open(projects_path.joinpath('/hashmap.pickle'), 'wb') as pickle_file:
         for ih, name in zip(input_hashes, names):
             hashmap[ih] = name
 
@@ -607,17 +595,18 @@ def _build_default_iw2d_settings() -> None:
                    f'project_directory: {projects_path}')
 
 
-def _build_iw2d_projects_directory(directory: Union[str, Path]) -> None:
-    makedirs(directory, exist_ok=True)
-    with open(Path(directory).joinpath('/hashmap.pickle', 'wb')) as handle:
+def _build_iw2d_projects_directory() -> None:
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+    makedirs(projects_path, exist_ok=True)
+    with open(Path(projects_path).joinpath('/hashmap.pickle', 'wb')) as handle:
         pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def _verify_iw2d_binary_directory(directory: Union[str, Path], ignore_missing_files: bool = False) -> None:
-    makedirs(directory, exist_ok=True)
+def _verify_iw2d_binary_directory(ignore_missing_files: bool = False) -> None:
+    bin_path = Path(get_iw2d_config_value('binary_directory'))
     if not ignore_missing_files:
         filenames = ('flatchamber.x', 'roundchamber.x', 'wake_flatchamber.x', 'wake_roundchamber.x')
-        assert all(filename in listdir(directory) for filename in filenames), \
+        assert all(filename in listdir(bin_path) for filename in filenames), \
             "In order to utilize IW2D with PyWIB, the four binary files 'flatchamber.x', 'roundchamber.x', " \
             f"'wake_flatchamber.x' and 'wake_roundchamber.x' (as generated by IW2D) must be placed in the directory " \
-            f"'{directory}'."
+            f"'{bin_path}'."
