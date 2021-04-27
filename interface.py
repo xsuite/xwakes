@@ -587,6 +587,15 @@ def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: str)
         file.write(text)
 
 
+def _build_default_iw2d_settings() -> None:
+    makedirs(THIS_PATH.joinpath('config'), exist_ok=True)
+    bin_path = THIS_PATH.joinpath('IW2D').joinpath('bin')
+    projects_path = THIS_PATH.joinpath('IW2D').joinpath('projects')
+    with open(THIS_PATH.joinpath('config').joinpath('iw2d_settings.yaml'), 'w') as file:
+        file.write(f'binary_directory: {bin_path}\n'
+                   f'project_directory: {projects_path}')
+
+
 def _build_iw2d_projects_directory(directory: str) -> None:
     makedirs(directory, exist_ok=True)
     with open(directory + '/hashmap.pickle', 'wb') as handle:
