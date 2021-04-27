@@ -2,7 +2,7 @@ from component import Component
 from element import Element
 
 from typing import Tuple, List, Optional, Dict, Any
-from os import listdir
+from os import listdir, makedirs
 from dataclasses import dataclass
 from yaml import load, BaseLoader
 from pathlib import Path
@@ -585,3 +585,9 @@ def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: str)
 
     with open(directory, 'w') as file:
         file.write(text)
+
+
+def _build_iw2d_projects_directory(directory: str) -> None:
+    makedirs(directory, exist_ok=True)
+    with open(directory + '/hashmap.pickle', 'wb') as handle:
+        pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
