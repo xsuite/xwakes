@@ -36,6 +36,13 @@ component_names = {'wlong': (False, 'z', (0, 0, 0, 0)),
 THIS_PATH = Path(__file__).parent
 
 
+def get_iw2d_config_value(key: str) -> Any:
+    with open(THIS_PATH.joinpath("config/iw2d_settings.yaml")) as file:
+        config = load(file, Loader=BaseLoader)
+
+    return config[key]
+
+
 def import_data_iw2d(directory: Union[str, Path], common_string: str) -> List[Tuple[bool, str,
                                                                                     Tuple[int, int, int, int],
                                                                                     np.ndarray]]:
