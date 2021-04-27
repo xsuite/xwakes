@@ -8,6 +8,7 @@ from pathlib import Path
 from pytest import raises
 import numpy as np
 
+
 def test_incompatible_dictionaries():
     rs = {"z0000": 2}
     qs = {"z0000": 2}
