@@ -1,4 +1,5 @@
 from math import sqrt, log
+
 from numpy import vectorize, sin, cos
 
 functions = [vectorize(f) for f in [lambda x: 1/x - log(x) + 1j * (x % 3),

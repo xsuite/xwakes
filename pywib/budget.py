@@ -1,4 +1,5 @@
-from element import Element
+from pywib.element import Element
+
 from typing import List
 
 

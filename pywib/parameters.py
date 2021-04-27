@@ -1,4 +1,3 @@
-import numpy as np
 REL_TOL = 1e-8
 ABS_TOL = 1e-8
 PRECISION_FACTOR = 100.

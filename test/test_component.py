@@ -1,9 +1,11 @@
-from component import Component
-from test.test_common import functions, relative_error
-from parameters import *
+from pywib.component import Component
+from test.test_common import functions
+from pywib.parameters import *
+
 from itertools import product
-from pytest import raises
 from random import choice
+
+from pytest import raises
 from numpy import linspace, testing
 
 

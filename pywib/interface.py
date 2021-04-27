@@ -1,17 +1,17 @@
-from component import Component
-from element import Element
+from pywib.component import Component
+from pywib.element import Element
 
+import pickle
+import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union
 from os import listdir, makedirs
 from dataclasses import dataclass
 from yaml import load, BaseLoader
 from pathlib import Path
-import pickle
-import subprocess
 from hashlib import sha256
-from joblib import Parallel, delayed
 
 import numpy as np
+from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 
 # A dictionary mapping the datafile-prefixes (as used in IW2D) to (is_impedance, plane, (a, b, c, d))

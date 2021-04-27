@@ -1,10 +1,12 @@
-from utilities import create_resonator_component, create_resonator_element
+from pywib.utilities import create_resonator_component, create_resonator_element
 from test.test_common import relative_error
-from parameters import *
-from interface import THIS_PATH
-from typing import Dict
-from pytest import raises
+from pywib.parameters import *
 
+from typing import Dict
+from pathlib import Path
+
+from pytest import raises
+import numpy as np
 
 def test_incompatible_dictionaries():
     rs = {"z0000": 2}
@@ -103,7 +105,7 @@ def test_resonator_functions():
 
 def test_resonator():
     names = ['dipx', 'dipy', 'quadx', 'quady']
-    data_directory = THIS_PATH.joinpath('test').joinpath('test_data').joinpath('resonator')
+    data_directory = Path(__file__).parent.joinpath('test_data').joinpath('resonator')
     params: Dict = np.load(data_directory.joinpath('dict_gen.npy'),
                            allow_pickle=True).item()
 

@@ -1,9 +1,6 @@
-from component import Component
-from element import Element
-from budget import Budget
-from test.test_common import functions
-from test.test_element import create_n_elements
-from random import choice, seed
+from pywib.component import Component
+from pywib.element import Element
+
 import matplotlib.pyplot as plt
 import numpy as np
 

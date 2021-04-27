@@ -1,9 +1,9 @@
-from interface import import_data_iw2d, create_component_from_data
-from parameters import *
+from pywib.interface import import_data_iw2d, create_component_from_data
+from pywib.parameters import *
 
-from pytest import raises
 from pathlib import Path
 
+from pytest import raises
 import numpy as np
 
 

@@ -1,11 +1,13 @@
-from element import Element, Component
+from pywib.element import Element, Component
 from test.test_common import functions
-from parameters import *
+from pywib.parameters import *
+
 from typing import List
 from random import choice, uniform
 from itertools import product
+
 from pytest import raises
-from numpy import linspace, pi, testing, sin, cos, sqrt
+from numpy import linspace, pi, testing
 
 
 def create_n_elements(n: int, all_components=False) -> List[Element]:
@@ -148,8 +150,8 @@ def test_angle_addition():
     Verifies that rotating an element by theta=(a + b) is equivalent to rotating by theta=a and then theta=b
     """
     es = create_n_elements(3, all_components=True)
-    for alpha in linspace(0, 2 * pi, 4):
-        for beta in linspace(0, 2 * pi, 4):
+    for alpha in linspace(0, 3 * pi / 2, 3):
+        for beta in linspace(0, 3 * pi / 2, 3):
             theta = alpha + beta
             rotated_once = [e.rotated(theta) for e in es]
             rotated_twice = [e.rotated(alpha).rotated(beta) for e in es]
@@ -162,8 +164,8 @@ def test_rotation_commutativity():
     Verifies rotation of elements is a commutative operation
     """
     es = create_n_elements(10)
-    for alpha in linspace(0, 2 * pi, 5):
-        for beta in linspace(0, 2 * pi, 8):
+    for alpha in linspace(0, 3 * pi / 2, 3):
+        for beta in linspace(0, 3 * pi / 2, 3):
             for e1, e2 in [(e.rotated(alpha).rotated(beta), e.rotated(beta).rotated(alpha)) for e in es]:
                 check_if_elements_equal(e1, e2)
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
-from parameters import *
+
+from pywib.parameters import *
+
 from typing import Optional, Callable, Tuple, Union, List
+
 import numpy as np
 import sortednp as snp
 
