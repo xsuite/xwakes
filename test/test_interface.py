@@ -30,10 +30,13 @@ def test_no_matching_filename_iw2d_import():
 
 
 def test_valid_iw2d_component_import():
+    # Normally, the relativistic gamma would be an attribute of a required IW2DInput object, but here it has been
+    # hard-coded instead
+    relativstic_gamma = 479.605064966
     recipes = import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
                                common_string="precise")
     for recipe in recipes:
-        component = create_component_from_data(*recipe)
+        component = create_component_from_data(*recipe, relativistic_gamma=relativstic_gamma)
         data = recipe[-1]
         x = data[:, 0]
         y_actual = data[:, 1] + (1j * data[:, 2] if data.shape[1] == 3 else 0)

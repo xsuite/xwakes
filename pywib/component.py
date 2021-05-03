@@ -249,15 +249,20 @@ class Component:
                            precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         rough_points = points / (1 + precision_factor)
         fine_points_per_roi = int((points - rough_points) / len(self.f_rois))
-        rois = np.concatenate(
-            (np.linspace(i, f, fine_points_per_roi) for i, f in self.f_rois if (i >= start and f <= stop)))
+        intervals = [np.linspace(i, f, fine_points_per_roi) for i, f in self.f_rois if (i >= start and f <= stop)]
+        if len(intervals) > 1:
+            rois = np.concatenate(
+                *[np.linspace(i, f, fine_points_per_roi) for i, f in self.f_rois if (i >= start and f <= stop)])
+        else:
+            rois = intervals[0]
+
         rough_points = points - rois.shape[0]
         xs = snp.merge(rois, np.geomspace(start, stop, rough_points))
 
         return xs, self.impedance(xs)
 
-    def wake_to_array(self, points: int, start: float = MIN_POS, stop: float = MAX_POS,
-                      precision_factor: float = POS_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
+    def wake_to_array(self, points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
+                      precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         rough_points = points / (1 + precision_factor)
         fine_points_per_roi = int((points - rough_points) / len(self.z_rois))
         rois = np.concatenate(
@@ -267,8 +272,8 @@ class Component:
 
         return xs, self.wake(xs)
 
-    def discretize(self, freq_points: int, pos_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
-                   pos_start: float = MIN_POS, pos_stop: float = MAX_POS, freq_precision_factor: float = FREQ_P_FACTOR,
-                   pos_precision_factor: float = POS_P_FACTOR) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
+    def discretize(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
+                   time_start: float = MIN_TIME, time_stop: float = MAX_TIME, freq_precision_factor: float = FREQ_P_FACTOR,
+                   time_precision_factor: float = TIME_P_FACTOR) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         return (self.impedance_to_array(freq_points, freq_start, freq_stop, freq_precision_factor),
-                self.wake_to_array(pos_points, pos_start, pos_stop, pos_precision_factor))
+                self.wake_to_array(time_points, time_start, time_stop, time_precision_factor))
