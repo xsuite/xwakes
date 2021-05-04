@@ -649,3 +649,13 @@ def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Co
                                  test_exponents=(exponents[2], exponents[3])),)
 
     return components
+
+
+def clear_iw2d_hashmap():
+    print("WARNING: This will delete all of PyWIB's information about performed IW2D computations. The impedance/wake"
+          "data itself will not be touched.")
+    answer = input("Clear PyWIB's IW2D cache? (y / N): ")
+    if answer in ('y', 'Y', 'yes'):
+        with open(Path.home().joinpath('pywib').joinpath('IW2D').joinpath('projects').joinpath('hashmap.pickle'),
+                  'wb') as handle:
+            pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
