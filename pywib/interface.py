@@ -593,13 +593,6 @@ def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: Unio
         file.write(text)
 
 
-def _build_iw2d_projects_directory() -> None:
-    projects_path = Path(get_iw2d_config_value('project_directory'))
-    makedirs(projects_path, exist_ok=True)
-    with open(Path(projects_path).joinpath('hashmap.pickle', 'wb')) as handle:
-        pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-
 def _verify_iw2d_binary_directory(ignore_missing_files: bool = False) -> None:
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     if not ignore_missing_files:
