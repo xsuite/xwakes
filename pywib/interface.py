@@ -637,6 +637,6 @@ def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Componen
 def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
     data = np.loadtxt(path, delimiter="\t", skiprows=0)
     ts = data[:, 0] * 1e-9
-    zs = data[:, 1] * 1e15
-    func = interp1d(x=ts, y=zs, kind='linear', assume_sorted=True)
+    ws = data[:, 1] * 1e15
+    func = interp1d(x=ts, y=ws, kind='linear', assume_sorted=True)
     return Component(wake=func, plane='z', source_exponents=(0, 0), test_exponents=(0, 0))
