@@ -1,6 +1,7 @@
 from setuptools import setup, find_packages
 from setuptools.command.install import install
 from os import makedirs
+import pickle
 import pathlib
 
 
@@ -16,6 +17,9 @@ def _initialize_pywib_directory() -> None:
     filenames = ('component', 'element', 'iw2d_inputs')
     for filename in filenames:
         open(paths[0].joinpath(f"{filename}.yaml"), 'w').close()
+
+    with open(paths[2].joinpath('hashmap.pickle'), 'wb') as handle:
+        pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 class PostInstallCommand(install):
