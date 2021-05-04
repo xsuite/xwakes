@@ -332,7 +332,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     delete_removed_projects()
 
-    with open(projects_path.joinpath('/hashmap.pickle'), 'rb') as pickle_file:
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
     read_ready = False
@@ -361,7 +361,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
         subprocess.run(f'{bin_path.joinpath(bin_string)} < {name}_input.txt',
                        shell=True, cwd=working_directory)
         hashmap[input_hash] = name
-        with open(projects_path.joinpath('/hashmap.pickle'), 'wb') as handle:
+        with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
             pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     component_recipes = import_data_iw2d(projects_path.joinpath(name), iw2d_input.comment)
@@ -397,13 +397,13 @@ def delete_removed_projects() -> None:
     :return: Nothing
     """
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    with open(projects_path.joinpath('/hashmap.pickle'), 'rb') as pickle_file:
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
     projects = listdir(projects_path)
     new_dict = {k: v for k, v in hashmap.items() if v in projects}
 
-    with open(projects_path.joinpath('/hashmap.pickle'), 'wb') as handle:
+    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
         pickle.dump(new_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
@@ -511,7 +511,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     read_ready = [False for _ in iw2d_inputs]
     input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
 
-    with open(projects_path.joinpath('/hashmap.pickle'), 'rb') as pickle_file:
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
         for i, ih in enumerate(input_hashes):
 
@@ -536,7 +536,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
         bin_path=bin_path
     ) for i in range(len(names)))
 
-    with open(projects_path.joinpath('/hashmap.pickle'), 'wb') as pickle_file:
+    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as pickle_file:
         for ih, name in zip(input_hashes, names):
             hashmap[ih] = name
 
@@ -596,7 +596,7 @@ def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: Unio
 def _build_iw2d_projects_directory() -> None:
     projects_path = Path(get_iw2d_config_value('project_directory'))
     makedirs(projects_path, exist_ok=True)
-    with open(Path(projects_path).joinpath('/hashmap.pickle', 'wb')) as handle:
+    with open(Path(projects_path).joinpath('hashmap.pickle', 'wb')) as handle:
         pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
