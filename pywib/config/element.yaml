@@ -1,9 +1,0 @@
-test_element:
-  length: 1
-  beta_x: 1
-  beta_y: 1
-  name: Test element
-  tag: Test tag
-  components:
-    test_x_component
-    test_y_component
