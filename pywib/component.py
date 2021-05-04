@@ -277,3 +277,9 @@ class Component:
                    time_precision_factor: float = TIME_P_FACTOR) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         return (self.impedance_to_array(freq_points, freq_start, freq_stop, freq_precision_factor),
                 self.wake_to_array(time_points, time_start, time_stop, time_precision_factor))
+
+    def get_shorthand_type(self) -> str:
+        """
+        :return: A 5-character string indicating the plane as well as source- and test exponents of the component
+        """
+        return self.plane + "".join(str(x) for x in (self.source_exponents + self.test_exponents))
