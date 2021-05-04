@@ -94,7 +94,8 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
 
 
 def create_resonator_element(length: float, beta_x: float, beta_y: float,
-                             rs: Dict[str, float], qs: Dict[str, float], fs: Dict[str, float]) -> Element:
+                             rs: Dict[str, float], qs: Dict[str, float], fs: Dict[str, float],
+                             tag: str = 'resonator', description: str = '') -> Element:
     """
     Creates an element object representing a resonator.
     :param length: The length, in meters, of the resonator element
@@ -106,6 +107,8 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
     values give the quality factor of the specified component of the resonator
     :param fs: A dictionary where the keys correspond to a plane followed by four exponents, i.e. "y0100", and the
     values give the resonance frequency corresponding to the particular component
+    :param tag: An optional short string used to place elements into categories
+    :param description: An optional short description of the element
     :return: An element object as specified by the user-input
     """
     assert set(rs.keys()) == set(qs.keys()) == set(fs.keys()), "The three input dictionaries describing the " \
@@ -115,5 +118,4 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
         plane, exponents = string_to_params(key, include_is_impedance=False)
         components.append(create_resonator_component(plane, exponents, rs[key], qs[key], fs[key]))
 
-    return Element(length, beta_x, beta_y, components, tag="resonator")
-
+    return Element(length, beta_x, beta_y, components, tag=tag, description=description)
