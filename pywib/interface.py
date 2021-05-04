@@ -10,7 +10,7 @@ from pathlib import Path
 from hashlib import sha256
 
 import numpy as np
-from yaml import load, BaseLoader
+from yaml import load, BaseLoader, dump
 from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 
@@ -33,11 +33,11 @@ component_names = {'wlong': (False, 'z', (0, 0, 0, 0)),
                    'zycst': (True, 'y', (0, 0, 0, 0))}
 
 # The parent directory of this file
-THIS_PATH = Path(__file__).parent
+IW2D_SETTINGS_PATH = Path.home().joinpath('pywib').joinpath('config').joinpath('iw2d_settings.yaml')
 
 
 def get_iw2d_config_value(key: str) -> Any:
-    with open(THIS_PATH.joinpath("config/iw2d_settings.yaml")) as file:
+    with open(IW2D_SETTINGS_PATH, 'r') as file:
         config = load(file, Loader=BaseLoader)
 
     return config[key]
@@ -486,7 +486,7 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
 
 
 def create_iw2d_input_from_yaml(name: str) -> IW2DInput:
-    path = THIS_PATH.joinpath("config/iw2d_inputs.yaml")
+    path = Path.home().joinpath('pywib').joinpath('config').joinpath('iw2d_inputs.yaml')
     with open(path) as file:
         inputs = load(file, Loader=BaseLoader)
         d = inputs[name]
