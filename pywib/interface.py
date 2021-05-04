@@ -616,3 +616,19 @@ def load_longitudinal_impedance_datafile(path: Union[str, Path]) -> Component:
     zs = data[:, 1] + 1j * data[:, 2]
     func = interp1d(x=fs, y=zs, kind='linear', assume_sorted=True)
     return Component(impedance=func, plane='z', source_exponents=(0, 0), test_exponents=(0, 0))
+
+
+def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Component, Component, Component, Component]:
+    data = np.loadtxt(path, delimiter="\t", skiprows=1)
+    fs = data[:, 0]
+    zs = [data[:, 2 * i + 1] + 1j * data[:, 2 * i + 2] for i in range(4)]
+    components = tuple()
+    for i, z in enumerate(zs):
+        exponents = [int(j == i) for j in range(4)]
+        func = interp1d(x=fs, y=z, kind='linear', assume_sorted=True)
+        components += (Component(impedance=func,
+                                 plane='x' if i % 2 == 0 else 'y',
+                                 source_exponents=(exponents[0], exponents[1]),
+                                 test_exponents=(exponents[2], exponents[3])),)
+
+    return components
