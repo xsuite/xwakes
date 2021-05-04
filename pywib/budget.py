@@ -11,12 +11,6 @@ class Budget:
         assert elements, "Budget object needs to be initialized with at least one Element"
         self._elements = elements
         self._model = sum(elements)
-        self.x_impedance = lambda x: 0
-        self.y_impedance = lambda x: 0
-        self.z_impedance = lambda x: 0
-        self.x_wake = lambda x: 0
-        self.y_wake = lambda x: 0
-        self.z_wake = lambda x: 0
         self._calculate_impedance_wake()
 
     def _calculate_impedance_wake(self):
