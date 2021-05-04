@@ -320,7 +320,7 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
-def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float) -> Element:
+def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
     assert " " not in name, "Spaces are not allowed in element name"
 
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
@@ -370,7 +370,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
                    beta_x=beta_x, beta_y=beta_y,
                    components=[create_component_from_data(*recipe, relativistic_gamma=iw2d_input.relativistic_gamma)
                                for recipe in component_recipes],
-                   name=name, tag='IW2D', description='A resistive wall element created using IW2D')
+                   name=name, tag=tag, description='A resistive wall element created using IW2D')
 
 
 def verify_iw2d_config_file() -> bool:
