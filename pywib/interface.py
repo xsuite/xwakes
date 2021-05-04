@@ -640,3 +640,19 @@ def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
     ws = data[:, 1] * 1e15
     func = interp1d(x=ts, y=ws, kind='linear', assume_sorted=True)
     return Component(wake=func, plane='z', source_exponents=(0, 0), test_exponents=(0, 0))
+
+
+def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Component, Component, Component]:
+    data = np.loadtxt(path, delimiter="\t", skiprows=0)
+    ts = data[:, 0] * 1e-9
+    ws = [data[:, i] * 1e15 for i in range(1, 5)]
+    components = tuple()
+    for i, w in enumerate(ws):
+        exponents = [int(j == i) for j in range(4)]
+        func = interp1d(x=ts, y=w, kind='linear', assume_sorted=True)
+        components += (Component(wake=func,
+                                 plane='x' if i % 2 == 0 else 'y',
+                                 source_exponents=(exponents[0], exponents[1]),
+                                 test_exponents=(exponents[2], exponents[3])),)
+
+    return components
