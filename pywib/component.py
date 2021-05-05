@@ -118,7 +118,7 @@ class Component:
         # Iterates through the two pairs of functions: impedances, then wakes
         for left, right in zip((self.impedance, self.wake), (other.impedance, other.wake)):
             # If neither addend has a defined function, we will not bother to calculate that of the sum
-            if not left and not right:
+            if (not left) and (not right):
                 sums.append(None)
             else:
                 # Generates the missing function for the addend which is missing it
@@ -162,8 +162,8 @@ class Component:
         # Throws an AssertionError if scalar is not of the type complex, float or int
         assert isinstance(scalar, complex) or isinstance(scalar, float) or isinstance(scalar, int)
         # Initializes and returns a new Component with attributes like self, apart from the scaled functions
-        return Component(lambda x: scalar * self.impedance(x) if self.impedance else None,
-                         lambda x: scalar * self.wake(x) if self.wake else None, self.plane,
+        return Component((lambda x: scalar * self.impedance(x)) if self.impedance else None,
+                         (lambda x: scalar * self.wake(x)) if self.wake else None, self.plane,
                          self.source_exponents, self.test_exponents)
 
     def __rmul__(self, scalar: complex) -> Component:
