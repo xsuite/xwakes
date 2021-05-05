@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pywib.component import Component, Union
 
-from typing import List 
+from typing import List
 from collections import defaultdict
 
 from scipy.special import comb
@@ -35,9 +35,10 @@ class Element:
         self.tag = tag
         self.description = description
         if components:
-            parameter_combinations = {(c.plane, c.source_exponents, c.test_exponents) for c in components}
-            assert len(parameter_combinations) == len(components), \
-                "Multiple components with equal parameters are not allowed"
+            comp_dict = defaultdict(int)
+            for c in components:
+                comp_dict[(c.plane, c.source_exponents, c.test_exponents)] += c
+            components = comp_dict.values()
             self.components = sorted(components, key=lambda x: (x.plane, x.source_exponents, x.test_exponents))
         else:
             self.components: List[Component] = []

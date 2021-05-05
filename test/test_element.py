@@ -72,8 +72,6 @@ def test_initialization():
     Element(1, 1, 1, [x])
     Element(1, 1, 1, [x, y])
     with raises(AssertionError):
-        Element(1, 1, 1, [x, x])
-    with raises(AssertionError):
         Element(beta_x=1, beta_y=1, components=[x])
     with raises(AssertionError):
         Element(length=1, beta_y=1, components=[x])
