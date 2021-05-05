@@ -7,7 +7,7 @@ class Budget:
     """
     Suggestion for structure of Budget class
     """
-    def __init__(self, elements: List[Element] = None, lumped_betas: Optional[Tuple[int, int]] = None):
+    def __init__(self, elements: List[Element] = None, lumped_betas: Optional[Tuple[float, float]] = None):
         assert elements, "Budget object needs to be initialized with at least one Element"
         if lumped_betas is not None:
             elements = [element.changed_betas(*lumped_betas) for element in elements]
