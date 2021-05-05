@@ -152,7 +152,7 @@ class Element:
         x_ratio = self.beta_x / new_beta_x
         y_ratio = self.beta_y / new_beta_y
         new_components = [((x_ratio ** c.power_x) * (y_ratio ** c.power_y)) * c for c in self.components]
-        return Element(self.length, new_beta_x, new_beta_y, new_components)
+        return Element(self.length, new_beta_x, new_beta_y, new_components, self.name, self.tag, self.description)
 
     def __add__(self, other: Element) -> Element:
         """
