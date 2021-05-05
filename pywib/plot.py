@@ -1,5 +1,10 @@
 from pywib.component import Component
 from pywib.element import Element
+from pywib.budget import Budget
+from pywib.parameters import *
+
+from typing import List, Dict, Union
+from collections import defaultdict
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -75,3 +80,123 @@ def plot_element_in_plane(element: Element, plane: str, plot_impedance: bool = T
     assert component, f"Element has no components in plane {plane}"
     plot_component(component, plot_impedance=plot_impedance, plot_wake=plot_wake, start=start, stop=stop,
                    points=points, step_size=step_size, plot_real=plot_real, plot_imag=plot_imag)
+
+
+def plot_component_impedance(component: Component, logscale_x: bool = True, logscale_y: bool = True,
+                             points: int = 10000, start=MIN_FREQ, stop=MAX_FREQ) -> None:
+    fig: plt.Figure = plt.figure()
+    ax: plt.Axes = fig.add_subplot(111)
+    fs, impedances = component.impedance_to_array(points)
+    reals, imags = impedances.real, impedances.imag
+    ax.plot(fs, reals, label='real')
+    ax.plot(fs, imags, label='imag')
+
+    if logscale_x:
+        ax.set_xscale('log')
+
+    if logscale_y:
+        ax.set_yscale('log')
+
+    plt.legend()
+    plt.show()
+
+
+def plot_component_wake(component: Component, logscale_x: bool = True, logscale_y: bool = True,
+                        points: int = 10000, start=MIN_TIME, stop=MAX_TIME) -> None:
+    fig: plt.Figure = plt.figure()
+    ax: plt.Axes = fig.add_subplot(111)
+    ts, wakes = component.wake_to_array(points)
+    reals, imags = wakes.real, wakes.imag
+    ax.plot(ts, reals, label='real')
+    ax.plot(ts, imags, label='imag')
+
+    if logscale_x:
+        ax.set_xscale('log')
+
+    if logscale_y:
+        ax.set_yscale('log')
+
+    plt.legend()
+    plt.show()
+
+
+def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
+                                start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 10000,
+                                freq_scale: str = 'log', time_scale: str = 'log') -> None:
+    # TODO: use roi's to generate grid
+    fs = np.geomspace(start_freq, stop_freq, points)
+    ts = np.geomspace(start_time, stop_time, points)
+
+    all_tags = set([e.tag for e in budget.elements])
+    elements: Dict[str, Union[int, Element]] = defaultdict(int)
+
+    for element in budget.elements:
+        elements[element.tag] += element
+
+    components_defined_for_tag: Dict[str, set[str]] = dict()
+    all_type_strings = set()
+    for tag, element in elements.items():
+        components_defined_for_tag[tag] = {c.get_shorthand_type() for c in element.components}
+        all_type_strings.update(components_defined_for_tag[tag])
+
+    tags = list(all_tags)
+    cumulative_elements: List[Element] = []
+    defined_type_strings: List[set] = []
+    current_defined = set()
+    current_element = 0
+    for tag in tags:
+        new_element = current_element + elements[tag]
+        current_defined = current_defined.union(components_defined_for_tag[tag])
+        defined_type_strings.append(current_defined)
+        cumulative_elements.append(new_element)
+        current_element = new_element
+
+    for type_string in all_type_strings:
+        wakes = np.asarray([np.zeros(shape=ts.shape)])
+        real_impedances = np.asarray([np.zeros(shape=fs.shape)])
+        imag_impedances = np.asarray([np.zeros(shape=fs.shape)])
+        for i, element in enumerate(cumulative_elements):
+            if type_string not in defined_type_strings[i]:
+                wakes = np.vstack((wakes, wakes[-1]))
+                real_impedances = np.vstack((real_impedances, real_impedances[-1]))
+                imag_impedances = np.vstack((imag_impedances, imag_impedances[-1]))
+                continue
+
+            component = [c for c in element.components if c.get_shorthand_type() == type_string][0]
+            if component.wake is not None:
+                array = component.wake(ts)
+                wakes = np.vstack((wakes, array))
+            else:
+                wakes = np.vstack((wakes, wakes[-1]))
+
+            if component.impedance is not None:
+                impedances = component.impedance(fs)
+                real_impedances = np.vstack((real_impedances, impedances.real))
+                imag_impedances = np.vstack((imag_impedances, impedances.imag))
+            else:
+                real_impedances = np.vstack((real_impedances, real_impedances[-1]))
+                imag_impedances = np.vstack((imag_impedances, imag_impedances[-1]))
+            print(real_impedances)
+
+        titles = (f'Re[Z] contribution - {type_string}',
+                  f'Im[Z] contribution - {type_string}',
+                  f'Wake contribution - {type_string}')
+
+        for i, (array, xs, title) in enumerate(zip((real_impedances, imag_impedances, wakes),
+                                                   (fs, fs, ts), titles)):
+            if sum(array[-1]) == 0:
+                continue
+
+            array = np.divide(array, array[-1])
+
+            fig: plt.Figure = plt.figure()
+            ax: plt.Axes = fig.add_subplot(111)
+            for j in range(len(all_tags) - 1, -1, -1):
+                ax.fill_between(xs, array[j], array[j + 1], label=tags[j])
+
+            ax.set_xscale(time_scale if i == 2 else freq_scale)
+            ax.set_ylim(0, 1)
+            ax.set_xlim(start_time if i == 2 else start_freq, stop_time if i == 2 else stop_freq)
+            plt.title(title)
+            plt.legend()
+            plt.show()
