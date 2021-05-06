@@ -58,13 +58,16 @@ class Component:
         a Fourier transform.
         :return: Nothing
         """
-        # If the object already has a wake function, there is no need to generate it.
-        if self.wake:
-            pass
-        # In order to generate a wake function, we need to make sure the impedance function is defined.
-        assert self.impedance, "Tried to generate wake from impedance, but impedance is not defined."
+        # # If the object already has a wake function, there is no need to generate it.
+        # if self.wake:
+        #     pass
+        # # In order to generate a wake function, we need to make sure the impedance function is defined.
+        # assert self.impedance, "Tried to generate wake from impedance, but impedance is not defined."
+        #
+        # raise NotImplementedError
 
-        raise NotImplementedError
+        # Temporary solution to avoid crashes
+        return lambda x: 0
 
     def generate_impedance_from_wake(self) -> None:
         """
@@ -72,13 +75,15 @@ class Component:
         a Fourier transform.
         :return: Nothing
         """
-        # If the object already has an impedance function, there is no need to generate it.
-        if self.impedance:
-            pass
-        # In order to generate an impedance function, we need to make sure the wake function is defined.
-        assert self.wake, "Tried to generate impedance from wake, but wake is not defined."
+        # # If the object already has an impedance function, there is no need to generate it.
+        # if self.impedance:
+        #     pass
+        # # In order to generate an impedance function, we need to make sure the wake function is defined.
+        # assert self.wake, "Tried to generate impedance from wake, but wake is not defined."
+        #
+        # raise NotImplementedError
 
-        raise NotImplementedError
+        return lambda x: 0
 
     def is_compatible(self, other: Component) -> bool:
         """
@@ -121,14 +126,21 @@ class Component:
             if (not left) and (not right):
                 sums.append(None)
             else:
-                # Generates the missing function for the addend which is missing it
-                if not left:
-                    [self.generate_impedance_from_wake, self.generate_wake_from_impedance][len(sums)]()
-                elif not right:
-                    [other.generate_impedance_from_wake, other.generate_wake_from_impedance][len(sums)]()
+                # # Generates the missing function for the addend which is missing it
+                # if not left:
+                #     [self.generate_impedance_from_wake, self.generate_wake_from_impedance][len(sums)]()
+                # elif not right:
+                #     [other.generate_impedance_from_wake, other.generate_wake_from_impedance][len(sums)]()
+                #
 
-                # Appends the sum of the functions of the two addends to the list "sums"
-                sums.append(lambda x, l=left, r=right: l(x) + r(x))
+                # TODO: Temporary fix until Fourier transform implemented
+                if not left:
+                    sums.append(right)
+                elif not right:
+                    sums.append(left)
+                else:
+                    # Appends the sum of the functions of the two addends to the list "sums"
+                    sums.append(lambda x, l=left, r=right: l(x) + r(x))
 
         # Initializes and returns a new Component
         return Component(sums[0], sums[1], self.plane, self.source_exponents, self.test_exponents,
@@ -248,6 +260,9 @@ class Component:
     def impedance_to_array(self, points: int, start: float = MIN_FREQ, stop: float = MAX_FREQ,
                            precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         rough_points = points / (1 + precision_factor)
+        if len(self.f_rois) == 0:
+            xs = np.geomspace(start, stop, points)
+            return xs, self.impedance(xs)
         fine_points_per_roi = int((points - rough_points) / len(self.f_rois))
         intervals = [np.linspace(i, f, fine_points_per_roi) for i, f in self.f_rois if (i >= start and f <= stop)]
         if len(intervals) > 1:
@@ -264,6 +279,10 @@ class Component:
     def wake_to_array(self, points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         rough_points = points / (1 + precision_factor)
+        if len(self.z_rois) == 0:
+            xs = np.geomspace(start, stop, points)
+            return xs, self.wake(xs)
+
         fine_points_per_roi = int((points - rough_points) / len(self.z_rois))
         rois = np.concatenate(
             (np.linspace(i, f, fine_points_per_roi) for i, f in self.z_rois if (i >= start and f <= stop)))

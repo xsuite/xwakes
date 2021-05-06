@@ -350,6 +350,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
                            "2: Use old values (recommended)\n"
                            "Your choice: ")
             if choice == '2':
+                name = hashmap[input_hash]
                 read_ready = True
 
     if not read_ready:
@@ -524,6 +525,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
                     print(f"Another element, '{hashmap[ih]}', has previously been computed with the exact same "
                           f"parameters as '{names[i]}'. These computed values will be re-used to construct the new "
                           f"element.")
+                    names[i] = hashmap[ih]
                     read_ready[i] = True
 
     elements = Parallel(n_jobs=-1, prefer='threads')(delayed(_generate_iw2d_element_async)(
@@ -604,7 +606,10 @@ def _verify_iw2d_binary_directory(ignore_missing_files: bool = False) -> None:
 
 
 def load_longitudinal_impedance_datafile(path: Union[str, Path]) -> Component:
-    data = np.loadtxt(path, delimiter="\t", skiprows=1)
+    try:
+        data = np.loadtxt(path, delimiter="\t", skiprows=1)
+    except ValueError:
+        data = np.loadtxt(path, delimiter=" ", skiprows=1)
     fs = data[:, 0]
     zs = data[:, 1] + 1j * data[:, 2]
     func = interp1d(x=fs, y=zs, kind='linear', assume_sorted=True)
@@ -612,7 +617,10 @@ def load_longitudinal_impedance_datafile(path: Union[str, Path]) -> Component:
 
 
 def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Component, Component, Component, Component]:
-    data = np.loadtxt(path, delimiter="\t", skiprows=1)
+    try:
+        data = np.loadtxt(path, delimiter="\t", skiprows=1)
+    except ValueError:
+        data = np.loadtxt(path, delimiter=" ", skiprows=1)
     fs = data[:, 0]
     zs = [data[:, 2 * i + 1] + 1j * data[:, 2 * i + 2] for i in range(4)]
     components = tuple()
@@ -628,7 +636,10 @@ def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Componen
 
 
 def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
-    data = np.loadtxt(path, delimiter="\t", skiprows=0)
+    try:
+        data = np.loadtxt(path, delimiter="\t", skiprows=0)
+    except ValueError:
+        data = np.loadtxt(path, delimiter=" ", skiprows=0)
     ts = data[:, 0]
     ws = data[:, 1] * 1e15
     func = interp1d(x=ts, y=ws, kind='linear', assume_sorted=True)
@@ -636,7 +647,10 @@ def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
 
 
 def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Component, Component, Component]:
-    data = np.loadtxt(path, delimiter="\t", skiprows=0)
+    try:
+        data = np.loadtxt(path, delimiter="\t", skiprows=0)
+    except ValueError:
+        data = np.loadtxt(path, delimiter=" ", skiprows=0)
     ts = data[:, 0]
     ws = [data[:, i] * 1e15 for i in range(1, 5)]
     components = tuple()

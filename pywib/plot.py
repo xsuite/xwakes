@@ -2,6 +2,10 @@ from pywib.component import Component
 from pywib.element import Element
 from pywib.budget import Budget
 from pywib.parameters import *
+from pywib.interface import create_iw2d_input_from_yaml, create_element_using_iw2d
+from pathlib import Path
+from pywib.utilities import create_resonator_component
+
 
 from typing import List, Dict, Union
 from collections import defaultdict
@@ -86,16 +90,21 @@ def plot_component_impedance(component: Component, logscale_x: bool = True, logs
                              points: int = 10000, start=MIN_FREQ, stop=MAX_FREQ) -> None:
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
-    fs, impedances = component.impedance_to_array(points)
+    fs = np.geomspace(start, stop, points)
+    impedances = component.impedance(fs)
     reals, imags = impedances.real, impedances.imag
     ax.plot(fs, reals, label='real')
     ax.plot(fs, imags, label='imag')
+    ax.set_xlim(start, stop)
 
     if logscale_x:
         ax.set_xscale('log')
 
     if logscale_y:
         ax.set_yscale('log')
+
+    ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('Z [Ohm / m]')
 
     plt.legend()
     plt.show()
@@ -105,10 +114,12 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
                         points: int = 10000, start=MIN_TIME, stop=MAX_TIME) -> None:
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
-    ts, wakes = component.wake_to_array(points)
-    reals, imags = wakes.real, wakes.imag
-    ax.plot(ts, reals, label='real')
-    ax.plot(ts, imags, label='imag')
+    ts = np.geomspace(start, stop, points)
+    ax.plot(ts, component.wake(ts))
+    ax.set_xlim(start, stop)
+
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Wake [V / C * m]')
 
     if logscale_x:
         ax.set_xscale('log')
@@ -116,7 +127,6 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
     if logscale_y:
         ax.set_yscale('log')
 
-    plt.legend()
     plt.show()
 
 
@@ -176,7 +186,6 @@ def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, st
             else:
                 real_impedances = np.vstack((real_impedances, real_impedances[-1]))
                 imag_impedances = np.vstack((imag_impedances, imag_impedances[-1]))
-            print(real_impedances)
 
         titles = (f'Re[Z] contribution - {type_string}',
                   f'Im[Z] contribution - {type_string}',
