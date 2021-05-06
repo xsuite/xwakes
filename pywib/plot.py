@@ -1,8 +1,11 @@
+import asyncio
+import genericpath
+
 from pywib.component import Component
 from pywib.element import Element
 from pywib.budget import Budget
 from pywib.parameters import *
-from pywib.interface import create_iw2d_input_from_yaml, create_element_using_iw2d
+from pywib.interface import create_iw2d_input_from_yaml, create_element_using_iw2d, create_multiple_elements_using_iw2d
 from pathlib import Path
 from pywib.utilities import create_resonator_component
 
@@ -87,7 +90,7 @@ def plot_element_in_plane(element: Element, plane: str, plot_impedance: bool = T
 
 
 def plot_component_impedance(component: Component, logscale_x: bool = True, logscale_y: bool = True,
-                             points: int = 10000, start=MIN_FREQ, stop=MAX_FREQ) -> None:
+                             points: int = 10000, start=MIN_FREQ, stop=MAX_FREQ, title=None) -> None:
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
     fs = np.geomspace(start, stop, points)
@@ -96,6 +99,8 @@ def plot_component_impedance(component: Component, logscale_x: bool = True, logs
     ax.plot(fs, reals, label='real')
     ax.plot(fs, imags, label='imag')
     ax.set_xlim(start, stop)
+    if title:
+        plt.title(title)
 
     if logscale_x:
         ax.set_xscale('log')
@@ -209,3 +214,12 @@ def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, st
             plt.title(title)
             plt.legend()
             plt.show()
+
+
+def plot_total_impedance_and_wake(budget: Budget, logscale_y=True):
+    element = sum(budget.elements)
+    for component in element.components:
+        if component.impedance:
+            plot_component_impedance(component, logscale_y=logscale_y, title=f"Total impedance - {component.get_shorthand_type()}")
+        if component.wake:
+            plot_component_wake(component, logscale_y=logscale_y)
