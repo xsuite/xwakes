@@ -605,11 +605,21 @@ def _verify_iw2d_binary_directory(ignore_missing_files: bool = False) -> None:
             f"'{bin_path}'."
 
 
+def _read_cst_data(filename: Union[str, Path]) -> np.ndarray:
+    with open(filename, 'r') as f:
+        lines = f.readlines()
+    data = []
+    for l in lines:
+        try:
+            data.append([float(e) for e in l.strip().split()])
+        except ValueError:
+            pass
+
+    return np.asarray(data)
+
+
 def load_longitudinal_impedance_datafile(path: Union[str, Path]) -> Component:
-    try:
-        data = np.loadtxt(path, delimiter="\t", skiprows=1)
-    except ValueError:
-        data = np.loadtxt(path, delimiter=" ", skiprows=1)
+    data = _read_cst_data(path)
     fs = data[:, 0]
     zs = data[:, 1] + 1j * data[:, 2]
     func = interp1d(x=fs, y=zs, kind='linear', assume_sorted=True)
@@ -617,10 +627,7 @@ def load_longitudinal_impedance_datafile(path: Union[str, Path]) -> Component:
 
 
 def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Component, Component, Component, Component]:
-    try:
-        data = np.loadtxt(path, delimiter="\t", skiprows=1)
-    except ValueError:
-        data = np.loadtxt(path, delimiter=" ", skiprows=1)
+    data = _read_cst_data(path)
     fs = data[:, 0]
     zs = [data[:, 2 * i + 1] + 1j * data[:, 2 * i + 2] for i in range(4)]
     components = tuple()
@@ -636,10 +643,7 @@ def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Componen
 
 
 def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
-    try:
-        data = np.loadtxt(path, delimiter="\t", skiprows=0)
-    except ValueError:
-        data = np.loadtxt(path, delimiter=" ", skiprows=0)
+    data = _read_cst_data()
     ts = data[:, 0]
     ws = data[:, 1] * 1e15
     func = interp1d(x=ts, y=ws, kind='linear', assume_sorted=True)
@@ -647,10 +651,7 @@ def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
 
 
 def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Component, Component, Component]:
-    try:
-        data = np.loadtxt(path, delimiter="\t", skiprows=0)
-    except ValueError:
-        data = np.loadtxt(path, delimiter=" ", skiprows=0)
+    data = _read_cst_data(path)
     ts = data[:, 0]
     ws = [data[:, i] * 1e15 for i in range(1, 5)]
     components = tuple()
