@@ -177,7 +177,7 @@ class Component:
         # Initializes and returns a new Component with attributes like self, apart from the scaled functions
         return Component((lambda x: scalar * self.impedance(x)) if self.impedance else None,
                          (lambda x: scalar * self.wake(x)) if self.wake else None, self.plane,
-                         self.source_exponents, self.test_exponents)
+                         self.source_exponents, self.test_exponents, self.name, self.f_rois, self.t_rois)
 
     def __rmul__(self, scalar: complex) -> Component:
         """
