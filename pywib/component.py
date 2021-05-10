@@ -270,7 +270,7 @@ class Component:
         interest. If =0, the frequency grid will ignore the intervals in f_rois. If =1, the points will be distributed
         1:1 between the rough grid and the fine grid. In general, =n means that there will be n times more points
         in the fine grid than in the rough grid.
-        :return:
+        :return: A tuple of two numpy arrays with shape (points,) giving the frequency grid and impedances respectively
         """
         rough_points = points / (1 + precision_factor)
         if len(self.f_rois) == 0:
