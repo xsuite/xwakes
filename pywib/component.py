@@ -149,7 +149,7 @@ class Component:
 
     def __radd__(self, other: Union[int, Component]) -> Component:
         """
-        Implements the __rad__ method for the Component class. This is only done to facilitate the syntactically
+        Implements the __radd__ method for the Component class. This is only done to facilitate the syntactically
         practical use of the sum() method for Components. sum(iterable) works by adding all of the elements of the
         iterable to 0 sequentially. Thus, the behavior of the initial 0 + iterable[0] needs to be defined. In the case
         that the left addend of any addition involving a Component is not itself a Component, the resulting sum
