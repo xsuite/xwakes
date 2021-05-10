@@ -19,6 +19,10 @@ class Budget:
     def elements(self):
         return self.__elements
 
+    @property
+    def model(self):
+        return sum(self.__elements)
+
     def append_element(self, element: Element):
         if self.__lumped_betas is not None:
             element = element.changed_betas(*self.__lumped_betas)
