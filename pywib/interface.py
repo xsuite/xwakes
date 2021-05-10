@@ -115,7 +115,7 @@ def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[
     y = data[:, 1] + (1j * data[:, 2] if data.shape[1] == 3 else 0)
 
     # Creates a callable impedance/wake function from the data array
-    func = interp1d(x=x, y=y, kind='linear', assume_sorted=True)
+    func = interp1d(x=x, y=y, kind='linear', assume_sorted=True, bounds_error=False, fill_value=(0., 0.))
 
     # Initializes and returns a component based on the parameters provided
     return Component(impedance=(func if is_impedance else None),
@@ -622,7 +622,7 @@ def load_longitudinal_impedance_datafile(path: Union[str, Path]) -> Component:
     data = _read_cst_data(path)
     fs = data[:, 0]
     zs = data[:, 1] + 1j * data[:, 2]
-    func = interp1d(x=fs, y=zs, kind='linear', assume_sorted=True)
+    func = interp1d(x=fs, y=zs, kind='linear', assume_sorted=True, bounds_error=False, fill_value=(0., 0.))
     return Component(impedance=func, plane='z', source_exponents=(0, 0), test_exponents=(0, 0))
 
 
@@ -633,7 +633,7 @@ def load_transverse_impedance_datafile(path: Union[str, Path]) -> Tuple[Componen
     components = tuple()
     for i, z in enumerate(zs):
         exponents = [int(j == i) for j in range(4)]
-        func = interp1d(x=fs, y=z, kind='linear', assume_sorted=True)
+        func = interp1d(x=fs, y=z, kind='linear', assume_sorted=True, bounds_error=False, fill_value=(0., 0.))
         components += (Component(impedance=func,
                                  plane='x' if i % 2 == 0 else 'y',
                                  source_exponents=(exponents[0], exponents[1]),
@@ -646,7 +646,7 @@ def load_longitudinal_wake_datafile(path: Union[str, Path]) -> Component:
     data = _read_cst_data(path)
     ts = data[:, 0]
     ws = data[:, 1] * 1e15
-    func = interp1d(x=ts, y=ws, kind='linear', assume_sorted=True)
+    func = interp1d(x=ts, y=ws, kind='linear', assume_sorted=True, bounds_error=False, fill_value=(0., 0.))
     return Component(wake=func, plane='z', source_exponents=(0, 0), test_exponents=(0, 0))
 
 
@@ -657,7 +657,7 @@ def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Co
     components = tuple()
     for i, w in enumerate(ws):
         exponents = [int(j == i) for j in range(4)]
-        func = interp1d(x=ts, y=w, kind='linear', assume_sorted=True)
+        func = interp1d(x=ts, y=w, kind='linear', assume_sorted=True, bounds_error=False, fill_value=(0., 0.))
         components += (Component(wake=func,
                                  plane='x' if i % 2 == 0 else 'y',
                                  source_exponents=(exponents[0], exponents[1]),
