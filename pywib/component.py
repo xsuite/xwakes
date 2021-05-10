@@ -102,10 +102,10 @@ class Component:
 
     def __add__(self, other: Component) -> Component:
         """
-        Defines the addition operator for two objects of the class Component
+        Defines the addition operator for two Components
         :param self: The left addend
         :param other: The right addend
-        :return: A new object of the class Component whose impedance and wake functions are the sums
+        :return: A new Component whose impedance and wake functions are the sums
         of the respective functions of the two addends.
         """
         # Enforce that the two addends are in the same plane
