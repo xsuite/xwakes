@@ -10,7 +10,7 @@ import sortednp as snp
 
 class Component:
     """
-    A datastructure representing the impedance- and wake functions of some Component in a specified plane.
+    A data structure representing the impedance- and wake functions of some Component in a specified plane.
     """
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None, plane: str = '',
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
