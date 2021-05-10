@@ -239,7 +239,7 @@ class Component:
         2. The resulting values from evaluating the impedance functions of the two components respectively for 50
         points between 1 and 10000 all need to be close within some given tolerance. The same has to hold for the wake
         function.
-        This somewhat approximated empirical approach to the equality comparator aims to compensate for small
+        This somewhat approximated numerical approach to the equality comparator aims to compensate for small
         numerical/precision errors accumulated for two Components which have taken different "paths" to what should
         analytically be identical Components.
         :param other: The right hand side of the equality comparator
