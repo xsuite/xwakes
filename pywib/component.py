@@ -67,7 +67,7 @@ class Component:
         # raise NotImplementedError
 
         # Temporary solution to avoid crashes
-        return lambda x: 0
+        self.wake = lambda x: 0
 
     def generate_impedance_from_wake(self) -> None:
         """
@@ -83,7 +83,8 @@ class Component:
         #
         # raise NotImplementedError
 
-        return lambda x: 0
+        # Temporary solution to avoid crashes
+        self.impedance = lambda x: 0
 
     def is_compatible(self, other: Component) -> bool:
         """
