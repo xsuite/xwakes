@@ -15,7 +15,7 @@ class Component:
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None, plane: str = '',
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
-                 z_rois: Optional[List[Tuple[float, float]]] = None):
+                 t_rois: Optional[List[Tuple[float, float]]] = None):
         """
         The initialization function for the Component class.
         :param impedance: A callable function representing the impedance function of the Component. Can be undefined if
@@ -50,7 +50,7 @@ class Component:
         self.power_x = (source_exponents[0] + test_exponents[0] + (plane == 'x')) / 2
         self.power_y = (source_exponents[1] + test_exponents[1] + (plane == 'y')) / 2
         self.f_rois = f_rois if f_rois else []
-        self.z_rois = z_rois if z_rois else []
+        self.t_rois = t_rois if t_rois else []
 
     def generate_wake_from_impedance(self) -> None:
         """
@@ -145,7 +145,7 @@ class Component:
 
         # Initializes and returns a new Component
         return Component(sums[0], sums[1], self.plane, self.source_exponents, self.test_exponents,
-                         f_rois=self.f_rois + other.f_rois, z_rois=self.z_rois + other.z_rois)
+                         f_rois=self.f_rois + other.f_rois, t_rois=self.t_rois + other.t_rois)
 
     def __radd__(self, other: Union[int, Component]) -> Component:
         """
@@ -215,7 +215,7 @@ class Component:
                f"Impedance function:\t{'DEFINED' if self.impedance else 'UNDEFINED'}\n" \
                f"Wake function:\t\t{'DEFINED' if self.wake else 'UNDEFINED'}\n" \
                f"Impedance-regions of interest: {', '.join(str(x) for x in self.f_rois)}\n" \
-               f"Wake-regions of interest: {', '.join(str(x) for x in self.z_rois)}"
+               f"Wake-regions of interest: {', '.join(str(x) for x in self.t_rois)}"
 
     def __lt__(self, other: Component) -> bool:
         """
@@ -292,13 +292,13 @@ class Component:
     def wake_to_array(self, points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         rough_points = points / (1 + precision_factor)
-        if len(self.z_rois) == 0:
+        if len(self.t_rois) == 0:
             xs = np.geomspace(start, stop, points)
             return xs, self.wake(xs)
 
-        fine_points_per_roi = int((points - rough_points) / len(self.z_rois))
+        fine_points_per_roi = int((points - rough_points) / len(self.t_rois))
         rois = np.concatenate(
-            (np.linspace(i, f, fine_points_per_roi) for i, f in self.z_rois if (i >= start and f <= stop)))
+            (np.linspace(i, f, fine_points_per_roi) for i, f in self.t_rois if (i >= start and f <= stop)))
         rough_points = points - rois.shape[0]
         xs = snp.merge(rois, np.geomspace(start, stop, rough_points))
 
