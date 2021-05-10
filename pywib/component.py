@@ -319,6 +319,21 @@ class Component:
     def discretize(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
                    time_start: float = MIN_TIME, time_stop: float = MAX_TIME, freq_precision_factor: float = FREQ_P_FACTOR,
                    time_precision_factor: float = TIME_P_FACTOR) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
+        """
+        Combines the two discretization-functions in order to fully discretize the wake and impedance of the object
+        as specified by a number of parameters.
+        :param freq_points: The total number of frequency/impedance points
+        :param time_points: The total number of time/wake points
+        :param freq_start: The lowest frequency in the frequency grid
+        :param freq_stop: The highest frequency in the frequency grid
+        :param time_start: The lowest time in the time grid
+        :param time_stop: The highest time in the time grid
+        :param freq_precision_factor: The ratio of points in the fine frequency grid
+        (#points in frequency ROIs / rough frequency points)
+        :param time_precision_factor: The ratio of points in the fine time grid
+        (#points in time ROIs / rough time points)
+        :return: A tuple of two tuples, containing the results of impedance_to_array and wake_to_array respectively
+        """
         return (self.impedance_to_array(freq_points, freq_start, freq_stop, freq_precision_factor),
                 self.wake_to_array(time_points, time_start, time_stop, time_precision_factor))
 
