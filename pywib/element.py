@@ -116,7 +116,8 @@ class Element:
         # Component comparisons
         return Element(self.length, new_beta_x, new_beta_y,
                        sorted(list(rotated_components.values()),
-                              key=lambda x: (x.plane, x.source_exponents, x.test_exponents)))
+                              key=lambda x: (x.plane, x.source_exponents, x.test_exponents)),
+                       self.name, self.tag, self.description)
 
     def is_compatible(self, other: Element, verbose: bool = False) -> bool:
         """
@@ -249,7 +250,7 @@ class Element:
         # Component is multiplied by the scalar
         new_components = [c * scalar for c in self.components]
         # Initializes and returns a new Element with the arguments defined above
-        return Element(new_length, self.beta_x, self.beta_y, new_components)
+        return Element(new_length, self.beta_x, self.beta_y, new_components, self.name, self.tag, self.description)
 
     def __rmul__(self, scalar: float) -> Element:
         """
