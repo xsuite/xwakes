@@ -291,6 +291,18 @@ class Component:
 
     def wake_to_array(self, points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Produces a time grid based on the t_rois attribute of the component and evaluates the component's
+        wake function at these time points.
+        :param points: The total number of data points to be generated
+        :param start: The lowest time in the desired time grid
+        :param stop: The highest time in the desired time grid
+        :param precision_factor: A number indicating the ratio of points which should be placed within the regions of
+        interest. If =0, the time grid will ignore the intervals in t_rois. If =1, the points will be distributed
+        1:1 between the rough grid and the fine grid. In general, =n means that there will be n times more points
+        in the fine grid than in the rough grid.
+        :return: A tuple of two numpy arrays with shape (points,) giving the time grid and wakes respectively
+        """
         rough_points = points / (1 + precision_factor)
         if len(self.t_rois) == 0:
             xs = np.geomspace(start, stop, points)
