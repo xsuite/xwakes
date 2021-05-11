@@ -295,3 +295,10 @@ class Element:
                f"Beta_x:\t\t{self.beta_x}\n" \
                f"Beta_y:\t\t{self.beta_y}\n" \
                f"#components:\t{len(self.components)}"
+
+    def get_component(self, type_string: str):
+        for comp in self.components:
+            if comp.get_shorthand_type() == type_string:
+                return comp
+
+        raise KeyError(f"'{self.name}' has no component of the type '{type_string}'.")
