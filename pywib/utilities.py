@@ -2,10 +2,9 @@ from pywib.component import Component
 from pywib.element import Element
 
 from yaml import load, SafeLoader
-from math import exp, sqrt, pi, sin, cos
 from typing import Tuple, Dict
 
-from numpy import vectorize
+from numpy import vectorize, sqrt, exp, pi, sin, cos
 
 
 def string_to_params(name: str, include_is_impedance: bool = True):
