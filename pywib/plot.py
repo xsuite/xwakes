@@ -126,6 +126,9 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
     ax.set_xlabel('Time [s]')
     ax.set_ylabel('Wake [V / C * m]')
 
+    if title:
+        plt.title(title)
+
     if logscale_x:
         ax.set_xscale('log')
 
