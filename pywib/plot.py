@@ -10,7 +10,7 @@ from pathlib import Path
 from pywib.utilities import create_resonator_component
 
 
-from typing import List, Dict, Union
+from typing import List, Dict, Union, Optional
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -219,10 +219,17 @@ def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, st
             plt.show()
 
 
-def plot_total_impedance_and_wake(budget: Budget, logscale_y=True):
+def plot_total_impedance_and_wake(budget: Budget, logscale_y=True, start_freq: float = MIN_FREQ,
+                                  stop_freq: float = MAX_FREQ, start_time: float = MIN_TIME,
+                                  stop_time: float = MAX_TIME, points: int = 1000,
+                                  logscale_freq: bool = True, logscale_time: bool = True):
     element = sum(budget.elements)
     for component in element.components:
         if component.impedance:
-            plot_component_impedance(component, logscale_y=logscale_y, title=f"Total impedance - {component.get_shorthand_type()}")
+            plot_component_impedance(component, logscale_y=logscale_y,
+                                     title=f"Total impedance - {component.get_shorthand_type()}", start=start_freq,
+                                     stop=stop_freq, points=points, logscale_x=logscale_freq)
         if component.wake:
-            plot_component_wake(component, logscale_y=logscale_y)
+            plot_component_wake(component, logscale_y=logscale_y,
+                                title=f"Total wake - {component.get_shorthand_type()}", start=start_time,
+                                stop=stop_time, points=points, logscale_x=logscale_time)
