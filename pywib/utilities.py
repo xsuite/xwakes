@@ -73,17 +73,17 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
     :param f_r: the resonance frequency of the given component of the resonator
     :return: A component object of a resonator, specified by the input arguments
     """
-    root_term = sqrt(1 - 1 / (4 * q ** 2))
+    root_term = sqrt(1 - 1 / (4 * q ** 2) + 0J)
     omega_r = 2 * pi * f_r
     if plane == 'z':
         impedance = lambda f: r / (1 - 1j * q * (f_r / f - f / f_r))
         omega_bar = omega_r * root_term
         alpha = omega_r / (2 * q)
-        wake = lambda t: omega_r * r * exp(-alpha * t) * (
-                    cos(omega_bar * t) - alpha * sin(omega_bar * t) / omega_bar) / q
+        wake = lambda t: (omega_r * r * exp(-alpha * t) * (
+                    cos(omega_bar * t) - alpha * sin(omega_bar * t) / omega_bar) / q).real
     else:
         impedance = lambda f: (f_r * r) / (f * (1 - 1j * q * (f_r / f - f / f_r)))
-        wake = lambda t: omega_r * r * exp(-omega_r * t / (2 * q)) * sin(omega_r * root_term * t) / (q * root_term)
+        wake = lambda t: (omega_r * r * exp(-omega_r * t / (2 * q)) * sin(omega_r * root_term * t) / (q * root_term)).real
 
     d = f_r / (2 * q)
     # TODO: add ROI(s) for wake
