@@ -90,7 +90,7 @@ def plot_element_in_plane(element: Element, plane: str, plot_impedance: bool = T
 
 
 def plot_component_impedance(component: Component, logscale_x: bool = True, logscale_y: bool = True,
-                             points: int = 10000, start=MIN_FREQ, stop=MAX_FREQ, title=None) -> None:
+                             points: int = 1000, start=MIN_FREQ, stop=MAX_FREQ, title: Optional[str] = None) -> None:
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
     fs = np.geomspace(start, stop, points)
@@ -116,7 +116,7 @@ def plot_component_impedance(component: Component, logscale_x: bool = True, logs
 
 
 def plot_component_wake(component: Component, logscale_x: bool = True, logscale_y: bool = True,
-                        points: int = 10000, start=MIN_TIME, stop=MAX_TIME) -> None:
+                        points: int = 1000, start=MIN_TIME, stop=MAX_TIME, title: Optional[str] = None) -> None:
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
     ts = np.geomspace(start, stop, points)
@@ -136,7 +136,7 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
 
 
 def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
-                                start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 10000,
+                                start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 1000,
                                 freq_scale: str = 'log', time_scale: str = 'log') -> None:
     # TODO: use roi's to generate grid
     fs = np.geomspace(start_freq, stop_freq, points)
