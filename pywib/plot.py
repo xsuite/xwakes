@@ -3,7 +3,7 @@ import genericpath
 
 from pywib.component import Component
 from pywib.element import Element
-from pywib.budget import Budget
+from pywib.model import Model
 from pywib.parameters import *
 from pywib.interface import create_iw2d_input_from_yaml, create_element_using_iw2d, create_multiple_elements_using_iw2d
 from pathlib import Path
@@ -138,17 +138,17 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
     plt.show()
 
 
-def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
+def generate_contribution_plots(model: Model, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
                                 start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 1000,
                                 freq_scale: str = 'log', time_scale: str = 'log', absolute: bool = False) -> None:
     # TODO: use roi's to generate grid
     fs = np.geomspace(start_freq, stop_freq, points)
     ts = np.geomspace(start_time, stop_time, points)
 
-    all_tags = set([e.tag for e in budget.elements])
+    all_tags = set([e.tag for e in model.elements])
     elements: Dict[str, Union[int, Element]] = defaultdict(int)
 
-    for element in budget.elements:
+    for element in model.elements:
         elements[element.tag] += element
 
     components_defined_for_tag: Dict[str, set[str]] = dict()
@@ -221,11 +221,11 @@ def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, st
             plt.show()
 
 
-def plot_total_impedance_and_wake(budget: Budget, logscale_y=True, start_freq: float = MIN_FREQ,
+def plot_total_impedance_and_wake(model: Model, logscale_y=True, start_freq: float = MIN_FREQ,
                                   stop_freq: float = MAX_FREQ, start_time: float = MIN_TIME,
                                   stop_time: float = MAX_TIME, points: int = 1000,
                                   logscale_freq: bool = True, logscale_time: bool = True):
-    element = sum(budget.elements)
+    element = sum(model.elements)
     for component in element.components:
         if component.impedance:
             plot_component_impedance(component, logscale_y=logscale_y,
