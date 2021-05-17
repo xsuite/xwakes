@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pywib.component import Component, Union
+from pywit.component import Component, Union
 
 from typing import List
 from collections import defaultdict

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pywib.parameters import *
+from pywit.parameters import *
 
 from typing import Optional, Callable, Tuple, Union, List
 

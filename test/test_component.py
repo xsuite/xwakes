@@ -1,6 +1,6 @@
-from pywib.component import Component
+from pywit.component import Component
 from test.test_common import functions
-from pywib.parameters import *
+from pywit.parameters import *
 
 from itertools import product
 from random import choice

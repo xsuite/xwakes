@@ -1,6 +1,6 @@
-from pywib.utilities import create_resonator_component, create_resonator_element
+from pywit.utilities import create_resonator_component, create_resonator_element
 from test.test_common import relative_error
-from pywib.parameters import *
+from pywit.parameters import *
 
 from typing import Dict
 from pathlib import Path

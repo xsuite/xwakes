@@ -7,7 +7,7 @@ import pathlib
 
 def _initialize_pywib_directory() -> None:
     home_path = pathlib.Path.home()
-    paths = [home_path.joinpath('pywib').joinpath(ext) for ext in ('config', 'IW2D/bin', 'IW2D/projects')]
+    paths = [home_path.joinpath('pywit').joinpath(ext) for ext in ('config', 'IW2D/bin', 'IW2D/projects')]
     for path in paths:
         makedirs(path, exist_ok=True)
     with open(pathlib.Path(paths[0]).joinpath('iw2d_settings.yaml'), 'w') as file:
@@ -29,7 +29,7 @@ class PostInstallCommand(install):
 
 
 setup(
-    name='pywib',
+    name='pywit',
     version='1.0.0',
     packages=find_packages(),
     url='https://gitlab.cern.ch/mrognlie/pywib',

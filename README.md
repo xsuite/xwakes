@@ -1,3 +1,3 @@
-# PyWIB
+# PyWIT
 
-Python Wake and Impedance Budget
+Python Wake and Impedance Toolbox

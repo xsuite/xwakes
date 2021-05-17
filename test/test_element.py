@@ -1,6 +1,6 @@
-from pywib.element import Element, Component
+from pywit.element import Element, Component
 from test.test_common import functions
-from pywib.parameters import *
+from pywit.parameters import *
 
 from typing import List
 from random import choice, uniform

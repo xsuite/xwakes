@@ -1,4 +1,4 @@
-from pywib.element import Element
+from pywit.element import Element
 
 from typing import List, Optional, Tuple
 

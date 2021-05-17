@@ -1,5 +1,5 @@
-from pywib.component import Component
-from pywib.element import Element
+from pywit.component import Component
+from pywit.element import Element
 
 from yaml import load, SafeLoader
 from typing import Tuple, Dict

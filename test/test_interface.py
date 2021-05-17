@@ -1,5 +1,5 @@
-from pywib.interface import import_data_iw2d, create_component_from_data
-from pywib.parameters import *
+from pywit.interface import import_data_iw2d, create_component_from_data
+from pywit.parameters import *
 
 from pathlib import Path
 
