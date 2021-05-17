@@ -140,7 +140,7 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
 
 def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
                                 start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 1000,
-                                freq_scale: str = 'log', time_scale: str = 'log') -> None:
+                                freq_scale: str = 'log', time_scale: str = 'log', absolute: bool = False) -> None:
     # TODO: use roi's to generate grid
     fs = np.geomspace(start_freq, stop_freq, points)
     ts = np.geomspace(start_time, stop_time, points)
@@ -204,7 +204,8 @@ def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, st
             if sum(array[-1]) == 0:
                 continue
 
-            array = np.divide(array, array[-1])
+            if not absolute:
+                array = np.divide(array, array[-1])
 
             fig: plt.Figure = plt.figure()
             ax: plt.Axes = fig.add_subplot(111)
@@ -212,7 +213,8 @@ def generate_contribution_plots(budget: Budget, start_freq: float = MIN_FREQ, st
                 ax.fill_between(xs, array[j], array[j + 1], label=tags[j])
 
             ax.set_xscale(time_scale if i == 2 else freq_scale)
-            ax.set_ylim(0, 1)
+            if not absolute:
+                ax.set_ylim(0, 1)
             ax.set_xlim(start_time if i == 2 else start_freq, stop_time if i == 2 else stop_freq)
             plt.title(title)
             plt.legend()
