@@ -1,11 +1,12 @@
 from pywit.component import Component
 from pywit.element import Element
+from pywit.interface import Layer
 
 from yaml import load, SafeLoader
 from typing import Tuple, Dict
 
-from numpy import vectorize, sqrt, exp, pi, sin, cos
-
+from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign
+import scipy.constants
 
 def string_to_params(name: str, include_is_impedance: bool = True):
     """
@@ -118,3 +119,42 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
         components.append(create_resonator_component(plane, exponents, rs[key], qs[key], fs[key]))
 
     return Element(length, beta_x, beta_y, components, tag=tag, description=description)
+
+
+def create_resistive_wall_component(plane: str, exponents: Tuple[int, int, int, int],
+                                    layer: Layer, radius: float) -> Component:
+    """
+    Creates a single component object modeling a resistive wall impedance/wake
+    Only longitudinal and transverse dipolar impedances are supported.
+    :param plane: the plane the component corresponds to
+    :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
+    :param layer: the chamber material, as a pywit Layer object
+    :param radius: the chamber radius in m
+    :return: A component object of a resistive wall, specified by the input arguments
+    """
+
+    c_light = scipy.constants.speed_of_light  # m s-1
+    free_space_impedance = scipy.constants.mu_0 * c_light
+
+    # Material properties required for the skin depth computation are derived from the input Layer attributes
+    material_resistivity = layer.dc_resistivity
+    material_relative_permeability = layer.magnetic_susceptibility
+    material_permeability = material_relative_permeability * scipy.constants.mu_0
+
+    # Create the skin depth as a function offrequency and layer properties
+    delta_skin = lambda f: (material_resistivity/ (2*pi*abs(f) * material_permeability)) ** (1/2)
+
+    # Longitudinal impedance and wake
+    if (plane == 'z' and exponents == (0, 0, 0, 0)):
+        impedance = lambda f: (1/2)* (1+sign(f)*1j) * material_resistivity / (pi * radius) * (1 / delta_skin(f))
+        wake = lambda t: - (c_light) / (2*pi*radius) * (free_space_impedance * material_resistivity/pi)**(1/2) * 1/(t**(1/2))
+    # Transverse dipolar impedance
+    elif (plane == 'x' and exponents == (1, 0, 0, 0)) or (plane == 'y' and exponents == (0, 1, 0, 0)):
+        impedance = lambda f: (c_light/(2*pi*f)) * (1+sign(f)*1j) * material_resistivity / (pi * radius**3) * (1 / delta_skin(f))
+        wake = lambda t: - (c_light) / (2*pi*radius**3) * (free_space_impedance * material_resistivity/pi)**(1/2) * 1/(t**(3/2))
+    else:
+        print("Warning: resistive wall impedance not implemented for component {}{}. Set to zero".format(plane, exponents))
+        impedance = lambda f: 0
+        wake = lambda f: 0
+
+    return Component(vectorize(impedance), vectorize(wake), plane, source_exponents=exponents[:2], test_exponents=exponents[2:])
