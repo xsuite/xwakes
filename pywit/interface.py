@@ -128,7 +128,7 @@ def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[
 @dataclass(frozen=True, eq=True)
 class Layer:
     # The distance in mm of the inner surface of the layer from the reference orbit
-    distance_to_center: float
+    thickness: float
     dc_resistivity: float
     resistivity_relaxation_time: float
     re_dielectric_constant: float
@@ -167,6 +167,7 @@ class IW2DInput:
 @dataclass(frozen=True, eq=True)
 class RoundIW2DInput(IW2DInput):
     layers: Tuple[Layer]
+    inner_layer_radius: float
     # (long, xdip, ydip, xquad, yquad)
     yokoya_factors: Tuple[int, int, int, int, int]
 
@@ -175,10 +176,12 @@ class RoundIW2DInput(IW2DInput):
 class FlatIW2DInput(IW2DInput):
     top_bottom_symmetry: bool
     top_layers: Tuple[Layer]
+    top_half_gap: float
     bottom_layers: Optional[Tuple[Layer]] = None
+    bottom_half_gap: Optional[float] = None
 
 
-def _iw2d_format_layer(layer: Layer, n: int, thickness: float) -> str:
+def _iw2d_format_layer(layer: Layer, n: int) -> str:
     """
     Formats the information describing a single layer into a string in accordance with IW2D standards.
     Intended only as a helper-function for create_iw2d_input_file.
@@ -192,7 +195,7 @@ def _iw2d_format_layer(layer: Layer, n: int, thickness: float) -> str:
             f"Layer {n} real part of dielectric constant:\t{layer.re_dielectric_constant}\n"
             f"Layer {n} magnetic susceptibility:\t{layer.magnetic_susceptibility}\n"
             f"Layer {n} relaxation frequency of permeability (MHz):\t{layer.permeability_relaxation_frequency}\n"
-            f"Layer {n} thickness in mm:\t{thickness}\n")
+            f"Layer {n} thickness in mm:\t{layer.thickness}\n")
 
 
 def _iw2d_format_freq_params(params: Sampling) -> str:
@@ -273,7 +276,7 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     layers = []
     if isinstance(iw2d_input, RoundIW2DInput):
         file.write(f"Number of layers:\t{len(iw2d_input.layers)}\n"
-                   f"Layer 1 inner radius in mm:\t{iw2d_input.layers[0].distance_to_center}\n")
+                   f"Layer 1 inner radius in mm:\t{iw2d_input.inner_layer_radius}\n")
         layers = iw2d_input.layers
     elif isinstance(iw2d_input, FlatIW2DInput):
         if iw2d_input.bottom_layers:
@@ -281,22 +284,18 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
                   "is enabled")
         file.write(f"Number of upper layers in the chamber wall:\t{len(iw2d_input.top_layers)}\n")
         if iw2d_input.top_layers:
-            file.write(f"Layer 1 inner half gap in mm:\t{iw2d_input.top_layers[0].distance_to_center}\n")
+            file.write(f"Layer 1 inner half gap in mm:\t{iw2d_input.top_half_gap}\n")
         layers = iw2d_input.top_layers
 
     for i, layer in enumerate(layers):
-        thickness = iw2d_input.layers[i + 1].distance_to_center - layer.distance_to_center \
-            if i < len(iw2d_input.layers) - 1 else 'Infinity'
-        file.write(_iw2d_format_layer(layer, i + 1, thickness))
+        file.write(_iw2d_format_layer(layer, i + 1))
 
     if isinstance(iw2d_input, FlatIW2DInput) and not iw2d_input.top_bottom_symmetry:
         file.write(f"Number of lower layers in the chamber wall:\t{len(iw2d_input.bottom_layers)}\n")
         if iw2d_input.bottom_layers:
-            file.write(f"Layer -1 inner half gap in mm:\t{iw2d_input.bottom_layers[0].distance_to_center}\n")
+            file.write(f"Layer -1 inner half gap in mm:\t{iw2d_input.bottom_half_gap}\n")
             for i, layer in enumerate(iw2d_input.bottom_layers):
-                thickness = iw2d_input.bottom_layers[i + 1].distance_to_center - layer.distance_to_center \
-                    if i < len(iw2d_input.bottom_layers) - 1 else "Infinity"
-                file.write(_iw2d_format_layer(layer, i + 1, thickness))
+                file.write(_iw2d_format_layer(layer, -(i + 1)))
 
     if isinstance(iw2d_input, FlatIW2DInput):
         file.write(f"Top bottom symmetry (yes or no):\t{'yes' if iw2d_input.top_bottom_symmetry else 'no'}\n")
@@ -423,10 +422,11 @@ def _typecast_sampling_dict(d: Dict[str, str]) -> Dict[str, Any]:
 def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
     is_round = d['is_round'].lower() in ['true', 'yes', 'y', '1']
     d.pop('is_round')
-    layers, yokoya_factors = list(), tuple()
-    top_layers, bottom_layers = list(), None
+    layers, inner_layer_radius, yokoya_factors = list(), float(), tuple()
+    top_layers, top_half_gap, bottom_layers, bottom_half_gap = list(), float(), None, None
 
     if is_round:
+        inner_layer_radius = d['inner_layer_radius']
         if 'layers' in d:
             layers_dicts = [{k: float(v) for k, v in layer.items()} for layer in d['layers']]
             layers = [Layer(**kwargs) for kwargs in layers_dicts]
@@ -435,12 +435,14 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
         if 'top_layers' in d:
             top_layers_dicts = [{k: float(v) for k, v in layer.items()} for layer in d['top_layers']]
             top_layers = [Layer(**kwargs) for kwargs in top_layers_dicts]
+            top_half_gap = d['top_half_gap']
             d.pop('top_layers')
             if d['top_bottom_symmetry'].lower() in ['true', 'yes', 'y', '1']:
                 bottom_layers = None
             else:
                 bottom_layers_dicts = [{k: float(v) for k, v in layer.items()} for layer in d['bottom_layers']]
                 bottom_layers = [Layer(**kwargs) for kwargs in bottom_layers_dicts]
+                bottom_half_gap = d['bottom_half_gap']
                 d.pop('bottom_layers')
 
     if 'yokoya_factors' in d:
@@ -472,6 +474,7 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
             f_params=f_params,
             z_params=z_params,
             layers=tuple(layers),
+            inner_layer_radius=inner_layer_radius,
             yokoya_factors=yokoya_factors,
             **new_dict
         )
@@ -481,7 +484,9 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
             z_params=z_params,
             top_bottom_symmetry=d['top_bottom_symmetry'].lower() in ['true', 'yes', 'y', '1'],
             top_layers=tuple(top_layers),
+            top_half_gap = top_half_gap,
             bottom_layers=bottom_layers,
+            bottom_half_gap=bottom_half_gap,
             **new_dict
         )
 
