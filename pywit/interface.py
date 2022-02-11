@@ -218,11 +218,11 @@ def _iw2d_format_layer(layer: Layer, n: int) -> str:
     :return: A string on the correct format for IW2D
     """
     return (f"Layer {n} DC resistivity (Ohm.m):\t{layer.dc_resistivity}\n"
-            f"Layer {n} relaxation time for resistivity (ps):\t{layer.resistivity_relaxation_time}\n"
+            f"Layer {n} relaxation time for resistivity (ps):\t{layer.resistivity_relaxation_time * 1e12}\n"
             f"Layer {n} real part of dielectric constant:\t{layer.re_dielectric_constant}\n"
             f"Layer {n} magnetic susceptibility:\t{layer.magnetic_susceptibility}\n"
-            f"Layer {n} relaxation frequency of permeability (MHz):\t{layer.permeability_relaxation_frequency}\n"
-            f"Layer {n} thickness in mm:\t{layer.thickness}\n")
+            f"Layer {n} relaxation frequency of permeability (MHz):\t{layer.permeability_relaxation_frequency / 1e6}\n"
+            f"Layer {n} thickness in mm:\t{layer.thickness * 1e3}\n")
 
 
 def _iw2d_format_freq_params(params: Sampling) -> str:
@@ -303,7 +303,7 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     layers = []
     if isinstance(iw2d_input, RoundIW2DInput):
         file.write(f"Number of layers:\t{len(iw2d_input.layers)}\n"
-                   f"Layer 1 inner radius in mm:\t{iw2d_input.inner_layer_radius}\n")
+                   f"Layer 1 inner radius in mm:\t{iw2d_input.inner_layer_radius * 1e3}\n")
         layers = iw2d_input.layers
     elif isinstance(iw2d_input, FlatIW2DInput):
         if iw2d_input.bottom_layers:
@@ -311,7 +311,7 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
                   "is enabled")
         file.write(f"Number of upper layers in the chamber wall:\t{len(iw2d_input.top_layers)}\n")
         if iw2d_input.top_layers:
-            file.write(f"Layer 1 inner half gap in mm:\t{iw2d_input.top_half_gap}\n")
+            file.write(f"Layer 1 inner half gap in mm:\t{iw2d_input.top_half_gap * 1e3}\n")
         layers = iw2d_input.top_layers
 
     for i, layer in enumerate(layers):
@@ -320,7 +320,7 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     if isinstance(iw2d_input, FlatIW2DInput) and not iw2d_input.top_bottom_symmetry:
         file.write(f"Number of lower layers in the chamber wall:\t{len(iw2d_input.bottom_layers)}\n")
         if iw2d_input.bottom_layers:
-            file.write(f"Layer -1 inner half gap in mm:\t{iw2d_input.bottom_half_gap}\n")
+            file.write(f"Layer -1 inner half gap in mm:\t{iw2d_input.bottom_half_gap * 1e3}\n")
             for i, layer in enumerate(iw2d_input.bottom_layers):
                 file.write(_iw2d_format_layer(layer, -(i + 1)))
 
