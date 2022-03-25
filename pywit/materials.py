@@ -113,3 +113,91 @@ def copper_at_temperature(thickness: float = 50e-6, T: float = 20, RRR: float = 
         re_dielectric_constant=1,
         magnetic_susceptibility=1,
         permeability_relaxation_frequency=np.inf)
+
+
+def titanium_nitride(thickness: float = np.inf) -> Layer:
+    '''
+    Define a layer of titanium nitride (TiN) material.
+    Material reference is from F.Carra email 27-04-2015: 2.5 MS/m (Mo is 20MS/m).
+    
+    :param thickness: material thickness in m
+    
+    :return: a Layer object
+    '''
+    
+    return Layer(thickness=thickness,
+        dc_resistivity=4e-7,
+        resistivity_relaxation_time=0,
+        re_dielectric_constant=1,
+        magnetic_susceptibility=1,
+        permeability_relaxation_frequency=np.inf)
+
+
+def titanium(thickness: float = np.inf) -> Layer:
+    '''
+    Define a layer of titanium (Ti) material.
+    Material reference is from N. Mounet PhD thesis.
+    
+    :param thickness: material thickness in m
+    
+    :return: a Layer object
+    '''
+
+    return Layer(thickness=thickness,
+        dc_resistivity=4.3e-7,
+        resistivity_relaxation_time=0,
+        re_dielectric_constant=1,
+        magnetic_susceptibility=1,
+        permeability_relaxation_frequency=np.inf)
+
+
+def ceramic(thickness: float = np.inf) -> Layer:
+    '''
+    Define a layer of ceramic material.
+    Values from A. Chao Accelerator Handbook, p. 463.
+    Material HA-997.
+    
+    :param thickness: material thickness in m
+    
+    :return: a Layer object
+    '''
+
+    return Layer(thickness=thickness,
+        dc_resistivity=1e12,
+        resistivity_relaxation_time=0,
+        re_dielectric_constant=10,
+        magnetic_susceptibility=1,
+        permeability_relaxation_frequency=np.inf)
+
+
+def aluminium(thickness: float = np.inf) -> Layer:
+    '''
+    Define a layer of pure aluminium.
+    
+    :param thickness: material thickness in m
+    
+    :return: a Layer object
+    '''
+    return Layer(thickness=thickness,
+        dc_resistivity=2.65e-8,
+        resistivity_relaxation_time=0,
+        re_dielectric_constant=1,
+        magnetic_susceptibility=1,
+        permeability_relaxation_frequency=np.inf)
+
+
+def tungsten(thickness: float = np.inf) -> Layer:
+    '''
+    Define a layer of tungsten.
+    See N. Mounet PhD thesis for references.
+    
+    :param thickness: material thickness in m
+    
+    :return: a Layer object
+    '''
+    return Layer(thickness=thickness,
+        dc_resistivity=5.4e-8,
+        resistivity_relaxation_time=0.005e-12,
+        re_dielectric_constant=1,
+        magnetic_susceptibility=1,
+        permeability_relaxation_frequency=np.inf)
