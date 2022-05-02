@@ -1,5 +1,6 @@
 from setuptools import setup, find_packages
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 from os import makedirs
 import pickle
 import pathlib
@@ -27,6 +28,10 @@ class PostInstallCommand(install):
         install.run(self)
         _initialize_pywib_directory()
 
+class PostDevelopCommand(develop):
+    def run(self):
+        develop.run(self)
+        _initialize_pywib_directory()
 
 setup(
     name='pywit',
@@ -37,5 +42,6 @@ setup(
     author='Markus Kongstein Rognlien',
     author_email='marro98@gmail.com',
     description='Python Wake and Impedance Budget',
-    cmdclass={'install': PostInstallCommand}
+    cmdclass={'install': PostInstallCommand,
+              'develop': PostDevelopCommand}
 )
