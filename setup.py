@@ -1,11 +1,12 @@
 from setuptools import setup, find_packages
 from setuptools.command.install import install
+from setuptools.command.develop import develop
 from os import makedirs
 import pickle
 import pathlib
 
 
-def _initialize_pywib_directory() -> None:
+def _initialize_pywit_directory() -> None:
     home_path = pathlib.Path.home()
     paths = [home_path.joinpath('pywit').joinpath(ext) for ext in ('config', 'IW2D/bin', 'IW2D/projects')]
     for path in paths:
@@ -25,17 +26,22 @@ def _initialize_pywib_directory() -> None:
 class PostInstallCommand(install):
     def run(self):
         install.run(self)
-        _initialize_pywib_directory()
+        _initialize_pywit_directory()
 
+class PostDevelopCommand(develop):
+    def run(self):
+        develop.run(self)
+        _initialize_pywit_directory()
 
 setup(
     name='pywit',
     version='1.0.0',
     packages=find_packages(),
-    url='https://gitlab.cern.ch/mrognlie/pywib',
+    url='https://gitlab.cern.ch/IRIS/pywit',
     license='MIT',
     author='Markus Kongstein Rognlien',
     author_email='marro98@gmail.com',
-    description='Python Wake and Impedance Budget',
-    cmdclass={'install': PostInstallCommand}
+    description='Python Wake and Impedance Toolbox',
+    cmdclass={'install': PostInstallCommand,
+              'develop': PostDevelopCommand}
 )
