@@ -181,7 +181,7 @@ class _RoundIW2DInputBase(_IW2DInputBase):
     layers: Tuple[Layer]
     inner_layer_radius: float
     # (long, xdip, ydip, xquad, yquad)
-    yokoya_factors: Tuple[int, int, int, int, int]
+    yokoya_factors: Tuple[float, float, float, float, float]
 
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputOptional(_IW2DInputOptional):
@@ -473,7 +473,7 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
                 d.pop('bottom_layers')
 
     if 'yokoya_factors' in d:
-        yokoya_factors = tuple(int(x) for x in d['yokoya_factors'].split())
+        yokoya_factors = tuple(float(x) for x in d['yokoya_factors'].split())
         d.pop('yokoya_factors')
 
     f_params = Sampling(**_typecast_sampling_dict(d['f_params']))
