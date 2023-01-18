@@ -276,11 +276,15 @@ class Component:
         if len(self.f_rois) == 0:
             xs = np.geomspace(start, stop, points)
             return xs, self.impedance(xs)
+        
+        #eleminate duplicates
+        f_rois_no_dup = [roi for i, roi in enumerate(self.f_rois) if roi not in self.f_rois[:i]]
+
         fine_points_per_roi = int((points - rough_points) / len(self.f_rois))
-        intervals = [np.linspace(i, f, fine_points_per_roi) for i, f in self.f_rois if (i >= start and f <= stop)]
+        intervals = [np.linspace(i, f, fine_points_per_roi) for i, f in f_rois_no_dup if (i >= start and f <= stop)]
         if len(intervals) > 1:
             rois = np.concatenate(
-                *[np.linspace(i, f, fine_points_per_roi) for i, f in self.f_rois if (i >= start and f <= stop)])
+                tuple([np.linspace(i, f, fine_points_per_roi) for i, f in f_rois_no_dup if (i >= start and f <= stop)]))
         else:
             rois = intervals[0]
 
