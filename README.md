@@ -35,9 +35,9 @@ IW2D. If you already have IW2D downloaded and installed on your system, you can 
    You may be prompted to enter your CERN log-in credentials for this step.
 
 
-4. Install PyWIT using pip by executing the command
+4. Install PyWIT using pip by navigating to your pywit directory executing the command
 
-   `pip install pywit`.
+   `pip install .`.
 
 
 5. Navigate to the directory `IW2D/IW2D/cpp` in the IW2D repository. Copy the following four
