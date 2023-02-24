@@ -1,12 +1,14 @@
 from pywit.component import Component
 from test.test_common import functions
 from pywit.parameters import *
+from pywit.utilities import create_resonator_component
 
 from itertools import product
 from random import choice
 
 from pytest import raises
 from numpy import linspace, testing
+import numpy as np
 
 
 def test_valid_addition():
@@ -174,3 +176,100 @@ def test_distributivity():
             b = (scalar * x) + (scalar * y)
             testing.assert_allclose(a.impedance(xs), b.impedance(xs), rtol=REL_TOL, atol=ABS_TOL)
             testing.assert_allclose(a.wake(xs), b.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
+
+
+def test_impedance_to_array_one_roi():
+    r = 1e8
+    q = 5e5
+    f_r = 1e9
+    resonator_component = create_resonator_component(plane='x', exponents=(1, 0, 0, 0), r=r, q=q, f_r=f_r)
+    imp_array = resonator_component.impedance_to_array(points=10**5, start=1e-12, stop=2e9, precision_factor=0.9)
+    f_roi = resonator_component.f_rois[0]
+
+    n_fine_points = np.sum(np.logical_and(imp_array[0] > f_roi[0], imp_array[0] < f_roi[1]))
+    n_very_fine_points = n_fine_points*10
+    very_fine_freq = np.linspace(f_roi[0], f_roi[1], n_very_fine_points)
+
+    error = (np.sum(np.abs(resonator_component.impedance(very_fine_freq).real -
+                           np.interp(very_fine_freq, imp_array[0], imp_array[1].real))) /
+             np.sum(np.abs(resonator_component.impedance(very_fine_freq).real)))
+
+    print(n_fine_points)
+    assert error < ABS_TOL
+
+
+def test_impedance_to_array_two_disjoint_rois():
+    r_1 = 1e8
+    q_1 = 5e5
+    f_r_1 = 1e9
+    resonator_component_1 = create_resonator_component(plane='x', exponents=(1, 0, 0, 0), r=r_1, q=q_1, f_r=f_r_1)
+    f_roi_1 = resonator_component_1.f_rois[0]
+
+    r_2 = 1e8/2
+    q_2 = 5e5
+    f_r_2 = 1e9/2
+    resonator_component_2 = create_resonator_component(plane='x', exponents=(1, 0, 0, 0), r=r_2, q=q_2, f_r=f_r_2)
+    f_roi_2 = resonator_component_2.f_rois[0]
+
+    resonator_component = resonator_component_1 + resonator_component_2
+
+    imp_array = resonator_component.impedance_to_array(points=10**5, start=1e-12, stop=2e9, precision_factor=0.9)
+
+    n_fine_points_1 = np.sum(np.logical_and(imp_array[0] > f_roi_1[0], imp_array[0] < f_roi_1[1]))
+    n_very_fine_points_1 = n_fine_points_1*10
+    very_fine_freq_1 = np.linspace(f_roi_1[0], f_roi_1[1], n_very_fine_points_1)
+
+    error_1 = (np.sum(np.abs(resonator_component_1.impedance(very_fine_freq_1).real -
+                             np.interp(very_fine_freq_1, imp_array[0], imp_array[1].real))) /
+               np.sum(np.abs(resonator_component_1.impedance(very_fine_freq_1).real)))
+
+    assert error_1 < ABS_TOL
+
+    n_fine_points_2 = np.sum(np.logical_and(imp_array[0] > f_roi_2[0], imp_array[0] < f_roi_2[1]))
+    n_very_fine_points_2 = n_fine_points_2*10
+    very_fine_freq_2 = np.linspace(f_roi_2[0], f_roi_2[1], n_very_fine_points_2)
+
+    error_2 = (np.sum(np.abs(resonator_component_2.impedance(very_fine_freq_2).real -
+                             np.interp(very_fine_freq_2, imp_array[0], imp_array[1].real))) /
+               np.sum(np.abs(resonator_component_2.impedance(very_fine_freq_2).real)))
+
+    assert error_2 < ABS_TOL
+
+
+def test_impedance_to_array_two_overlapping_rois():
+    r_1 = 1e8
+    q_1 = 1e4
+    f_r_1 = 1e9
+    resonator_component_1 = create_resonator_component(plane='x', exponents=(1, 0, 0, 0), r=r_1, q=q_1, f_r=f_r_1)
+    f_roi_1 = resonator_component_1.f_rois[0]
+    d_1 = (f_roi_1[1] - f_roi_1[0])/2
+
+    r_2 = 1e8/2
+    q_2 = 5e5
+    f_r_2 = f_r_1-d_1/2
+    resonator_component_2 = create_resonator_component(plane='x', exponents=(1, 0, 0, 0), r=r_2, q=q_2, f_r=f_r_2)
+    f_roi_2 = resonator_component_2.f_rois[0]
+
+    resonator_component = resonator_component_1 + resonator_component_2
+
+    imp_array = resonator_component.impedance_to_array(points=10**5, start=1e-12, stop=2e9, precision_factor=0.9)
+
+    n_fine_points_1 = np.sum(np.logical_and(imp_array[0] > f_roi_1[0], imp_array[0] < f_roi_1[1]))
+    n_very_fine_points_1 = n_fine_points_1*10
+    very_fine_freq_1 = np.linspace(f_roi_1[0], f_roi_1[1], n_very_fine_points_1)
+
+    error_1 = (np.sum(np.abs(resonator_component.impedance(very_fine_freq_1).real -
+                             np.interp(very_fine_freq_1, imp_array[0], imp_array[1].real))) /
+               np.sum(np.abs(resonator_component.impedance(very_fine_freq_1).real)))
+
+    assert error_1 < ABS_TOL
+
+    n_fine_points_2 = np.sum(np.logical_and(imp_array[0] > f_roi_2[0], imp_array[0] < f_roi_2[1]))
+    n_very_fine_points_2 = n_fine_points_2*10
+    very_fine_freq_2 = np.linspace(f_roi_2[0], f_roi_2[1], n_very_fine_points_2)
+
+    error_2 = (np.sum(np.abs(resonator_component.impedance(very_fine_freq_2).real -
+                             np.interp(very_fine_freq_2, imp_array[0], imp_array[1].real))) /
+               np.sum(np.abs(resonator_component.impedance(very_fine_freq_2).real)))
+
+    assert error_2 < ABS_TOL
