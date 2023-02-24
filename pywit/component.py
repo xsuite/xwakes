@@ -277,7 +277,7 @@ class Component:
             xs = np.geomspace(start, stop, points)
             return xs, self.impedance(xs)
         
-        #eleminate duplicates
+        # eliminate duplicates
         f_rois_no_dup = [roi for i, roi in enumerate(self.f_rois) if roi not in self.f_rois[:i]]
 
         fine_points_per_roi = int((points - rough_points) / len(self.f_rois))
@@ -291,7 +291,9 @@ class Component:
         rough_points = points - rois.shape[0]
         xs = snp.merge(rois, np.geomspace(start, stop, rough_points))
 
-        return xs, self.impedance(xs)
+        sorted_indices = np.argsort(xs)
+
+        return xs[sorted_indices], self.impedance(xs[sorted_indices])
 
     def wake_to_array(self, points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
