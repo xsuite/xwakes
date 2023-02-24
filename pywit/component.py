@@ -278,7 +278,7 @@ class Component:
             return xs, self.impedance(xs)
         
         # eliminate duplicates
-        f_rois_no_dup = [roi for i, roi in enumerate(self.f_rois) if roi not in self.f_rois[:i]]
+        f_rois_no_dup = set(self.f_rois)
 
         fine_points_per_roi = int((points - rough_points) / len(self.f_rois))
         intervals = [np.linspace(i, f, fine_points_per_roi) for i, f in f_rois_no_dup if (i >= start and f <= stop)]
