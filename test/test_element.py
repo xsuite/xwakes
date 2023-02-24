@@ -1,5 +1,5 @@
 from pywit.element import Element, Component
-from test.test_common import functions
+from test_common import functions
 from pywit.parameters import *
 
 from typing import List
