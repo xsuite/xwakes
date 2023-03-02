@@ -33,6 +33,18 @@ class PostDevelopCommand(develop):
         develop.run(self)
         _initialize_pywit_directory()
 
+requirements = {
+    "core": [
+        "numpy",
+        "scipy",
+        "matplotlib",
+        "sortednp",
+    ],
+    "test":[
+        "pytest",
+    ]
+}
+
 setup(
     name='pywit',
     version='1.0.0',
@@ -43,5 +55,7 @@ setup(
     author_email='marro98@gmail.com',
     description='Python Wake and Impedance Toolbox',
     cmdclass={'install': PostInstallCommand,
-              'develop': PostDevelopCommand}
+              'develop': PostDevelopCommand},
+    install_requires=requirements["core"],
+    extras_require=requirements,
 )
