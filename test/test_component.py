@@ -1,5 +1,5 @@
 from pywit.component import Component
-from test.test_common import functions
+from test_common import functions
 from pywit.parameters import *
 from pywit.utilities import create_resonator_component
 
