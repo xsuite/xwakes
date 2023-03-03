@@ -1,11 +1,37 @@
 from __future__ import annotations
 
 from pywit.parameters import *
+from pywit.utils import round_sigfigs
 
 from typing import Optional, Callable, Tuple, Union, List
 
 import numpy as np
 import sortednp as snp
+
+
+def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
+                                fine_points: int, rois: List[Tuple[float, float]]):
+    """
+    Mix a fine and rough (geometric) sampling between start and stop,
+    refined in the regions of interest rois.
+    :param start: The lowest bound of the sampling
+    :param stop: The highest bound of the sampling
+    :param rough_points: The total number of data points to be
+                         generated for the rough grid, between start
+                         and stop.
+    :param fine_points: The number of points in the fine grid of each roi.
+    :param rois: List of unique tuples with the lower and upper bound of
+                 of each region of interest.
+    :return: An array with the sampling obtained.
+    """
+    intervals = [np.linspace(max(i,start), min(f,stop), fine_points)
+                 for i, f in rois
+                 if (start <= i <= stop or start <= f <= stop)]
+    fine_sampling_rois = np.hstack(intervals) if intervals else np.array([])
+    rough_sampling = np.geomspace(start, stop, rough_points)
+
+    return np.sort(list(set(round_sigfigs(
+            snp.merge(fine_sampling_rois,rough_sampling),7))))
 
 
 class Component:
@@ -258,7 +284,8 @@ class Component:
         return np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and \
                np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
 
-    def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ, stop: float = MAX_FREQ,
+    def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ,
+                           stop: float = MAX_FREQ,
                            precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a frequency grid based on the f_rois attribute of the component and evaluates the component's
@@ -286,42 +313,46 @@ class Component:
         f_rois_no_dup = set(self.f_rois)
 
         fine_points_per_roi = int(round(rough_points*precision_factor))
-        intervals = [np.linspace(max(i,start), min(f,stop), fine_points_per_roi)
-                     for i, f in f_rois_no_dup
-                     if (start <= i <= stop or start <= f <= stop)]
-        rois = np.array(list(set(np.hstack(intervals) if intervals else [])))
 
-        xs = np.array(list(set(
-            snp.merge(rois, np.geomspace(start, stop, rough_points)))))
+        xs = mix_fine_and_rough_sampling(start, stop, rough_points,
+                                         fine_points_per_roi,
+                                         f_rois_no_dup)
 
-        sorted_indices = np.argsort(xs)
+        return xs, self.impedance(xs)
 
-        return xs[sorted_indices], self.impedance(xs[sorted_indices])
-
-    def wake_to_array(self, points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
+    def wake_to_array(self, rough_points: int, start: float = MIN_TIME,
+                      stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a time grid based on the t_rois attribute of the component and evaluates the component's
         wake function at these time points.
-        :param points: The total number of data points to be generated
+        :param rough_points: The total number of data points to be
+                             generated for the rough grid, between start
+                             and stop.
         :param start: The lowest time in the desired time grid
         :param stop: The highest time in the desired time grid
-        :param precision_factor: A number indicating the ratio of points which should be placed within the regions of
-        interest. If =0, the time grid will ignore the intervals in t_rois. If =1, the points will be distributed
-        1:1 between the rough grid and the fine grid. In general, =n means that there will be n times more points
-        in the fine grid than in the rough grid.
-        :return: A tuple of two numpy arrays with shape (points,) giving the time grid and wakes respectively
+        :param precision_factor: A number indicating the ratio of points
+               which should be placed within the regions of interest.
+               If =0, the frequency grid will ignore the intervals in t_rois.
+               If =1, the points will be distributed 1:1 between the
+               rough grid and the fine grid on each roi. In general, =n
+               means that there will be n times more points in the fine
+               grid of each roi, than in the rough grid.
+        :return: A tuple of two numpy arrays with same shape, giving the
+                 time grid and wakes respectively
         """
-        rough_points = points / (1 + precision_factor)
         if len(self.t_rois) == 0:
-            xs = np.geomspace(start, stop, points)
+            xs = np.geomspace(start, stop, rough_points)
             return xs, self.wake(xs)
 
-        fine_points_per_roi = int((points - rough_points) / len(self.t_rois))
-        rois = np.concatenate(
-            (np.linspace(i, f, fine_points_per_roi) for i, f in self.t_rois if (i >= start and f <= stop)))
-        rough_points = points - rois.shape[0]
-        xs = snp.merge(rois, np.geomspace(start, stop, rough_points))
+        # eliminate duplicates
+        t_rois_no_dup = set(self.t_rois)
+
+        fine_points_per_roi = int(round(rough_points*precision_factor))
+
+        xs = mix_fine_and_rough_sampling(start, stop, rough_points,
+                                         fine_points_per_roi,
+                                         t_rois_no_dup)
 
         return xs, self.wake(xs)
 

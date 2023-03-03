@@ -185,7 +185,7 @@ def test_distributivity():
 
 
 @mark.parametrize(
-    "rois, start, precision_factor, rough_points, expected_mesh",
+    "f_rois, start, precision_factor, rough_points, expected_mesh",
     [
         [[],                            1e7, 10,  2, [1e7, 1e9]],
         [[(1e8, 2e8)],                  1e7, 0,   2, [1e7, 1e9]],
@@ -199,12 +199,23 @@ def test_distributivity():
         [[(1e8, 2e8), (1.5e8, 2.5e8)],  1e7, 5/3, 3, [1e7, 1e8, 1.25e8, 1.5e8, 1.75e8, 2e8, 2.25e8, 2.5e8, 1e9]],
     ],
 )
-def test_impedance_to_array_rois(rois, start, precision_factor,
-                                   rough_points, expected_mesh):
-    component = simple_component_from_rois(f_rois=rois)
-    frequencies, _ = component.impedance_to_array(
+def test_impedance_wake_to_array_rois(f_rois, start, precision_factor,
+                                 rough_points, expected_mesh):
+    imp_component = simple_component_from_rois(f_rois=f_rois)
+    frequencies, _ = imp_component.impedance_to_array(
                                     rough_points=rough_points,
                                     start=start, stop=1e9,
                                     precision_factor=precision_factor)
 
     testing.assert_equal(frequencies, expected_mesh)
+
+    scaling_factor = 1e-15 # just to get meaningful times
+    t_rois = [(i*scaling_factor, f*scaling_factor) for i,f in f_rois]
+    wake_component = simple_component_from_rois(t_rois=t_rois)
+    times, _ = wake_component.wake_to_array(
+                                    rough_points=rough_points,
+                                    start=start*scaling_factor, stop=1e-6,
+                                    precision_factor=precision_factor)
+
+    testing.assert_allclose(times, [e*scaling_factor for e in expected_mesh],
+                            rtol=1e-15)
