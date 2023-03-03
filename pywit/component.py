@@ -286,9 +286,10 @@ class Component:
         f_rois_no_dup = set(self.f_rois)
 
         fine_points_per_roi = int(round(rough_points*precision_factor))
-        intervals = [np.linspace(i, f, fine_points_per_roi)
-                     for i, f in f_rois_no_dup if (i >= start and f <= stop)]
-        rois = np.array(list(set(np.hstack(intervals))))
+        intervals = [np.linspace(max(i,start), min(f,stop), fine_points_per_roi)
+                     for i, f in f_rois_no_dup
+                     if (start <= i <= stop or start <= f <= stop)]
+        rois = np.array(list(set(np.hstack(intervals) if intervals else [])))
 
         xs = np.array(list(set(
             snp.merge(rois, np.geomspace(start, stop, rough_points)))))

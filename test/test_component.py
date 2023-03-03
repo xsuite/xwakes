@@ -185,24 +185,26 @@ def test_distributivity():
 
 
 @mark.parametrize(
-    "f_rois, start, precision_factor, rough_points, expected_frequencies",
+    "rois, start, precision_factor, rough_points, expected_mesh",
     [
-        [[],                            1e7, 10, 2, [1e7, 1e9]],
-        [[(1e8, 2e8)],                  1e7, 0, 2, [1e7, 1e9]],
-        [[(1e8, 2e8)],                  1e7, 1, 2, [1e7, 1e8, 2e8, 1e9]],
-        [[(1e8, 2e8), (1e8, 2e8)],      1e7, 1, 2, [1e7, 1e8, 2e8, 1e9]],
-        [[(1e8, 2e8)],                  1e8, 1.5, 2, [1e8, 1.5e8, 2e8, 1e9]],
+        [[],                            1e7, 10,  2, [1e7, 1e9]],
+        [[(1e8, 2e8)],                  1e7, 0,   2, [1e7, 1e9]],
+        [[(1e8, 2e8)],                  1e7, 1,   2, [1e7, 1e8, 2e8, 1e9]],
+        [[(1e8, 2e8), (1e8, 2e8)],      1e7, 1,   2, [1e7, 1e8, 2e8, 1e9]],
+        [[(3e7, 4e7), (2e9, 3e9)],      1e8, 1.5, 2, [1e8, 1e9]],
+        [[(9e7, 1.1e8)],                1e8, 1.5, 2, [1e8, 1.05e8, 1.1e8, 1e9]],
+        [[(9e8, 1.1e9)],                1e8, 1.5, 2, [1e8, 9e8, 9.5e8, 1e9]],
         [[(1e8, 2e8)],                  1e7, 2.5, 2, [1e7, 1e8, 1.25e8, 1.5e8, 1.75e8, 2e8, 1e9]],
         [[(1e8, 2e8), (3e8, 4e8)],      1e7, 1.5, 2, [1e7, 1e8, 1.5e8, 2e8, 3e8, 3.5e8, 4e8, 1e9]],
         [[(1e8, 2e8), (1.5e8, 2.5e8)],  1e7, 5/3, 3, [1e7, 1e8, 1.25e8, 1.5e8, 1.75e8, 2e8, 2.25e8, 2.5e8, 1e9]],
     ],
 )
-def test_impedance_to_array_f_rois(f_rois, start, precision_factor,
-                                   rough_points, expected_frequencies):
-    component = simple_component_from_rois(f_rois=f_rois)
+def test_impedance_to_array_rois(rois, start, precision_factor,
+                                   rough_points, expected_mesh):
+    component = simple_component_from_rois(f_rois=rois)
     frequencies, _ = component.impedance_to_array(
                                     rough_points=rough_points,
                                     start=start, stop=1e9,
                                     precision_factor=precision_factor)
 
-    testing.assert_equal(frequencies, expected_frequencies)
+    testing.assert_equal(frequencies, expected_mesh)
