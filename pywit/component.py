@@ -258,38 +258,40 @@ class Component:
         return np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and \
                np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
 
-    def impedance_to_array(self, points: int, start: float = MIN_FREQ, stop: float = MAX_FREQ,
+    def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ, stop: float = MAX_FREQ,
                            precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a frequency grid based on the f_rois attribute of the component and evaluates the component's
         impedance function at these frequencies.
-        :param points: The total number of data points to be generated
+        :param rough_points: The total number of data points to be
+                             generated for the rough grid, between start
+                             and stop.
         :param start: The lowest frequency in the desired frequency grid
         :param stop: The highest frequency in the desired frequency grid
-        :param precision_factor: A number indicating the ratio of points which should be placed within the regions of
-        interest. If =0, the frequency grid will ignore the intervals in f_rois. If =1, the points will be distributed
-        1:1 between the rough grid and the fine grid. In general, =n means that there will be n times more points
-        in the fine grid than in the rough grid.
-        :return: A tuple of two numpy arrays with shape (points,) giving the frequency grid and impedances respectively
+        :param precision_factor: A number indicating the ratio of points
+               which should be placed within the regions of interest.
+               If =0, the frequency grid will ignore the intervals in f_rois.
+               If =1, the points will be distributed 1:1 between the
+               rough grid and the fine grid on each roi. In general, =n
+               means that there will be n times more points in the fine
+               grid of each roi, than in the rough grid.
+        :return: A tuple of two numpy arrays with same shape, giving
+                 the frequency grid and impedances respectively
         """
-        rough_points = points / (1 + precision_factor)
         if len(self.f_rois) == 0:
-            xs = np.geomspace(start, stop, points)
+            xs = np.geomspace(start, stop, rough_points)
             return xs, self.impedance(xs)
         
         # eliminate duplicates
         f_rois_no_dup = set(self.f_rois)
 
-        fine_points_per_roi = int((points - rough_points) / len(self.f_rois))
-        intervals = [np.linspace(i, f, fine_points_per_roi) for i, f in f_rois_no_dup if (i >= start and f <= stop)]
-        if len(intervals) > 1:
-            rois = np.concatenate(
-                tuple([np.linspace(i, f, fine_points_per_roi) for i, f in f_rois_no_dup if (i >= start and f <= stop)]))
-        else:
-            rois = intervals[0]
+        fine_points_per_roi = int(round(rough_points*precision_factor))
+        intervals = [np.linspace(i, f, fine_points_per_roi)
+                     for i, f in f_rois_no_dup if (i >= start and f <= stop)]
+        rois = np.array(list(set(np.hstack(intervals))))
 
-        rough_points = points - rois.shape[0]
-        xs = snp.merge(rois, np.geomspace(start, stop, rough_points))
+        xs = np.array(list(set(
+            snp.merge(rois, np.geomspace(start, stop, rough_points)))))
 
         sorted_indices = np.argsort(xs)
 
