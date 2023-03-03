@@ -1,7 +1,6 @@
 from pywit.component import Component
 from test_common import functions
 from pywit.parameters import *
-from pywit.utilities import create_resonator_component
 
 from itertools import product
 from random import choice
