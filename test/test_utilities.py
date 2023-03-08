@@ -1,4 +1,4 @@
-from pywit.utilities import create_resonator_component, create_resonator_element
+from pywit.utilities import create_resonator_component, create_resonator_element, create_many_resonators_element
 from test_common import relative_error
 from pywit.parameters import *
 
@@ -154,3 +154,49 @@ def test_resonator():
 
     for correct, calculated in zip(correct_wakes.values(), wakes.values()):
         np.testing.assert_allclose(correct, calculated)
+
+def test_many_resonators():
+
+    fs_dict_0 = {
+        'z0000': 50,
+        'x1000': 60,
+        'y0100': 70
+    }
+
+    fs_dict_1 = fs_dict_0.copy()
+
+    fs_list = [fs_dict_0, fs_dict_1]
+
+    rs_dict_0 = {
+        'z0000': 10,
+        'x1000': 20,
+        'y0100': 30
+    }
+
+    rs_dict_1 = {
+        'z0000': 40,
+        'x1000': 50,
+        'y0100': 60
+    }
+
+    rs_list = [rs_dict_0, rs_dict_1]
+
+    qs_dict_0 = {
+        'z0000': 10,
+        'x1000': 10,
+        'y0100': 10
+    }
+
+    qs_dict_1 = {
+        'z0000': 10,
+        'x1000': 10,
+        'y0100': 10
+    }
+
+    qs_list = [qs_dict_0, qs_dict_1]
+
+    elem = create_many_resonators_element(length = 1, beta_x = 1, beta_y = 1, rs_list=rs_list, qs_list=qs_list, fs_list=fs_list)
+
+    for comp in ['z0000', 'x1000', 'y0100']:
+        assert elem.get_component(comp).impedance(fs_dict_0[comp]) == rs_dict_0[comp] + rs_dict_1[comp]
+
