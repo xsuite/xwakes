@@ -5,8 +5,15 @@ from pywit.parameters import *
 from itertools import product
 from random import choice
 
-from pytest import raises
+from pytest import raises,mark
 from numpy import linspace, testing
+import numpy as np
+
+
+def simple_component_from_rois(f_rois=None, t_rois=None):
+    return Component(impedance=lambda f: f+1j*f, wake=lambda z: z,
+                     plane='z', source_exponents=(0, 0),
+                     test_exponents=(0, 0), f_rois=f_rois, t_rois=t_rois)
 
 
 def test_valid_addition():
@@ -174,3 +181,40 @@ def test_distributivity():
             b = (scalar * x) + (scalar * y)
             testing.assert_allclose(a.impedance(xs), b.impedance(xs), rtol=REL_TOL, atol=ABS_TOL)
             testing.assert_allclose(a.wake(xs), b.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
+
+
+@mark.parametrize(
+    "f_rois, start, precision_factor, rough_points, expected_mesh",
+    [
+        [[],                            1e7, 10,  2, [1e7, 1e9]],
+        [[(1e8, 2e8)],                  1e7, 0,   2, [1e7, 1e9]],
+        [[(1e8, 2e8)],                  1e7, 1,   2, [1e7, 1e8, 2e8, 1e9]],
+        [[(1e8, 2e8), (1e8, 2e8)],      1e7, 1,   2, [1e7, 1e8, 2e8, 1e9]],
+        [[(3e7, 4e7), (2e9, 3e9)],      1e8, 1.5, 2, [1e8, 1e9]],
+        [[(9e7, 1.1e8)],                1e8, 1.5, 2, [1e8, 1.05e8, 1.1e8, 1e9]],
+        [[(9e8, 1.1e9)],                1e8, 1.5, 2, [1e8, 9e8, 9.5e8, 1e9]],
+        [[(1e8, 2e8)],                  1e7, 2.5, 2, [1e7, 1e8, 1.25e8, 1.5e8, 1.75e8, 2e8, 1e9]],
+        [[(1e8, 2e8), (3e8, 4e8)],      1e7, 1.5, 2, [1e7, 1e8, 1.5e8, 2e8, 3e8, 3.5e8, 4e8, 1e9]],
+        [[(1e8, 2e8), (1.5e8, 2.5e8)],  1e7, 5/3, 3, [1e7, 1e8, 1.25e8, 1.5e8, 1.75e8, 2e8, 2.25e8, 2.5e8, 1e9]],
+    ],
+)
+def test_impedance_wake_to_array_rois(f_rois, start, precision_factor,
+                                 rough_points, expected_mesh):
+    imp_component = simple_component_from_rois(f_rois=f_rois)
+    frequencies, _ = imp_component.impedance_to_array(
+                                    rough_points=rough_points,
+                                    start=start, stop=1e9,
+                                    precision_factor=precision_factor)
+
+    testing.assert_equal(frequencies, expected_mesh)
+
+    scaling_factor = 1e-15 # just to get meaningful times
+    t_rois = [(i*scaling_factor, f*scaling_factor) for i,f in f_rois]
+    wake_component = simple_component_from_rois(t_rois=t_rois)
+    times, _ = wake_component.wake_to_array(
+                                    rough_points=rough_points,
+                                    start=start*scaling_factor, stop=1e-6,
+                                    precision_factor=precision_factor)
+
+    testing.assert_allclose(times, [e*scaling_factor for e in expected_mesh],
+                            rtol=1e-15)

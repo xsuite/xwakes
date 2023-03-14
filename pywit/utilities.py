@@ -159,6 +159,7 @@ def create_resistive_wall_component(plane: str, exponents: Tuple[int, int, int, 
 
     return Component(vectorize(impedance), vectorize(wake), plane, source_exponents=exponents[:2], test_exponents=exponents[2:])
 
+
 def create_TESLA_cavity(plane: str, exponents: Tuple[int, int, int, int],
                                     a: float, g: float, L: float) -> Component:
     """
