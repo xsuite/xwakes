@@ -157,46 +157,54 @@ def test_resonator():
 
 def test_many_resonators():
 
-    fs_dict_0 = {
-        'z0000': 50,
-        'x1000': 60,
-        'y0100': 70
-    }
+    params_dict_list = [
+        {
+            'component': 'z0000',
+            'r': 10,
+            'q': 10,
+            'f': 50
+        },
+        {
+            'component': 'z0000',
+            'r': 40,
+            'q': 10,
+            'f': 50
+        },
+        {
+            'component': 'x1000',
+            'r': 20,
+            'q': 10,
+            'f': 40
+        },
+        {
+            'component': 'x1000',
+            'r': 50,
+            'q': 10,
+            'f': 40
+        },
+        {
+            'component': 'y0100',
+            'r': 30,
+            'q': 10,
+            'f': 70
+        },
+        {
+            'component': 'y0100',
+            'r': 60,
+            'q': 10,
+            'f': 70
+        },
+    ]
 
-    fs_dict_1 = fs_dict_0.copy()
-
-    fs_list = [fs_dict_0, fs_dict_1]
-
-    rs_dict_0 = {
-        'z0000': 10,
-        'x1000': 20,
-        'y0100': 30
-    }
-
-    rs_dict_1 = {
-        'z0000': 40,
-        'x1000': 50,
-        'y0100': 60
-    }
-
-    rs_list = [rs_dict_0, rs_dict_1]
-
-    qs_dict_0 = {
-        'z0000': 10,
-        'x1000': 10,
-        'y0100': 10
-    }
-
-    qs_dict_1 = {
-        'z0000': 10,
-        'x1000': 10,
-        'y0100': 10
-    }
-
-    qs_list = [qs_dict_0, qs_dict_1]
-
-    elem = create_many_resonators_element(length = 1, beta_x = 1, beta_y = 1, rs_list=rs_list, qs_list=qs_list, fs_list=fs_list)
+    elem = create_many_resonators_element(length=1, beta_x=1, beta_y=1, params_dict_list=params_dict_list)
 
     for comp in ['z0000', 'x1000', 'y0100']:
-        assert elem.get_component(comp).impedance(fs_dict_0[comp]) == rs_dict_0[comp] + rs_dict_1[comp]
+        sum_r_comp = 0
+        f_comp = 0
+        for params_dict in params_dict_list:
+            if params_dict['component'] == comp:
+                sum_r_comp += params_dict['r']
+                f_comp = params_dict['f']    # assumes that equal components have equal frequency
+
+        assert elem.get_component(comp).impedance(f_comp) == sum_r_comp
 

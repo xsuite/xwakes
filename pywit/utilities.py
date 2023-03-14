@@ -3,7 +3,7 @@ from pywit.element import Element
 from pywit.interface import Layer
 
 from yaml import load, SafeLoader
-from typing import Tuple, Dict, List
+from typing import Tuple, Dict, List, Union
 from collections import defaultdict
 
 from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign, heaviside
@@ -123,36 +123,29 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
 
 
 def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
-                                   rs_list: List[Dict[str, float]], qs_list: List[Dict[str, float]],
-                                   fs_list: List[Dict[str, float]], tag: str = 'resonator',
+                                   params_dict_list: List[Dict[str, Union[str, float]]], tag: str = 'resonator',
                                    description: str = '') -> Element:
     """
     Creates an element object representing many resonators.
     :param length: The length, in meters, of the element
     :param beta_x: The value of the beta function in the x-direction at the position of the element
     :param beta_y: The value of the beta function in the y-direction at the position of the element
-    :param rs_list: A list of dictionaries where the keys correspond to a plane followed by four exponents, i.e.
-    "y0100", and the values give the Shunt impedance corresponding to this particular component
-    :param qs_list: A list of dictionaries where the keys correspond to a plane followed by four exponents, i.e.
-    "y0100", and the values give the quality factor of the specified component of the resonator
-    :param fs_list: A dictionary where the keys correspond to a plane followed by four exponents, i.e. "y0100",
-    and the values give the resonance frequency corresponding to the particular component
+    :param params_dict_list: A list of dictionaries each of which specifies the parameters of a resonator (component,
+    r, q, f)
     :param tag: An optional short string used to place elements into categories
     :param description: An optional short description of the element
     :return: An element object as specified by the user-input
     """
-    assert len(rs_list) == len(qs_list) == len(fs_list), "The three input lists describing the " \
-                                                         "resonators do not all have the same length"
-    for rs, fs, qs in zip(rs_list, qs_list, fs_list):
-        assert set(rs.keys()) == set(qs.keys()) == set(fs.keys()), "The three input dictionaries describing the " \
-                                                                   "resonator do not all have identical keys"
+    for params_dict in params_dict_list:
+        assert ('component' in params_dict.keys() and 'r' in params_dict.keys() and 'q' in params_dict.keys() and
+                'f' in params_dict.keys()), "each of the the component dictionaries must specify the component name, " \
+                                            "r, q and f"
 
     all_components = []
-    for i in range(len(rs_list)):
-        for key in rs_list[i].keys():
-            plane, exponents = string_to_params(key, include_is_impedance=False)
-            all_components.append(create_resonator_component(plane, exponents, rs_list[i][key], qs_list[i][key],
-                                                             fs_list[i][key]))
+    for params_dict in params_dict_list:
+        plane, exponents = string_to_params(params_dict['component'], include_is_impedance=False)
+        all_components.append(create_resonator_component(plane, exponents, params_dict['r'], params_dict['q'],
+                                                         params_dict['f']))
 
     comp_dict = defaultdict(lambda: 0)
     for c in all_components:
