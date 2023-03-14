@@ -154,7 +154,7 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
             all_components.append(create_resonator_component(plane, exponents, rs_list[i][key], qs_list[i][key],
                                                              fs_list[i][key]))
 
-    comp_dict = defaultdict(int)
+    comp_dict = defaultdict(lambda: 0)
     for c in all_components:
         comp_dict[(c.plane, c.source_exponents, c.test_exponents)] += c
 
