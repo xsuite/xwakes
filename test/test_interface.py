@@ -1,9 +1,13 @@
-from pywit.interface import import_data_iw2d, create_component_from_data
+from pywit.interface import import_data_iw2d, create_component_from_data, IW2DInput, Sampling, check_already_computed, \
+    get_iw2d_config_value, add_elements_to_hashmap
 from pywit.parameters import *
 
 from pathlib import Path
-
+from typing import Dict
+import pickle
+from hashlib import sha256
 from pytest import raises
+from copy import copy
 import numpy as np
 
 
@@ -44,3 +48,60 @@ def test_valid_iw2d_component_import():
             np.testing.assert_allclose(y_actual, component.impedance(x), rtol=REL_TOL, atol=ABS_TOL)
         else:
             np.testing.assert_allclose(y_actual, component.wake(x), rtol=REL_TOL, atol=ABS_TOL)
+
+
+def test_check_already_computed():
+    # create dummy iw2d input
+    f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
+    iw2d_input = IW2DInput(machine='test', length=1, relativistic_gamma=100, calculate_wake=True, f_params=f_params)
+    name = 'test_hash'
+
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+    Path.mkdir(Path.joinpath(projects_path, 'test_hash'))
+    # add the dummy input the the hashmap
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
+        hashmap: Dict[str, str] = pickle.load(pickle_file)
+
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+
+    hashmap[input_hash] = name
+
+    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
+        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    # check that the input is detected in the hashmap
+    read_ready, names, _ = check_already_computed(name, iw2d_input)
+
+    # remove the dummy input from the hashmap
+    hashmap.pop(input_hash)
+    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
+        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    Path.rmdir(Path.joinpath(projects_path, 'test_hash'))
+
+    assert read_ready
+
+
+def test_add_elements_to_hashmap():
+    # create dummy iw2d input
+    f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
+    iw2d_input = IW2DInput(machine='test', length=1, relativistic_gamma=100, calculate_wake=True, f_params=f_params)
+    name = 'test_hash'
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+
+    # add the input to the hashmap
+    add_elements_to_hashmap(name, input_hash)
+
+    # check that the input is in the hashmap
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
+        hashmap: Dict[str, str] = pickle.load(pickle_file)
+
+    hashmap_keys = list(hashmap.keys())
+
+    # remove the dummy input from the hashmap
+    hashmap.pop(input_hash)
+    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
+        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    assert input_hash in hashmap_keys
