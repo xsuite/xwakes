@@ -346,6 +346,69 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
+def check_already_computed(names, iw2d_inputs):
+    # check if scalar inputs have been given. In that case, transform them in length one lists
+    scalar_inputs = False
+    if type(names) is not list:
+        scalar_inputs = True
+        names = [names]
+
+    if type(iw2d_inputs) is not list:
+        iw2d_inputs = [iw2d_inputs]
+
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+
+    delete_removed_projects()
+
+    read_ready = [False for _ in iw2d_inputs]
+    input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
+
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
+        hashmap: Dict[str, str] = pickle.load(pickle_file)
+
+    for i, input_hash in enumerate(input_hashes):
+        if input_hash in hashmap:
+            if hashmap[input_hash] == names[i]:
+                print(f"The computation of '{names[i]}' has already been performed with the exact given parameters. "
+                      f"These results will be used to generate the element.")
+                read_ready[i] = True
+            else:
+                print(f"Another element, '{hashmap[input_hash]}', has previously been computed with the exact same "
+                      f"parameters as '{names[i]}'. Do you wish to re-perform the computation, or construct an element from "
+                      f"the already computed values?")
+                choice = input("1: Re-do computation\n"
+                               "2: Use old values (recommended)\n"
+                               "Your choice: ")
+                if choice == '2':
+                    names[i] = hashmap[input_hash]
+                    read_ready[i] = True
+
+    if not scalar_inputs:
+        return read_ready, names, input_hashes
+    else:
+        return read_ready[0], names[0], input_hashes[0]
+
+
+def add_elements_to_hashmap(names, input_hashes):
+    # check if scalar inputs have been given. In that case, transform them in length one lists
+    if type(names) is not list:
+        names = [names]
+
+    if type(input_hashes) is not list:
+        input_hashes = [input_hashes]
+
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
+        hashmap: Dict[str, str] = pickle.load(pickle_file)
+
+    for i, input_hash in enumerate(input_hashes):
+        hashmap[input_hash] = names[i]
+
+    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
+        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
     assert " " not in name, "Spaces are not allowed in element name"
 
@@ -355,29 +418,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
-    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
-    delete_removed_projects()
-
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-
-    read_ready = False
-
-    if input_hash in hashmap:
-        if hashmap[input_hash] == name:
-            print(f"The computation of '{name}' has already been performed with the exact given parameters. "
-                  f"These results will be used to generate the element.")
-            read_ready = True
-        else:
-            print(f"Another element, '{hashmap[input_hash]}', has previously been computed with the exact same "
-                  f"parameters as '{name}'. Do you wish to re-perform the computation, or construct an element from "
-                  f"the already computed values?")
-            choice = input("1: Re-do computation\n"
-                           "2: Use old values (recommended)\n"
-                           "Your choice: ")
-            if choice == '2':
-                name = hashmap[input_hash]
-                read_ready = True
+    read_ready, name, input_hash = check_already_computed(name, iw2d_input)
 
     if not read_ready:
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
@@ -387,9 +428,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
         create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"{name}_input.txt"))
         subprocess.run(f'{bin_path.joinpath(bin_string)} < {name}_input.txt',
                        shell=True, cwd=working_directory)
-        hashmap[input_hash] = name
-        with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-            pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        add_elements_to_hashmap(name, input_hash)
 
     component_recipes = import_data_iw2d(projects_path.joinpath(name), iw2d_input.comment)
 
@@ -541,24 +580,8 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     projects_path = Path(get_iw2d_config_value('project_directory'))
     delete_removed_projects()
-    read_ready = [False for _ in iw2d_inputs]
-    input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-        for i, ih in enumerate(input_hashes):
-
-            if ih in hashmap:
-                if hashmap[ih] == names[i]:
-                    print(f"The computation of '{names[i]}' has already been performed with the exact given parameters."
-                          f" These results will be used to generate the element.")
-                    read_ready[i] = True
-                else:
-                    print(f"Another element, '{hashmap[ih]}', has previously been computed with the exact same "
-                          f"parameters as '{names[i]}'. These computed values will be re-used to construct the new "
-                          f"element.")
-                    names[i] = hashmap[ih]
-                    read_ready[i] = True
+    read_ready, names, input_hashes = check_already_computed(names, iw2d_inputs)
 
     elements = Parallel(n_jobs=-1, prefer='threads')(delayed(_generate_iw2d_element_async)(
         iw2d_input=iw2d_inputs[i],
@@ -570,11 +593,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
         bin_path=bin_path
     ) for i in range(len(names)))
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as pickle_file:
-        for ih, name in zip(input_hashes, names):
-            hashmap[ih] = name
-
-        pickle.dump(hashmap, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
+    add_elements_to_hashmap(names, input_hashes)
 
     return elements
 
