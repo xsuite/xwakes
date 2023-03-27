@@ -423,14 +423,14 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     if not read_ready:
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
-        subprocess.run(['mkdir', name], cwd=projects_path)
-        working_directory = projects_path.joinpath(name)
+        subprocess.run(['mkdir', input_hash], cwd=projects_path)
+        working_directory = projects_path.joinpath(input_hash)
         create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"{name}_input.txt"))
         subprocess.run(f'{bin_path.joinpath(bin_string)} < {name}_input.txt',
                        shell=True, cwd=working_directory)
         add_elements_to_hashmap(name, input_hash)
 
-    component_recipes = import_data_iw2d(projects_path.joinpath(name), iw2d_input.comment)
+    component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), iw2d_input.comment)
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
