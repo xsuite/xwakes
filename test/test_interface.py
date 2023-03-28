@@ -7,7 +7,7 @@ from typing import Dict
 import pickle
 from hashlib import sha256
 from pytest import raises
-from copy import copy
+
 import numpy as np
 
 
@@ -57,12 +57,18 @@ def test_check_already_computed():
     name = 'test_hash'
 
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    Path.mkdir(Path.joinpath(projects_path, 'test_hash'))
     # add the dummy input the the hashmap
     with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+
+    working_directory = Path.joinpath(projects_path, input_hash)
+
+    if Path.exists(working_directory):
+        Path.rmdir(working_directory)
+
+    Path.mkdir(Path.joinpath(projects_path, input_hash))
 
     hashmap[input_hash] = name
 
@@ -70,13 +76,13 @@ def test_check_already_computed():
         pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     # check that the input is detected in the hashmap
-    read_ready, names, _ = check_already_computed(name, iw2d_input)
+    read_ready, input_hash = check_already_computed(iw2d_input, name)
 
     # remove the dummy input from the hashmap
     hashmap.pop(input_hash)
     with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
         pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    Path.rmdir(Path.joinpath(projects_path, 'test_hash'))
+    Path.rmdir(Path.joinpath(projects_path, input_hash))
 
     assert read_ready
 
