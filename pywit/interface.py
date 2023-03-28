@@ -346,15 +346,15 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
-def check_already_computed(names, iw2d_inputs):
+def check_already_computed(iw2d_inputs, names):
     # check if scalar inputs have been given. In that case, transform them in length one lists
     scalar_inputs = False
+    if type(iw2d_inputs) is not list:
+        scalar_inputs = True
+        iw2d_inputs = [iw2d_inputs]
     if type(names) is not list:
         scalar_inputs = True
         names = [names]
-
-    if type(iw2d_inputs) is not list:
-        iw2d_inputs = [iw2d_inputs]
 
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
@@ -368,31 +368,20 @@ def check_already_computed(names, iw2d_inputs):
 
     for i, input_hash in enumerate(input_hashes):
         if input_hash in hashmap:
-            if hashmap[input_hash] == names[i]:
-                print(f"The computation of '{names[i]}' has already been performed with the exact given parameters. "
-                      f"These results will be used to generate the element.")
-                read_ready[i] = True
-            else:
-                print(f"Another element, '{hashmap[input_hash]}', has previously been computed with the exact same "
-                      f"parameters as '{names[i]}'. Do you wish to re-perform the computation, or construct an element from "
-                      f"the already computed values?")
-                choice = input("1: Re-do computation\n"
-                               "2: Use old values (recommended)\n"
-                               "Your choice: ")
-                if choice == '2':
-                    names[i] = hashmap[input_hash]
-                    read_ready[i] = True
+            print(f"The computation of '{names[i]}' has already been performed with the exact given parameters. "
+                  f"These results will be used to generate the element.")
+            read_ready[i] = True
 
     if not scalar_inputs:
-        return read_ready, names, input_hashes
+        return read_ready, input_hashes
     else:
-        return read_ready[0], names[0], input_hashes[0]
+        return read_ready[0], input_hashes[0]
 
 
-def add_elements_to_hashmap(names, input_hashes):
+def add_elements_to_hashmap(comments, input_hashes):
     # check if scalar inputs have been given. In that case, transform them in length one lists
-    if type(names) is not list:
-        names = [names]
+    if type(comments) is not list:
+        comments = [comments]
 
     if type(input_hashes) is not list:
         input_hashes = [input_hashes]
@@ -403,7 +392,7 @@ def add_elements_to_hashmap(names, input_hashes):
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
     for i, input_hash in enumerate(input_hashes):
-        hashmap[input_hash] = names[i]
+        hashmap[input_hash] = comments[i]
 
     with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
         pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
@@ -418,18 +407,20 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
-    read_ready, name, input_hash = check_already_computed(name, iw2d_input)
+    read_ready, input_hash = check_already_computed(iw2d_input, name)
 
     if not read_ready:
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
         subprocess.run(['mkdir', input_hash], cwd=projects_path)
         working_directory = projects_path.joinpath(input_hash)
-        create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"{name}_input.txt"))
-        subprocess.run(f'{bin_path.joinpath(bin_string)} < {name}_input.txt',
+        create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"{iw2d_input.comment}_input.txt"))
+        subprocess.run(f'{bin_path.joinpath(bin_string)} < {iw2d_input.comment}_input.txt',
                        shell=True, cwd=working_directory)
-        add_elements_to_hashmap(name, input_hash)
+        add_elements_to_hashmap(iw2d_input.comment, input_hash)
 
+    # the common string passed to import_data_iw2d must be the comment used the first time that the simulation was
+    # performed
     component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), iw2d_input.comment)
 
     return Element(length=iw2d_input.length,
@@ -467,7 +458,7 @@ def delete_removed_projects() -> None:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
     projects = listdir(projects_path)
-    new_dict = {k: v for k, v in hashmap.items() if v in projects}
+    new_dict = {k: v for k, v in hashmap.items() if k in projects}
 
     with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
         pickle.dump(new_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
