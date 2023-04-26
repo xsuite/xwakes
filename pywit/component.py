@@ -10,7 +10,7 @@ import sortednp as snp
 
 
 def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
-                                fine_points: int, rois: List[Tuple[float, float]]):
+                                precision_factor: float, rois: List[Tuple[float, float]]):
     """
     Mix a fine and rough (geometric) sampling between start and stop,
     refined in the regions of interest rois.
@@ -24,14 +24,21 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
                  of each region of interest.
     :return: An array with the sampling obtained.
     """
-    intervals = [np.linspace(max(i,start), min(f,stop), fine_points)
-                 for i, f in rois
-                 if (start <= i <= stop or start <= f <= stop)]
+    if len(rois) == 0:
+        return np.geomspace(start, stop, rough_points)
+
+    # eliminate duplicates
+    rois_no_dup = set(rois)
+
+    fine_points_per_roi = int(round(rough_points*precision_factor))
+    
+    intervals = [np.linspace(max(roi_start, start), min(roi_stop, stop), fine_points_per_roi)
+                 for roi_start, roi_stop in rois_no_dup
+                 if (start <= roi_start <= stop or start <= roi_stop <= stop)]
     fine_sampling_rois = np.hstack(intervals) if intervals else np.array([])
     rough_sampling = np.geomspace(start, stop, rough_points)
 
-    return np.sort(list(set(round_sigfigs(
-            snp.merge(fine_sampling_rois,rough_sampling),7))))
+    return np.unique(round_sigfigs(snp.merge(fine_sampling_rois,rough_sampling),7))
 
 
 class Component:
@@ -99,7 +106,7 @@ class Component:
         """
         Uses the wake function of the Component object to generate its impedance function, using
         a Fourier transform.
-        :return: Nothing
+        :return: Nothing@
         """
         # # If the object already has an impedance function, there is no need to generate it.
         # if self.impedance:
@@ -284,8 +291,20 @@ class Component:
         return np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and \
                np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
 
-    def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ,
-                           stop: float = MAX_FREQ,
+
+    def _time_array(self, rough_points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
+                    precision_factor: float = TIME_P_FACTOR) -> np.ndarray:
+        
+        return mix_fine_and_rough_sampling(start, stop, rough_points, precision_factor, self.t_rois)
+    
+    
+    def _frequency_array(self, rough_points: int, start: float = MIN_FREQ, stop: float = MAX_FREQ,
+                        precision_factor: float = FREQ_P_FACTOR) -> np.ndarray:
+
+        return mix_fine_and_rough_sampling(start, stop, rough_points, precision_factor, self.f_rois)
+
+
+    def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ, stop: float = MAX_FREQ,
                            precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a frequency grid based on the f_rois attribute of the component and evaluates the component's
@@ -305,23 +324,13 @@ class Component:
         :return: A tuple of two numpy arrays with same shape, giving
                  the frequency grid and impedances respectively
         """
-        if len(self.f_rois) == 0:
-            xs = np.geomspace(start, stop, rough_points)
-            return xs, self.impedance(xs)
         
-        # eliminate duplicates
-        f_rois_no_dup = set(self.f_rois)
+        frequencies = self._frequency_array(rough_points, start, stop, precision_factor)
+        
+        return frequencies, self.impedance(frequencies)
 
-        fine_points_per_roi = int(round(rough_points*precision_factor))
 
-        xs = mix_fine_and_rough_sampling(start, stop, rough_points,
-                                         fine_points_per_roi,
-                                         f_rois_no_dup)
-
-        return xs, self.impedance(xs)
-
-    def wake_to_array(self, rough_points: int, start: float = MIN_TIME,
-                      stop: float = MAX_TIME,
+    def wake_to_array(self, rough_points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a time grid based on the t_rois attribute of the component and evaluates the component's
@@ -341,20 +350,9 @@ class Component:
         :return: A tuple of two numpy arrays with same shape, giving the
                  time grid and wakes respectively
         """
-        if len(self.t_rois) == 0:
-            xs = np.geomspace(start, stop, rough_points)
-            return xs, self.wake(xs)
+        times = self._time_array(rough_points, start, stop, precision_factor)
 
-        # eliminate duplicates
-        t_rois_no_dup = set(self.t_rois)
-
-        fine_points_per_roi = int(round(rough_points*precision_factor))
-
-        xs = mix_fine_and_rough_sampling(start, stop, rough_points,
-                                         fine_points_per_roi,
-                                         t_rois_no_dup)
-
-        return xs, self.wake(xs)
+        return times, self.wake(times)
 
     def discretize(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
                    time_start: float = MIN_TIME, time_stop: float = MAX_TIME, freq_precision_factor: float = FREQ_P_FACTOR,
