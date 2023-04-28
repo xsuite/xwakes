@@ -5,6 +5,8 @@ from pywit.utils import round_sigfigs
 
 from typing import Optional, Callable, Tuple, Union, List
 
+from neffint.fixed_grid_fourier_integral import fourier_integral_fixed_sampling
+from scipy.interpolate import PchipInterpolator
 import numpy as np
 import sortednp as snp
 
@@ -91,16 +93,33 @@ class Component:
         a Fourier transform.
         :return: Nothing
         """
-        # # If the object already has a wake function, there is no need to generate it.
-        # if self.wake:
-        #     pass
-        # # In order to generate a wake function, we need to make sure the impedance function is defined.
-        # assert self.impedance, "Tried to generate wake from impedance, but impedance is not defined."
-        #
-        # raise NotImplementedError
+        # If the object already has a wake function, there is no need to generate it.
+        if self.wake:
+            pass
+        # In order to generate a wake function, we need to make sure the impedance function is defined.
+        assert self.impedance, "Tried to generate wake from impedance, but impedance is not defined."
+    
+        # TODO: Don't use magic number 1000 and 5000 here, and maybe not defaults for the rest.
+        # Find a good place to have the user input them
+        times = self._time_array(rough_points=1000)
+        frequencies = self._frequency_array(rough_points=5000)
+    
+        transform_arr = fourier_integral_fixed_sampling(
+            times=times,
+            frequencies=frequencies,
+            func_values=self.impedance(frequencies),
+            inf_correction_term=True,
+            interpolation="pchip"
+        )
+        
+        if self.plane == "z":
+            wake_arr = np.real(transform_arr)/np.pi
+        else:
+            wake_arr = np.imag(transform_arr)/np.pi
+        
+        self.wake = PchipInterpolator(times, wake_arr)
+        return
 
-        # Temporary solution to avoid crashes
-        self.wake = lambda x: 0
 
     def generate_impedance_from_wake(self) -> None:
         """
