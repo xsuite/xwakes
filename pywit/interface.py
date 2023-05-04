@@ -436,13 +436,19 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
+    # when looking for this IW2DInput in the database, the comment doesn't necessarily need to be the same as the
+    # in the old simulation so we ignore it for creating the hash
+    iw2d_input_dict = iw2d_input.__dict__
+    iw2d_input_dict['comment'] = ''
+    iw2d_input_no_comment = IW2DInput(**iw2d_input_dict)
+
     # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     # the path to the folder containing the database of already computed elements
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
-    read_ready, input_hash = check_already_computed(iw2d_input, name)
+    read_ready, input_hash = check_already_computed(iw2d_input_no_comment, name)
 
     # if an element with the same inputs is not found inside the database, perform the computations and add the results
     # to the database
@@ -456,10 +462,13 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
                        shell=True, cwd=working_directory)
         add_elements_to_hashmap(iw2d_input.comment, input_hash)
 
-    # read the computed components from the database.
+    # read the computed components from the database
     # the common string passed to import_data_iw2d must be the comment used the first time that the simulation was
     # performed
-    component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), iw2d_input.comment)
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
+        hashmap: Dict[str, str] = pickle.load(pickle_file)
+    comment = hashmap[input_hash]
+    component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), comment)
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
@@ -610,10 +619,17 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     projects_path = Path(get_iw2d_config_value('project_directory'))
     delete_removed_projects()
 
-    read_ready, input_hashes = check_already_computed(names, iw2d_inputs)
+    iw2d_input_dicts = [iw2d_input.__dict__ for iw2d_input in iw2d_inputs]
+    for iw2d_input_dict in iw2d_input_dicts:
+        iw2d_input_dict['comment'] = ''
+
+    iw2d_inputs_no_comment = [IW2DInput(**iw2d_input_dict) for iw2d_input_dict in iw2d_input_dicts]
+
+    read_ready, input_hashes = check_already_computed(iw2d_inputs_no_comment, names)
 
     elements = Parallel(n_jobs=-1, prefer='threads')(delayed(_generate_iw2d_element_async)(
         iw2d_input=iw2d_inputs[i],
+        input_hash=input_hashes[i],
         name=names[i],
         beta_x=beta_xs[i],
         beta_y=beta_ys[i],
@@ -627,8 +643,9 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     return elements
 
 
-def _generate_iw2d_element_async(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, read_ready: bool,
-                                 projects_path: Union[str, Path], bin_path: Union[str, Path]) -> Element:
+def _generate_iw2d_element_async(iw2d_input: IW2DInput, input_hash: str, name: str, beta_x: float, beta_y: float,
+                                 read_ready: bool, projects_path: Union[str, Path],
+                                 bin_path: Union[str, Path]) -> Element:
     if not read_ready:
         print(f'Running IW2D computation for {name}')
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
@@ -642,7 +659,10 @@ def _generate_iw2d_element_async(iw2d_input: IW2DInput, name: str, beta_x: float
         with open(working_directory.joinpath(f'IW2D_terminal_output{iw2d_input.comment}.txt'), 'w') as file:
             file.write(proc.stdout.decode())
 
-    component_recipes = import_data_iw2d(Path(projects_path).joinpath(name), iw2d_input.comment)
+    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
+        hashmap: Dict[str, str] = pickle.load(pickle_file)
+    comment = hashmap[input_hash]
+    component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), comment)
     components = [create_component_from_data(*recipe, relativistic_gamma=iw2d_input.relativistic_gamma)
                   for recipe in component_recipes]
 
