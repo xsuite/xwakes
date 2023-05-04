@@ -123,29 +123,30 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
 
 
 def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
-                                   params_dict_list: List[Dict[str, Union[str, float]]], tag: str = 'resonator',
+                                   params_dict: Dict[str, List[Dict[str, float]]], tag: str = 'resonator',
                                    description: str = '') -> Element:
     """
     Creates an element object representing many resonators.
     :param length: The length, in meters, of the element
     :param beta_x: The value of the beta function in the x-direction at the position of the element
     :param beta_y: The value of the beta function in the y-direction at the position of the element
-    :param params_dict_list: A list of dictionaries each of which specifies the parameters of a resonator (component,
-    r, q, f)
+    :param params_dict: a dictionary associating to each component a list of dictionaries containing the
+    parameters of a resonator component
     :param tag: An optional short string used to place elements into categories
     :param description: An optional short description of the element
     :return: An element object as specified by the user-input
     """
-    for params_dict in params_dict_list:
-        assert ('component' in params_dict.keys() and 'r' in params_dict.keys() and 'q' in params_dict.keys() and
-                'f' in params_dict.keys()), "each of the the component dictionaries must specify the component name, " \
-                                            "r, q and f"
+    for component_id, component_params_list in params_dict.items():
+        for component_params in component_params_list:
+            assert ('r' in component_params.keys() and 'q' in component_params.keys() and
+                    'f' in component_params.keys()), "each of the the component dictionaries must contain r, q and f"
 
     all_components = []
-    for params_dict in params_dict_list:
-        plane, exponents = string_to_params(params_dict['component'], include_is_impedance=False)
-        all_components.append(create_resonator_component(plane, exponents, params_dict['r'], params_dict['q'],
-                                                         params_dict['f']))
+    for component_id, component_params_list in params_dict.items():
+        plane, exponents = string_to_params(component_id, include_is_impedance=False)
+        for component_params in component_params_list:
+            all_components.append(create_resonator_component(plane, exponents, component_params['r'],
+                                                             component_params['q'], component_params['f']))
 
     comp_dict = defaultdict(lambda: 0)
     for c in all_components:
