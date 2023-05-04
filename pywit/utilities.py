@@ -3,7 +3,7 @@ from pywit.element import Element
 from pywit.interface import Layer
 
 from yaml import load, SafeLoader
-from typing import Tuple, Dict, List, Union
+from typing import Tuple, Dict, List
 from collections import defaultdict
 
 from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign, heaviside
