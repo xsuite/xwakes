@@ -346,7 +346,16 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
-def check_already_computed(iw2d_inputs, names):
+def check_already_computed(iw2d_inputs: Union[IW2DInput, List[IW2DInput]],
+                           names: Union[str, List[str]]) -> Tuple[Union[bool, List[bool]], Union[str, List[str]]]:
+    """
+    Checks if a simulation with inputs iw2d inputs is already present in the hash database (possibly with a different
+    name). It works both for a single iw2d input and for a list of inputs.
+    :param iw2d_inputs: a list of iw2d input objects or a single iw2d input object
+    :param names: a list of names or a single name
+    :return: two lists: one indicatind if the iw2d_inputs have been already and the other containing the hash keys
+    corresponding to the inputs. If scalar inputs were passed then the function returns two scalars instead of two lists
+    """
     # check if scalar inputs have been given. In that case, transform them in length one lists
     scalar_inputs = False
     if type(iw2d_inputs) is not list:
@@ -356,16 +365,22 @@ def check_already_computed(iw2d_inputs, names):
         scalar_inputs = True
         names = [names]
 
+    assert len(iw2d_inputs) == len(names), 'the length of the iw2d inputs list and the names list must be equal'
+
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
     delete_removed_projects()
 
+    # initialize read ready to all False for convenience
     read_ready = [False for _ in iw2d_inputs]
+    # create the list of hash keys
     input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
 
+    # read the hashmap from the project files
     with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
         hashmap: Dict[str, str] = pickle.load(pickle_file)
 
+    # for each IW2D input check if the elements is already in the ashmap
     for i, input_hash in enumerate(input_hashes):
         if input_hash in hashmap:
             print(f"The computation of '{names[i]}' has already been performed with the exact given parameters. "
@@ -378,13 +393,21 @@ def check_already_computed(iw2d_inputs, names):
         return read_ready[0], input_hashes[0]
 
 
-def add_elements_to_hashmap(comments, input_hashes):
+def add_elements_to_hashmap(comments: Union[str, List[str]], input_hashes: Union[str, List[str]]) -> None:
+    """
+    Adds one or several input_hash -> comment pairs to the hashmap. The inputs can be either scalars or lists.
+    :param comments: a list of comments of an iw2d simulation
+    :param input_hashes: a list of input_hashes
+    :return: nothing
+    """
     # check if scalar inputs have been given. In that case, transform them in length one lists
     if type(comments) is not list:
         comments = [comments]
 
     if type(input_hashes) is not list:
         input_hashes = [input_hashes]
+
+    assert len(comments) == len(input_hashes), 'the length of the comments list and the input_hashes list must be equal'
 
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
@@ -399,16 +422,30 @@ def add_elements_to_hashmap(comments, input_hashes):
 
 
 def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
+    """
+    Create and return an Element using IW2D object.
+    :param iw2d_input: the IW2DInput object
+    :param name: the name of the Element
+    :param beta_x: the beta function value in the x-plane at the position of the Element
+    :param beta_y: the beta function value in the x-plane at the position of the Element
+    :param tag: a tag string for the Element
+    :return: The newly computed Element
+    """
     assert " " not in name, "Spaces are not allowed in element name"
 
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
+    # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
+    # the path to the folder containing the database of already computed elements
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
+    # check if the element is already present in the database and create the hash key corresponding to the IW2D input
     read_ready, input_hash = check_already_computed(iw2d_input, name)
 
+    # if an element with the same inputs is not found inside the database, perform the computations and add the results
+    # to the database
     if not read_ready:
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
@@ -419,6 +456,7 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
                        shell=True, cwd=working_directory)
         add_elements_to_hashmap(iw2d_input.comment, input_hash)
 
+    # read the computed components from the database.
     # the common string passed to import_data_iw2d must be the comment used the first time that the simulation was
     # performed
     component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), iw2d_input.comment)
@@ -572,7 +610,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     projects_path = Path(get_iw2d_config_value('project_directory'))
     delete_removed_projects()
 
-    read_ready, names, input_hashes = check_already_computed(names, iw2d_inputs)
+    read_ready, input_hashes = check_already_computed(names, iw2d_inputs)
 
     elements = Parallel(n_jobs=-1, prefer='threads')(delayed(_generate_iw2d_element_async)(
         iw2d_input=iw2d_inputs[i],
