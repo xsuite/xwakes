@@ -39,6 +39,8 @@ requirements = {
         "scipy",
         "matplotlib",
         "sortednp",
+        "pyyaml",
+        "joblib",
     ],
     "test":[
         "pytest",
@@ -56,6 +58,7 @@ setup(
     description='Python Wake and Impedance Toolbox',
     cmdclass={'install': PostInstallCommand,
               'develop': PostDevelopCommand},
+    python_requires=">=3.7",
     install_requires=requirements["core"],
     extras_require=requirements,
 )
