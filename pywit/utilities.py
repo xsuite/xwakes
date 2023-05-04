@@ -131,20 +131,27 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
     :param beta_x: The value of the beta function in the x-direction at the position of the element
     :param beta_y: The value of the beta function in the y-direction at the position of the element
     :param params_dict: a dictionary associating to each component a list of dictionaries containing the
-    parameters of a resonator component
+    parameters of a resonator component. E.g.:
+    params_dict = {
+        'z0000':
+            [
+                {'r': 10, 'q': 10, 'f': 50},
+                {'r': 40, 'q': 100, 'f': 60}
+            ],
+        'x1000':
+        ...
+    }
     :param tag: An optional short string used to place elements into categories
     :param description: An optional short description of the element
     :return: An element object as specified by the user-input
     """
-    for component_id, component_params_list in params_dict.items():
-        for component_params in component_params_list:
-            assert ('r' in component_params.keys() and 'q' in component_params.keys() and
-                    'f' in component_params.keys()), "each of the the component dictionaries must contain r, q and f"
-
     all_components = []
     for component_id, component_params_list in params_dict.items():
         plane, exponents = string_to_params(component_id, include_is_impedance=False)
         for component_params in component_params_list:
+            assert ('r' in component_params.keys() and 'q' in component_params.keys() and
+                    'f' in component_params.keys()), "each of the the component dictionaries must contain r, q and f"
+
             all_components.append(create_resonator_component(plane, exponents, component_params['r'],
                                                              component_params['q'], component_params['f']))
 
@@ -152,8 +159,7 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
     for c in all_components:
         comp_dict[(c.plane, c.source_exponents, c.test_exponents)] += c
 
-    components_values = comp_dict.values()
-    components = sorted(components_values, key=lambda x: (x.plane, x.source_exponents, x.test_exponents))
+    components = sorted(comp_dict.values(), key=lambda x: (x.plane, x.source_exponents, x.test_exponents))
 
     return Element(length, beta_x, beta_y, components, tag=tag, description=description)
 
