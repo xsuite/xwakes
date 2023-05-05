@@ -358,10 +358,10 @@ def check_already_computed(iw2d_inputs: Union[IW2DInput, List[IW2DInput]],
     """
     # check if scalar inputs have been given. In that case, transform them in length one lists
     scalar_inputs = False
-    if type(iw2d_inputs) is not list:
+    if np.isscalar(iw2d_inputs):
         scalar_inputs = True
         iw2d_inputs = [iw2d_inputs]
-    if type(names) is not list:
+    if np.isscalar(names):
         scalar_inputs = True
         names = [names]
 
@@ -401,10 +401,10 @@ def add_elements_to_hashmap(comments: Union[str, List[str]], input_hashes: Union
     :return: nothing
     """
     # check if scalar inputs have been given. In that case, transform them in length one lists
-    if type(comments) is not list:
+    if np.isscalar(comments):
         comments = [comments]
 
-    if type(input_hashes) is not list:
+    if np.isscalar(comments):
         input_hashes = [input_hashes]
 
     assert len(comments) == len(input_hashes), 'the length of the comments list and the input_hashes list must be equal'
