@@ -3,17 +3,16 @@ from pywit.utilities import string_to_params
 import numpy as np
 import sys
 
-from scipy.constants import e, m_p, epsilon_0, mu_0, c
-import scipy.constants
+from scipy.constants import e, m_p, c
 
-from typing import Union, Callable
+from typing import List, Callable, Iterable
 
 
 def hmm(m: int, omega: float, bunch_length: float, mode_type: str = 'sinusoidal'):
     """
     compute hmm power spectrum of Sacherer formula, for azimuthal mode number m,
     at angular frequency 'omega' (rad/s) (can be an arrray), for total bunch length
-    'taub' (s), and for a kind of mode specified by 'modetype'
+    'taub' (s), and for a kind of mode specified by 'mode_type'
     (which can be 'Hermite' - leptons -  or 'sinusoidal' - protons).
     """
 
@@ -34,160 +33,172 @@ def hmm(m: int, omega: float, bunch_length: float, mode_type: str = 'sinusoidal'
     return hmm_val
 
 
-def hmmsum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: float, omega_ksi: float,
-           eps: float = 1e-5, omegas: float = 0, k_max: int = 20, mode_type: str = 'sinusoidal',
-           impedance: Union[Callable[[float], complex], np.array] = None, omega_impedance_table: np.array = None,
-           flag_trapz: bool = False):
+def hmm_sum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: float, omega_ksi: float,
+            eps: float = 1e-5, omegas: float = 0, k_max: int = 20, mode_type: str = 'sinusoidal',
+            impedance_function: Callable = None, impedance_table: List[float] = None,
+            omega_impedance_table: Iterable[float] = None, flag_trapz: bool = False):
     """
     compute sum of hmm functions (defined above), weighted or not by the impedance Z
     (table of complex impedances in Ohm given from negative to positive angular frequencies
     omegaZ in rad/s] If these are None, then only sum the hmm.
-    Use the trapz integration method if flagtrapz==True.
+    Use the trapz integration method if flag_trapz==True.
 
      - m: azimuthal mode number,
      - omega0: angular revolution frequency in rad/s,
-     - M: number of bunches,
-     - offk: offset in k (typically nx+[Q] where nx is the coupled-bunch mode and [Q]
+     - n_bunches: number of bunches,
+     - offk: offset in k (typically nx+[tune] where nx is the coupled-bunch mode and [tune]
      the fractional part of the tune),
      - taub: total bunch length in s,
      - omegaksi: chromatic angular frequency,
      - eps: relative precision of the sum,
      - omegas: synchrotron frequency,
      - kmax: step in k between sums,
-     - modetype: kind of mode for the hmm power spectrum ('sinusoidal', 'Hermite').
+     - mode_type: kind of mode for the hmm power spectrum ('sinusoidal', 'Hermite').
 
     In the end the sum runs over k with hmm taken at the angular frequencies
-    (offk+k*M)*omega0+m*omegas-omegaksi
-    but the impedance is taken at (offk+k*M)*omega0+m*omegas
+    (offk+k*n_bunches)*omega0+m*omegas-omegaksi
+    but the impedance is taken at (offk+k*n_bunches)*omega0+m*omegas
     """
-    if impedance is not None:
-        func_input = np.shape(impedance) == 0
+    if impedance_function is not None and impedance_table is not None:
+        raise ValueError('Only one between impedance_function and impedance_table can be specified')
+
+    if impedance_table is not None and omega_impedance_table is None:
+        raise ValueError('When impedance_table is specified, also the corresponding frequencies must be specified in'
+                         'omega_impedance_table')
 
     # omega shouldn't be needed
-    # if (np.any(omegaZ)==None):
-    #    omega=np.arange(-100.01/taub,100.01/taub,0.01/taub)
-    #    #pylab.plot(omega,hmm(m,omega,taub,modetype=modetype))
-    #    #pylab.show();
-    #    #pylab.loglog(omega,hmm(m,omega,taub,modetype=modetype))
-    #    #pylab.show()
-    # else:
-    #    omega=omegaZ
+    if omega_impedance_table is None:
+        omega = np.arange(-100.01/bunch_length, 100.01/bunch_length, 0.01/bunch_length)
+    else:
+        omega = omega_impedance_table
 
     # sum initialization
-    omegak = k_offset * omega0 + m * omegas
-    # omegak=Qfrac*omega0+m*omegas
-    hmm_k = hmm(m, omegak - omega_ksi, bunch_length, mode_type=mode_type)
+    omega_k = k_offset * omega0 + m * omegas
+    hmm_k = hmm(m, omega_k - omega_ksi, bunch_length, mode_type=mode_type)
 
     if flag_trapz:
-        omega = np.arange(-100.01 / bunch_length, 100.01 / bunch_length, 0.01 / bunch_length)
         # initialization of correcting term sum_i (with an integral instead of discrete sum)
-        ind_i = np.where(np.sign(omega - omegak - n_bunches * omega0) * np.sign(omega - 1e15) == -1)
-        ind_mi = np.where(np.sign(omega - omegak + n_bunches * omega0) * np.sign(omega + 1e15) == -1)
+        ind_i = np.where(np.sign(omega - omega_k - n_bunches * omega0) * np.sign(omega - 1e15) == -1)
+        ind_mi = np.where(np.sign(omega - omega_k + n_bunches * omega0) * np.sign(omega + 1e15) == -1)
         omega_i = omega[ind_i]
         omega_mi = omega[ind_mi]
         hmm_i = hmm(m, omega_i - omega_ksi, bunch_length, mode_type=mode_type)
         hmm_mi = hmm(m, omega_mi - omega_ksi, bunch_length, mode_type=mode_type)
-        if impedance is not None:
-            Z_i = impedance[ind_i]
-            Z_mi = impedance[ind_mi]
-            sum_i = (np.trapz(Z_i * hmm_i, omega_i) + np.trapz(Z_mi * hmm_mi, omega_mi)) / (n_bunches * omega0)
+        if impedance_function is not None:
+            z_i = impedance_function(omega_i)
+            z_mi = impedance_function(omega_i)
+        elif impedance_table is not None:
+            z_i = impedance_table[ind_i]
+            z_mi = impedance_table[ind_mi]
         else:
-            sum_i = (np.trapz(hmm_i, omega_i) + np.trapz(hmm_mi, omega_mi)) / (n_bunches * omega0)
+            z_i = np.ones_like(ind_i)
+            z_mi = np.ones_like(ind_mi)
+
+        sum_i = (np.trapz(z_i * hmm_i, omega_i) + np.trapz(z_mi * hmm_mi, omega_mi)) / (n_bunches * omega0)
     else:
         sum_i = 0.
 
-    if impedance is not None:
-        if np.shape(impedance) == 0:
-            Zpk = impedance(omegak)
-        else:
-            Zpk = np.interp(omegak, omegaZ, np.real(impedance)) + 1j * np.interp(omegak, omegaZ, np.imag(impedance))
-
-        sum1 = Zpk * hmm_k + sum_i
+    if impedance_function is not None:
+        z_pk = impedance_function(omega_k)
+    elif impedance_table is not None:
+        z_pk = (np.interp(omega_k, omega, np.real(impedance_table)) +
+                1j * np.interp(omega_k, omega, np.imag(impedance_table)))
     else:
-        sum1 = hmm_k + sum_i
+        z_pk = np.ones_like(omega_k)
+
+    sum1 = z_pk * hmm_k + sum_i
 
     k = np.arange(1, k_max + 1)
-    oldsum1 = 10. * sum1
+    old_sum1 = 10. * sum1
 
-    while ((np.abs(np.real(sum1 - oldsum1))) > eps * np.abs(np.real(sum1))) or (
-            (np.abs(np.imag(sum1 - oldsum1))) > eps * np.abs(np.imag(sum1))):
-        oldsum1 = sum1
+    while ((np.abs(np.real(sum1 - old_sum1))) > eps * np.abs(np.real(sum1))) or (
+            (np.abs(np.imag(sum1 - old_sum1))) > eps * np.abs(np.imag(sum1))):
+        old_sum1 = sum1
         # omega_k^x and omega_-k^x in Elias's slides:
-        omegak = (k_offset + k * n_bunches) * omega0 + m * omegas
-        omegamk = (k_offset - k * n_bunches) * omega0 + m * omegas
+        omega_k = (k_offset + k * n_bunches) * omega0 + m * omegas
+        omega_mk = (k_offset - k * n_bunches) * omega0 + m * omegas
         # power spectrum function h(m,m) for k and -k:
-        hmm_k = hmm(m, omegak - omega_ksi, bunch_length, mode_type=mode_type)
-        hmm_mk = hmm(m, omegamk - omega_ksi, bunch_length, mode_type=mode_type)
+        hmm_k = hmm(m, omega_k - omega_ksi, bunch_length, mode_type=mode_type)
+        hmm_mk = hmm(m, omega_mk - omega_ksi, bunch_length, mode_type=mode_type)
 
         if flag_trapz:
             # subtract correction (rest of the sum considered as integral -> should suppress redundant terms)
-            ind_i = np.where(np.sign(omega - omegak[0]) * np.sign(omega - omegak[-1] - n_bunches * omega0) == -1)
-            ind_mi = np.where(np.sign(omega - omegamk[0]) * np.sign(omega - omegamk[-1] + n_bunches * omega0) == -1)
+            ind_i = np.where(np.sign(omega - omega_k[0]) * np.sign(omega - omega_k[-1] - n_bunches * omega0) == -1)
+            ind_mi = np.where(np.sign(omega - omega_mk[0]) * np.sign(omega - omega_mk[-1] + n_bunches * omega0) == -1)
             omega_i = omega[ind_i]
             omega_mi = omega[ind_mi]
             hmm_i = hmm(m, omega_i - omega_ksi, bunch_length, mode_type=mode_type)
             hmm_mi = hmm(m, omega_mi - omega_ksi, bunch_length, mode_type=mode_type)
-            if impedance is not None:
-                Z_i = impedance[ind_i]
-                Z_mi = impedance[ind_mi]
-                sum_i = (np.trapz(Z_i * hmm_i, omega_i) + np.trapz(Z_mi * hmm_mi, omega_mi)) / (n_bunches * omega0)
+
+            if impedance_function is not None:
+                z_i = impedance_function(omega_i)
+                z_mi = impedance_function(omega_mi)
+            elif impedance_table is not None:
+                z_i = impedance_table[ind_i]
+                z_mi = impedance_table[ind_mi]
             else:
-                sum_i = (np.trapz(hmm_i, omega_i) + np.trapz(hmm_mi, omega_mi)) / (n_bunches * omega0)
+                z_i = np.ones_like(ind_i)
+                z_mi = np.ones_like(ind_mi)
+
+            sum_i = (np.trapz(z_i * hmm_i, omega_i) + np.trapz(z_mi * hmm_mi, omega_mi)) / (n_bunches * omega0)
+
         else:
             sum_i = 0.
 
-        if np.any(impedance) is not None:
-            if func_input:
-                Zpk = impedance(omegak)
-                Zpmk = impedance(omegamk)
-            else:
-                # impedances at omegak and omegamk
-                Zpk = np.interp(omegak, omega_impedance_table, np.real(impedance)) + 1j * np.interp(omegak, omega_impedance_table, np.imag(impedance))
-                Zpmk = np.interp(omegamk, omega_impedance_table, np.real(impedance)) + 1j * np.interp(omegamk, omega_impedance_table, np.imag(impedance))
-            # sum
-            sum1 = sum1 + np.sum(Zpk * hmm_k) + np.sum(Zpmk * hmm_mk) - sum_i
+        if impedance_function is not None:
+            z_pk = impedance_function(omega_k)
+            z_pmk = impedance_function(omega_mk)
+        elif impedance_table is not None:
+            # impedances at omega_k and omega_mk
+            z_pk = (np.interp(omega_k, omega, np.real(impedance_table)) +
+                    1j * np.interp(omega_k, omega, np.imag(impedance_table)))
+            z_pmk = (np.interp(omega_mk, omega, np.real(impedance_table)) +
+                     1j * np.interp(omega_mk, omega, np.imag(impedance_table)))
         else:
-            # sum
-            sum1 = sum1 + np.sum(hmm_k) + np.sum(hmm_mk) - sum_i
-        k = k + k_max
+            z_pk = np.ones_like(omega_k)
+            z_pmk = np.ones_like(omega_mk)
 
-    # print k[-1],kmax,omegak[-1],omegaksi,m*omegas
+        # sum
+        sum1 = sum1 + np.sum(z_pk * hmm_k) + np.sum(z_pmk * hmm_mk) - sum_i
+
+        k = k + k_max
 
     return sum1
 
 
-def sacherer(imp_mod, Qpscan, nxscan, Nbscan, omegasscan, M, omega0, Q, gamma, eta, taub, mmax,
-             particle='proton', modetype='sinusoidal', compname='x1000', flagtrapz=None):
+def sacherer(qp_scan, nx_scan, intensity_scan, omegas_scan, n_bunches, omega0, tune, gamma, eta, bunch_length_seconds, m_max,
+             impedance_table=None, impedance_function=None, freq_impedance_table=None, particle='proton',
+             mode_type='sinusoidal', flag_trapz=None):
     """
     omputes frequency shift and effective impedance from Sacherer formula, in transverse, in the case of low
-    intensity perturbations (no mode coupling), for modes of kind 'modetype'.
+    intensity perturbations (no mode coupling), for modes of kind 'mode_type'.
     It gives in output:
-     - tuneshift_most: tune shifts for the most unstable multibunch mode and synchrotron modes
+     - tune_shift_most: tune shifts for the most unstable multibunch mode and synchrotron modes
     sorted by ascending imaginary parts (most unstable synchrotron mode first).
-    Array of dimensions len(Qpscan)*len(Nbscan)*len(omegasscan)*(2*mmax+1)
-     - tuneshiftnx: tune shifts for all multibunch modes and synchrotron modes m.
-    Array of dimensions len(Qpscan)*len(nxscan)*len(Nbscan)*len(omegasscan)*(2*mmax+1)
-     - tuneshiftm0: tune shifts for the most unstable multibunch mode and synchrotron mode m=0.
-    Array of dimensions len(Qpscan)*len(Nbscan)*len(omegasscan)
-     - Zeff: effective impedance for different multibunch modes and synchrotron modes m.
-    Array of dimensions len(Qpscan)*len(nxscan)*len(omegasscan)*(2*mmax+1)
+    Array of dimensions len(qp_scan)*len(intensity_scan)*len(omegas_scan)*(2*m_max+1)
+     - tune_shift_nx: tune shifts for all multibunch modes and synchrotron modes m.
+    Array of dimensions len(qp_scan)*len(nx_scan)*len(intensity_scan)*len(omegas_scan)*(2*m_max+1)
+     - tune_shift_m0: tune shifts for the most unstable multibunch mode and synchrotron mode m=0.
+    Array of dimensions len(qp_scan)*len(intensity_scan)*len(omegas_scan)
+     - effective_impedance: effective impedance for different multibunch modes and synchrotron modes m.
+    Array of dimensions len(qp_scan)*len(nx_scan)*len(omegas_scan)*(2*m_max+1)
 
     Input parameters are similar to DELPHI's ones:
      - imp_mod: impedance model (list of impedance-wake objects),
-     - Qpscan: scan in Q' (DeltaQ*p/Deltap),
-     - nxscan: scan in multibunch modes (from 0 to M-1),
-     - Nbscan: scan in number of particles per bunch,
-     - omegasscan: scan in synchrotron angular frequency (Qs*omega0),
-     - M: number of bunches,
+     - qp_scan: scan in tune' (DeltaQ*p/Deltap),
+     - nx_scan: scan in multibunch modes (from 0 to n_bunches-1),
+     - intensity_scan: scan in number of particles per bunch,
+     - omegas_scan: scan in synchrotron angular frequency (Qs*omega0),
+     - n_bunches: number of bunches,
      - omega0: angular revolution frequency
-     - Q: transverse betatron tune (integer part + fractional part),
+     - tune: transverse betatron tune (integer part + fractional part),
      - gamma: relativistic mass factor,
      - eta: slip factor (Elias's convention, i.e. oppostie to Joel Le Duff),
      - taub: total bunch length in seconds,
-     - mmax: azimuthal modes considered are from -mmax to mmax,
+     - m_max: azimuthal modes considered are from -m_max to m_max,
      - particle: 'proton' or 'electron',
-     - modetype: 'sinusoidal' or 'Hermite': kind of modes in effective impedance,'
-     - compname: component to extract from impedance model
+     - mode_type: 'sinusoidal' or 'Hermite': kind of modes in effective impedance,'
+     - comp_name: component to extract from impedance model
 
      see Elias Metral's USPAS 2009 course : Bunched beams transverse coherent
      instabilities.
@@ -204,86 +215,82 @@ def sacherer(imp_mod, Qpscan, nxscan, Nbscan, omegasscan, M, omega0, Q, gamma, e
     else:
         raise ValueError('Works only for protons for now. To use other particles we need to'
                          'adjust the mass in the line above')
-    E0 = scipy.constants.physical_constants['proton mass energy equivalent in MeV'][0] * 1e6
 
     # some parameters
-    Z0 = np.sqrt(mu_0 / epsilon_0)  # free space impedance: here mu0 c (SI unit - Ohm) or 4 pi/c (c.g.s)
     beta = np.sqrt(1. - 1. / (gamma ** 2))  # relativistic velocity factor
     f0 = omega0 / (2. * np.pi)  # revolution angular frequency
-    Ibscan = e * Nbscan * f0  # single-bunch intensity
-    Qfrac = Q - np.floor(Q)  # fractional part of the tune
-    Lb = taub * beta * c  # full bunch length (in meters)
+    single_bunch_intensity_scan = e * intensity_scan * f0  # single-bunch intensity
+    fractional_tune = tune - np.floor(tune)  # fractional part of the tune
+    bunch_length_seconds_meters = bunch_length_seconds * beta * c  # full bunch length (in meters)
 
-    Zcomp = imp_mod.get_component(compname).impedance  # real part of impedance
-
-    # omegap = 2. * np.pi * freq
-    # omegam = -omegap[::-1]
-
-    #########SHOULD NOT BE NEEDED BUT CHECK################################
-    # compute complex impedance and 'symmetrize' it for negative frequencies
-    # Zpcomp=Zreal+1j*Zimag;
-    # Zmcomp=-Zpcomp[::-1].conjugate();
-
-    #######NOW THIS WOULD BE Z_func#######
-    # omega=np.concatenate((omegam,omegap))
-    # Zcomp=np.concatenate((Zmcomp,Zpcomp))
-
-    # first guess of the maximum k, and step for k (compute sums on the array
-    # [0 kmax-1]+[Integer]*kmax)
+    if freq_impedance_table:
+        omega_impedance_table = 2*np.pi*freq_impedance_table
+    else:
+        omega_impedance_table = None
 
     eps = 1.e-5  # relative precision of the summations
-    tuneshiftnx = np.zeros((len(Qpscan), len(nxscan), len(Nbscan), len(omegasscan), 2 * mmax + 1), dtype=complex)
-    tuneshift_most = np.zeros((len(Qpscan), len(Nbscan), len(omegasscan), 2 * mmax + 1), dtype=complex)
-    tuneshiftm0 = np.zeros((len(Qpscan), len(Nbscan), len(omegasscan)), dtype=complex)
-    Zeff = np.zeros((len(Qpscan), len(nxscan), len(omegasscan), 2 * mmax + 1), dtype=complex)
+    tune_shift_nx = np.zeros((len(qp_scan), len(nx_scan), len(intensity_scan), len(omegas_scan), 2*m_max + 1),
+                             dtype=complex)
+    tune_shift_most = np.zeros((len(qp_scan), len(intensity_scan), len(omegas_scan), 2*m_max + 1), dtype=complex)
+    tune_shift_m0 = np.zeros((len(qp_scan), len(intensity_scan), len(omegas_scan)), dtype=complex)
+    effective_impedance = np.zeros((len(qp_scan), len(nx_scan), len(omegas_scan), 2*m_max + 1), dtype=complex)
 
-    for iQp, Qp in enumerate(Qpscan):
+    for i_qp, qp in enumerate(qp_scan):
+        omega_ksi = qp * omega0 / eta
+        if flag_trapz is None:
+            flag_trapz = np.ceil(100*(4*np.pi / bunch_length_seconds + abs(omega_ksi)) / (omega0*n_bunches)) > 1e9
 
-        omegaksi = Qp * omega0 / eta
-        if flagtrapz is None:
-            flagtrapz = (np.ceil(100. * (4. * np.pi / taub + abs(omegaksi)) / omega0 / M) > 1e9)
-        # print np.ceil(100.*(4.*np.pi/taub+abs(omegaksi))/omega0/M),"flagtrapz=",flagtrapz
+        for inx, nx in enumerate(nx_scan):  # coupled-bunch modes
 
-        for inx, nx in enumerate(nxscan):  # coupled-bunch modes
+            for i_omegas, omegas in enumerate(omegas_scan):
 
-            for iomegas, omegas in enumerate(omegasscan):
-
-                for im, m in enumerate(range(-mmax, mmax + 1)):
-                    # consider each sychrotron mode individually
+                for im, m in enumerate(range(-m_max, m_max + 1)):
+                    # consider each synchrotron mode individually
                     # sum power spectrum functions and computes effective impedance
 
                     # sum power functions
                     # BE CAREFUL: maybe for this "normalization sum" the sum should run
                     # on all single-bunch harmonics instead of only coupled-bunch
                     # harmonics (and then the frequency shift should be multiplied by
-                    # M). This has to be checked.
-                    sum1 = hmmsum(m, omega0, M, nx + Qfrac, taub, omegaksi, eps=eps, omegas=omegas, k_max=20,
-                                  mode_type=modetype, flag_trapz=flagtrapz)
+                    # n_bunches). This has to be checked.
+                    sum1 = hmm_sum(m, omega0, n_bunches, nx + fractional_tune, bunch_length_seconds, omega_ksi,
+                                   impedance_function=impedance_function, impedance_table=impedance_table,
+                                   omega_impedance_table=omega_impedance_table, eps=eps, omegas=omegas, k_max=20,
+                                   mode_type=mode_type, flag_trapz=flag_trapz)
 
                     # effective impedance
-                    omega = None  # fixxxxx
-                    sum2 = hmmsum(m, omega0, M, nx + Qfrac, taub, omegaksi, eps=eps, omegas=omegas, k_max=20,
-                                  mode_type=modetype, impedance=Zcomp, omega_impedance_table=omega, flag_trapz=flagtrapz)
+                    sum2 = hmm_sum(m, omega0, n_bunches, nx + fractional_tune, bunch_length_seconds, omega_ksi, eps=eps,
+                                   omegas=omegas, k_max=20, mode_type=mode_type, impedance_function=impedance_function,
+                                   impedance_table=impedance_table, omega_impedance_table=omega_impedance_table,
+                                   flag_trapz=flag_trapz)
 
-                    Zeff[iQp, inx, iomegas, im] = sum2 / sum1
-                    freqshift = (1j * e * Ibscan / (2. * (np.abs(
-                        m) + 1.) * m0 * gamma * Q * omega0 * Lb)) * sum2 / sum1;  # 15/04/2019 NM: beta suppressed (was for a "beta-normalized" definition of impedance)
-                    tuneshiftnx[iQp, inx, :, iomegas, im] = freqshift / omega0 + m * omegas / omega0
+                    effective_impedance[i_qp, inx, i_omegas, im] = sum2 / sum1
+                    # 15/04/2019 NM: beta suppressed (was for a "beta-normalized" definition of impedance)
+                    for i_single_bunch_intensity, single_bunch_intensity in single_bunch_intensity_scan:
+                        freq_shift = 1j*e*single_bunch_intensity/(2*(np.abs(m) + 1.) * m0 * gamma * tune * omega0 *
+                                                                  bunch_length_seconds_meters) * sum2 / sum1
+
+                        tune_shift = (freq_shift/omega0 + m*omegas/omega0)
+
+                        tune_shift_nx[i_qp, inx, i_single_bunch_intensity, i_omegas, im] = tune_shift
 
         # find the most unstable coupled-bunch mode
-        for iomegas, omegas in enumerate(omegasscan):
+        for i_omegas, omegas in enumerate(omegas_scan):
 
-            for im, m in enumerate(range(-mmax, mmax + 1)):
+            for im, m in enumerate(range(-m_max, m_max + 1)):
 
-                inx = np.argmin(np.imag(tuneshiftnx[iQp, :, -1, iomegas, im]))  # check one intensity (last one) is enough
+                inx = np.argmin(np.imag(tune_shift_nx[i_qp, :, -1, i_omegas, im]))  # check one intensity (last one) is enough
 
-                # print "Sacherer: Qp=",Qp,", M=",M,", omegas=",omegas,", m=",m,", Most unstable coupled-bunch mode: ",nxscan[inx];
-                tuneshift_most[iQp, :, iomegas, im] = tuneshiftnx[iQp, inx, :, iomegas, im]
-                if (m == 0): tuneshiftm0[iQp, :, iomegas] = tuneshiftnx[iQp, inx, :, iomegas, im]
+                tune_shift_most[i_qp, :, i_omegas, im] = tune_shift_nx[i_qp, inx, :, i_omegas, im]
+                if m == 0:
+                    tune_shift_m0[i_qp, :, i_omegas] = tune_shift_nx[i_qp, inx, :, i_omegas, im]
 
-            # sort tuneshift_most (most unstable modes first) (only one instensity - last one - is enough)
-            ind = np.argmin(np.imag(tuneshift_most[iQp, -1, iomegas, :]))
-            for iNb, Nb in enumerate(Nbscan): tuneshift_most[iQp, iNb, iomegas, :] = tuneshift_most[
-                iQp, iNb, iomegas, ind]
+            # sort tune_shift_most (most unstable modes first) (only one instensity - last one - is enough)
+            ind = np.argmin(np.imag(tune_shift_most[i_qp, -1, i_omegas, :]))
+            for iNb, Nb in enumerate(intensity_scan): tune_shift_most[i_qp, iNb, i_omegas, :] = tune_shift_most[
+                                                                                                            i_qp,
+                                                                                                            iNb,
+                                                                                                            i_omegas,
+                                                                                                            ind]
 
-    return tuneshift_most, tuneshiftnx, tuneshiftm0, Zeff
+    return tune_shift_most, tune_shift_nx, tune_shift_m0, effective_impedance
