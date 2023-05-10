@@ -166,8 +166,8 @@ def hmm_sum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: 
     return sum1
 
 
-def sacherer(qp_scan, nx_scan, intensity_scan, omegas_scan, n_bunches, omega0, tune, gamma, eta, bunch_length_seconds, m_max,
-             impedance_table=None, impedance_function=None, freq_impedance_table=None, particle='proton',
+def sacherer(qp_scan, nx_scan, intensity_scan, omegas_scan, n_bunches, omega0, tune, gamma, eta, bunch_length_seconds,
+             m_max, impedance_table=None, impedance_function=None, freq_impedance_table=None, particle='proton',
              mode_type='sinusoidal', flag_trapz=None):
     """
     omputes frequency shift and effective impedance from Sacherer formula, in transverse, in the case of low
