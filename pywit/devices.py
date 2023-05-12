@@ -77,7 +77,30 @@ def create_tesla_cavity(plane: str, exponents: Tuple[int, int, int, int], a: flo
                      plane=plane, source_exponents=exponents[:2], test_exponents=exponents[2:])
 
 
-def shunt_impedance_flat_taper_stupakov_formula(a, b, tantheta, w, fcutoff, comp=None):
+def shunt_impedance_flat_taper_stupakov_formula(half_gap_small, half_gap_big, taper_slope, half_width, cutoff_frequency,
+                                                comp=None):
+    """
+    Computes the shunt impedance in Ohm(/m if not longitudinal) of one single rectangular linear taper using Stupakov's
+    formulae (Phys. Rev. STAB 10, 094401 - 2007), multiplied by Z0*c/(4*pi) to convert to SI units.
+    Taper is in the vertical plane.
+    :param half_gap_small: small vertical half-gap
+    :param half_gap_big: large vertical half-gap
+    :param taper_slope: the slope of the taper
+    :param half_width: width of the taper (constant)
+    :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
+    :param comp: is a list with the names or a single name of the components for which ones computes the R/Q
+    (ex: Zlong, Zydip, Zxquad, etc.), beta the relativistic velocity factor
+
+    WARNING: we use here half apertures (half-gap and half-width) whereas
+    Stupakov's paper is expressed with full apertures. This does not make
+    any difference except for an additional factor 4 here for longitudinal
+    impedance.
+
+    returns a list of R/Q for each component
+
+    valid under the conditions of low frequency and length of taper much larger than
+    its transverse dimensions
+    """
     if comp is None:
         comp = ['zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua']
 
@@ -91,23 +114,23 @@ def shunt_impedance_flat_taper_stupakov_formula(a, b, tantheta, w, fcutoff, comp
 
     for comp_id in comp:
 
-        if comp_id.endswith('long'):
-            cst = 4. * mu_0 * fcutoff / 2.  # factor 4 due to use of half-gaps here
-            I = 7. * zeta(3, 1) / (2. * np.pi ** 2) * tantheta * (
-                    b - a)  # approx. integral (sp.zeta(3.,1.) is Riemann zeta function at x=3)
+        if comp_id == 'zlong':
+            cst = 4. * mu_0 * cutoff_frequency / 2.  # factor 4 due to use of half-gaps here
+            I = 7. * zeta(3, 1) / (2. * np.pi ** 2) * taper_slope * (
+                    half_gap_big - half_gap_small)  # approx. integral (sp.zeta(3.,1.) is Riemann zeta function at x=3)
             # I=7.*1.202057/(2.*np.pi**2)*tantheta*(b-a);
 
-        elif comp_id.endswith('ydip'):
-            cst = z_0 * w * np.pi / 4.
-            I = tantheta * (1. / (a ** 2) - 1. / (b ** 2)) / (2. * np.pi)  # approx. integral
+        elif comp_id == 'zydip':
+            cst = z_0 * half_width * np.pi / 4.
+            I = taper_slope * (1. / (half_gap_small ** 2) - 1. / (half_gap_big ** 2)) / (2. * np.pi)  # approx. integral
 
-        elif comp_id.endswith('xqua'):
+        elif comp_id == 'zxqua':
             cst = -z_0 * np.pi / 4.
-            I = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
+            I = taper_slope * (1. / half_gap_small - 1. / half_gap_big) / (np.pi ** 2)  # approx. integral
 
-        elif comp_id.endswith('xdip') or comp_id.endswith('yqua'):
+        elif comp_id == 'zxdip' or comp_id == 'zyqua':
             cst = z_0 * np.pi / 4.
-            I = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
+            I = taper_slope * (1. / half_gap_small - 1. / half_gap_big) / (np.pi ** 2)  # approx. integral
         else:
             # mock backup values
             cst = 0
