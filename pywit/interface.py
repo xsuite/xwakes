@@ -1,3 +1,5 @@
+import os
+
 from pywit.component import Component
 from pywit.element import Element
 
@@ -375,14 +377,11 @@ def check_already_computed(iw2d_inputs: Union[IW2DInput, List[IW2DInput]],
     read_ready = [False for _ in iw2d_inputs]
     # create the list of hash keys
     input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
-
-    # read the hashmap from the project files
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
+    input_hashes_computed = os.listdir(projects_path)
 
     # for each IW2D input check if the elements is already in the ashmap
     for i, input_hash in enumerate(input_hashes):
-        if input_hash in hashmap:
+        if input_hash in input_hashes_computed:
             print(f"The computation of '{names[i]}' has already been performed with the exact given parameters. "
                   f"These results will be used to generate the element.")
             read_ready[i] = True
@@ -440,7 +439,10 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     # in the old simulation so we ignore it for creating the hash
     iw2d_input_dict = iw2d_input.__dict__
     iw2d_input_dict['comment'] = ''
-    iw2d_input_no_comment = IW2DInput(**iw2d_input_dict)
+    if type(iw2d_input) == FlatIW2DInput:
+        iw2d_input_no_comment = FlatIW2DInput(**iw2d_input_dict)
+    else:
+        iw2d_input_no_comment = RoundIW2DInput(**iw2d_input_dict)
 
     # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
@@ -448,7 +450,14 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
-    read_ready, input_hash = check_already_computed(iw2d_input_no_comment, name)
+    read_ready, input_hash = check_already_computed([iw2d_input_no_comment], name)
+
+    iw2d_input_no_comment_dict = iw2d_input_no_comment.__dict__
+    iw2d_input_no_comment_dict['comment'] = input_hash
+    if type(iw2d_input_no_comment) == FlatIW2DInput:
+        iw2d_input_comment_hash = FlatIW2DInput(**iw2d_input_no_comment_dict)
+    else:
+        iw2d_input_comment_hash = RoundIW2DInput(**iw2d_input_no_comment_dict)
 
     # if an element with the same inputs is not found inside the database, perform the computations and add the results
     # to the database
@@ -457,18 +466,14 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
         subprocess.run(['mkdir', input_hash], cwd=projects_path)
         working_directory = projects_path.joinpath(input_hash)
-        create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"{iw2d_input.comment}_input.txt"))
-        subprocess.run(f'{bin_path.joinpath(bin_string)} < {iw2d_input.comment}_input.txt',
+        create_iw2d_input_file(iw2d_input_comment_hash, working_directory.joinpath(f"{iw2d_input_comment_hash.comment}_input.txt"))
+        subprocess.run(f'{bin_path.joinpath(bin_string)} < {iw2d_input_comment_hash.comment}_input.txt',
                        shell=True, cwd=working_directory)
-        add_elements_to_hashmap(iw2d_input.comment, input_hash)
 
     # read the computed components from the database
     # the common string passed to import_data_iw2d must be the comment used the first time that the simulation was
     # performed
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-    comment = hashmap[input_hash]
-    component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), comment)
+    component_recipes = import_data_iw2d(directory=projects_path.joinpath(input_hash), common_string=input_hash)
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
