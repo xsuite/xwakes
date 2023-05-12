@@ -87,7 +87,7 @@ def shunt_impedance_flat_taper_stupakov_formula(a, b, tantheta, w, fcutoff, comp
         comp = [comp]
 
     z_0 = mu_0 * c_light  # free space impedance
-    r_over_q = []
+    r_shunt = []
 
     for comp in comp:
 
@@ -118,9 +118,9 @@ def shunt_impedance_flat_taper_stupakov_formula(a, b, tantheta, w, fcutoff, comp
             I = 0
 
         # shunt impedance /Q
-        r_over_q.append(cst * I)
+        r_shunt.append(cst * I)
 
     if scalar_input:
-        return r_over_q[0]
+        return r_shunt[0]
     else:
-        return np.array(r_over_q)
+        return np.array(r_shunt)
