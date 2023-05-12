@@ -83,8 +83,8 @@ def hmm_sum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: 
         hmm_i = hmm(m, omega_i - omega_ksi, bunch_length, mode_type=mode_type)
         hmm_mi = hmm(m, omega_mi - omega_ksi, bunch_length, mode_type=mode_type)
         if impedance_function is not None:
-            z_i = impedance_function(omega_i)
-            z_mi = impedance_function(omega_i)
+            z_i = impedance_function(omega_i/(2*np.pi))
+            z_mi = impedance_function(omega_i/(2*np.pi))
         elif impedance_table is not None:
             z_i = impedance_table[ind_i]
             z_mi = impedance_table[ind_mi]
@@ -97,7 +97,7 @@ def hmm_sum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: 
         sum_i = 0.
 
     if impedance_function is not None:
-        z_pk = impedance_function(omega_k)
+        z_pk = impedance_function(omega_k/(2*np.pi))
     elif impedance_table is not None:
         z_pk = (np.interp(omega_k, omega, np.real(impedance_table)) +
                 1j * np.interp(omega_k, omega, np.imag(impedance_table)))
@@ -129,8 +129,8 @@ def hmm_sum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: 
             hmm_mi = hmm(m, omega_mi - omega_ksi, bunch_length, mode_type=mode_type)
 
             if impedance_function is not None:
-                z_i = impedance_function(omega_i)
-                z_mi = impedance_function(omega_mi)
+                z_i = impedance_function(omega_i/(2*np.pi))
+                z_mi = impedance_function(omega_mi/(2*np.pi))
             elif impedance_table is not None:
                 z_i = impedance_table[ind_i]
                 z_mi = impedance_table[ind_mi]
@@ -144,8 +144,8 @@ def hmm_sum(m: int, omega0: float, n_bunches: int, k_offset: int, bunch_length: 
             sum_i = 0.
 
         if impedance_function is not None:
-            z_pk = impedance_function(omega_k)
-            z_pmk = impedance_function(omega_mk)
+            z_pk = impedance_function(omega_k/(2*np.pi))
+            z_pmk = impedance_function(omega_mk/(2*np.pi))
         elif impedance_table is not None:
             # impedances at omega_k and omega_mk
             z_pk = (np.interp(omega_k, omega, np.real(impedance_table)) +
