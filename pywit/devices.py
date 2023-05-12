@@ -89,36 +89,33 @@ def shunt_impedance_flat_taper_stupakov_formula(a, b, tantheta, w, fcutoff, comp
     z_0 = mu_0 * c_light  # free space impedance
     r_shunt = []
 
-    for comp in comp:
+    for comp_id in comp:
 
-        if comp.endswith('long'):
+        if comp_id.endswith('long'):
             cst = 4. * mu_0 * fcutoff / 2.  # factor 4 due to use of half-gaps here
-            I = 7. * zeta(3, 1) / (2. * np.pi ** 2) * tantheta * (
+            i = 7. * zeta(3, 1) / (2. * np.pi ** 2) * tantheta * (
                     b - a)  # approx. integral (sp.zeta(3.,1.) is Riemann zeta function at x=3)
             # I=7.*1.202057/(2.*np.pi**2)*tantheta*(b-a);
 
-        elif comp.endswith('ydip'):
+        elif comp_id == 'ydip':
             cst = z_0 * w * np.pi / 4.
-            I = tantheta * (1. / (a ** 2) - 1. / (b ** 2)) / (2. * np.pi)  # approx. integral
+            i = tantheta * (1. / (a ** 2) - 1. / (b ** 2)) / (2. * np.pi)  # approx. integral
 
-        elif comp.endswith('xqua'):
+        elif comp_id == 'xqua':
             cst = -z_0 * np.pi / 4.
-            I = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
+            i = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
 
-        elif comp.endswith('xdip'):
+        elif comp_id == 'xdip' or comp_id == 'yqua':
             cst = z_0 * np.pi / 4.
-            I = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
+            i = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
 
-        elif comp.endswith('yqua'):
-            cst = z_0 * np.pi / 4.
-            I = tantheta * (1. / a - 1. / b) / (np.pi ** 2)  # approx. integral
         else:
             # mock backup values
             cst = 0
-            I = 0
+            i = 0
 
         # shunt impedance /Q
-        r_shunt.append(cst * I)
+        r_shunt.append(cst * i)
 
     if scalar_input:
         return r_shunt[0]
