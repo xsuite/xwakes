@@ -3,18 +3,18 @@ import sys
 
 from scipy.constants import e as q_p, m_p, c
 
-from typing import List, Callable, Iterable, Tuple
+from typing import List, Callable, Iterable, Tuple, Union
 
 
-def hmm(m: int, omega: float, bunch_length_seconds: float, mode_type: str = 'sinusoidal'):
+def hmm(m: int, omega: Union[float, np.ndarray], bunch_length_seconds: float, mode_type: str = 'sinusoidal'):
     """
     Compute hmm power spectrum of Sacherer formula, for azimuthal mode number m,
-    at angular frequency 'omega' (rad/s) (can be an arrray), for total bunch length
-    'taub' (s), and for a kind of mode specified by 'mode_type'
+    at angular frequency 'omega' (rad/s) (can be an array), for total bunch length
+    'bunch_length_seconds' (s), and for a kind of mode specified by 'mode_type'
     (which can be 'hermite' - leptons -  or 'sinusoidal' - protons)
-    :param m: the azymuthal mode number
+    :param m: the azimuthal mode number
     :param omega: the angular frequency at which hmm is computed
-    :param bunch_length_seconds: the bunch length in seconds
+    :param bunch_length_seconds: the bunch length in seconds (4 times $\sigma$ for a Gaussian bunch)
     :param mode_type: kind of mode. It can be 'sinusoidal or 'hermite'
     """
 
@@ -29,21 +29,19 @@ def hmm(m: int, omega: float, bunch_length_seconds: float, mode_type: str = 'sin
         hmm_val = (omega * bunch_length_seconds / 4) ** (2 * m) * np.exp(-(omega * bunch_length_seconds / 4.) ** 2)
 
     else:
-        print("Pb in hmm: : kind of mode not recognized!")
-        sys.exit()
+        raise ValueError("mode_type can only be 'sinusoidal' or 'hermite'")
 
     return hmm_val
 
 
-def hmm_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_length_seconds: float, omega_ksi: float,
-            eps: float = 1e-5, omegas: float = 0, k_max: int = 20, mode_type: str = 'sinusoidal',
-            impedance_function: Callable = None, impedance_table: List[float] = None,
-            omega_impedance_table: Iterable[float] = None, flag_trapz: bool = False):
+def hmm_weighted_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_length_seconds: float,
+                     omega_ksi: float, eps: float = 1e-5, omegas: float = 0, k_max: int = 20,
+                     weight_function: Callable = None, mode_type: str = 'sinusoidal', flag_trapz: bool = False):
     """
     Compute sum of hmm functions in the Sacherer formula, weighted or not by the impedance Z, depending if the impedance
     is specified or not.
     Use the trapz integration method if flag_trapz==True
-    Note NM: In the end the sum runs over k with hmm taken at the angular frequencies
+    Note: In the end the sum runs over k with hmm taken at the angular frequencies
     (k_offset+k*n_bunches)*omega0+m*omegas-omegaksi but the impedance is taken at (k_offset+k*n_bunches)*omega0+m*omegas
 
     :param m: azimuthal mode number
@@ -51,35 +49,20 @@ def hmm_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_lengt
     :param n_bunches: number of bunches
     :param k_offset: offset in k (typically nx+[tune] where nx is the coupled-bunch mode and [tune]
     the fractional part of the tune)
-    :param bunch_length_seconds: total bunch length in s
+    :param bunch_length_seconds: total bunch length in s (4 times $\sigma$ for a Gaussian bunch)
     :param omega_ksi: chromatic angular frequency
     :param eps: relative precision of the sum
-    :param omegas: synchrotron frequency
+    :param omegas: synchrotron angular frequency
     :param k_max: the summation is performed in chunks of k_max terms
     :param mode_type: kind of mode for the hmm power spectrum ('sinusoidal', 'Hermite').
-    :param impedance_function: impedance function (alternative to impedance_table)
-    :param impedance_table: a numpy array giving the complex impedance at a discrete set of points (alternative to
-    impedance_function)
-    :param omega_impedance_table: the angular frequencies at which the impedance is sampled. It must be specified if
-    impedance_table is specified
+    :param weight_function: function indicating the sum weights (optional)
     :return: the sum of hmm functions, possibly weighted by the impedance
     """
-    if impedance_function is not None and impedance_table is not None:
-        raise ValueError('Only one between impedance_function and impedance_table can be specified')
-
-    if impedance_table is not None and omega_impedance_table is None:
-        raise ValueError('When impedance_table is specified, also the corresponding frequencies must be specified in'
-                         'omega_impedance_table')
-
-    # omega shouldn't be needed
-    if omega_impedance_table is None:
-        omega = np.arange(-100.01 / bunch_length_seconds, 100.01 / bunch_length_seconds, 0.01 / bunch_length_seconds)
-    else:
-        omega = omega_impedance_table
-
     # sum initialization
     omega_k = k_offset * omega_rev + m * omegas
     hmm_k = hmm(m, omega_k - omega_ksi, bunch_length_seconds, mode_type=mode_type)
+
+    omega = np.arange(-100.01 / bunch_length_seconds, 100.01 / bunch_length_seconds, 0.01 / bunch_length_seconds)
 
     if flag_trapz:
         # initialization of correcting term sum_i (with an integral instead of discrete sum)
@@ -89,12 +72,9 @@ def hmm_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_lengt
         omega_mi = omega[ind_mi]
         hmm_i = hmm(m, omega_i - omega_ksi, bunch_length_seconds, mode_type=mode_type)
         hmm_mi = hmm(m, omega_mi - omega_ksi, bunch_length_seconds, mode_type=mode_type)
-        if impedance_function is not None:
-            z_i = impedance_function(omega_i/(2*np.pi))
-            z_mi = impedance_function(omega_i/(2*np.pi))
-        elif impedance_table is not None:
-            z_i = impedance_table[ind_i]
-            z_mi = impedance_table[ind_mi]
+        if weight_function is not None:
+            z_i = weight_function(omega_i / (2 * np.pi))
+            z_mi = weight_function(omega_i / (2 * np.pi))
         else:
             z_i = np.ones_like(ind_i)
             z_mi = np.ones_like(ind_mi)
@@ -103,11 +83,8 @@ def hmm_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_lengt
     else:
         sum_i = 0.
 
-    if impedance_function is not None:
-        z_pk = impedance_function(omega_k/(2*np.pi))
-    elif impedance_table is not None:
-        z_pk = (np.interp(omega_k, omega, np.real(impedance_table)) +
-                1j * np.interp(omega_k, omega, np.imag(impedance_table)))
+    if weight_function is not None:
+        z_pk = weight_function(omega_k / (2 * np.pi))
     else:
         z_pk = np.ones_like(omega_k)
 
@@ -135,12 +112,9 @@ def hmm_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_lengt
             hmm_i = hmm(m, omega_i - omega_ksi, bunch_length_seconds, mode_type=mode_type)
             hmm_mi = hmm(m, omega_mi - omega_ksi, bunch_length_seconds, mode_type=mode_type)
 
-            if impedance_function is not None:
-                z_i = impedance_function(omega_i/(2*np.pi))
-                z_mi = impedance_function(omega_mi/(2*np.pi))
-            elif impedance_table is not None:
-                z_i = impedance_table[ind_i]
-                z_mi = impedance_table[ind_mi]
+            if weight_function is not None:
+                z_i = weight_function(omega_i / (2 * np.pi))
+                z_mi = weight_function(omega_mi / (2 * np.pi))
             else:
                 z_i = np.ones_like(ind_i)
                 z_mi = np.ones_like(ind_mi)
@@ -150,15 +124,9 @@ def hmm_sum(m: int, omega_rev: float, n_bunches: int, k_offset: int, bunch_lengt
         else:
             sum_i = 0.
 
-        if impedance_function is not None:
-            z_pk = impedance_function(omega_k/(2*np.pi))
-            z_pmk = impedance_function(omega_mk/(2*np.pi))
-        elif impedance_table is not None:
-            # impedances at omega_k and omega_mk
-            z_pk = (np.interp(omega_k, omega, np.real(impedance_table)) +
-                    1j * np.interp(omega_k, omega, np.imag(impedance_table)))
-            z_pmk = (np.interp(omega_mk, omega, np.real(impedance_table)) +
-                     1j * np.interp(omega_mk, omega, np.imag(impedance_table)))
+        if weight_function is not None:
+            z_pk = weight_function(omega_k / (2 * np.pi))
+            z_pmk = weight_function(omega_mk / (2 * np.pi))
         else:
             z_pk = np.ones_like(omega_k)
             z_pmk = np.ones_like(omega_mk)
@@ -194,14 +162,14 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     This was corrected on April 15th, 2019. NM
 
     :param bunch_intensity: number of particles per bunch
-    :param omegas: the synchrotron frequency (i.e. $Q_s \cdot \omega_{rev}$)
+    :param omegas: the synchrotron angular frequency (i.e. $Q_s \cdot \omega_{rev}$)
     :param n_bunches: the number of bunches
     :param omega_rev: the revolution angular frequency (i.e. $2\cdot \pi f_{rev}$)
     :param tune: machine tune in the considered plane (the total tune comprehensive of the integer part must be passed)
     :param gamma: the relativistic gamma factor of the beam
     :param eta: the slip factor
-    :param bunch_length_seconds: the bunch length in seconds
-    :param m_max: specifies the the range (-m_max to m_max) of the azymuthal modes to be considered
+    :param bunch_length_seconds: the bunch length in seconds (4 times $\sigma$ for a Gaussian bunch)
+    :param m_max: specifies the the range (-m_max to m_max) of the azimuthal modes to be considered
     :param impedance_table: a numpy array giving the complex impedance at a discrete set of points. It must be specified
     if impedance_function is not specified
     :param freq_impedance_table: the frequencies at which the impedance is sampled. It must be specified if
@@ -217,6 +185,13 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     :return effective_impedance: the effective impedance for all multibunch modes and synchrotron modes. It is and array
     of dimensions len(nx_scan)*(2*m_max+1)
     """
+    if impedance_function is not None and impedance_table is not None:
+        raise ValueError('Only one between impedance_function and impedance_table can be specified')
+
+    if impedance_table is not None and freq_impedance_table is None:
+        raise ValueError('When impedance_table is specified, also the corresponding frequencies must be specified in'
+                         'omega_impedance_table')
+
     # some parameters
     beta = np.sqrt(1. - 1. / (gamma ** 2))  # relativistic velocity factor
     f0 = omega_rev / (2. * np.pi)  # revolution angular frequency
@@ -225,15 +200,25 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     bunch_length_seconds_meters = bunch_length_seconds * beta * c  # full bunch length (in meters)
 
     if freq_impedance_table is not None:
-        omega_impedance_table_p = 2*np.pi*freq_impedance_table
-        omega_impedance_table_m = -omega_impedance_table_p[::-1]
         # compute complex impedance and 'symmetrize' it for negative frequencies
         impedance_table_p = np.copy(impedance_table)
         impedance_table_m = -impedance_table[::-1].conjugate()
-        omega_impedance_table = np.concatenate((omega_impedance_table_m, omega_impedance_table_p))
         impedance_table = np.concatenate((impedance_table_m, impedance_table_p))
-    else:
-        omega_impedance_table = None
+        freq_impedance_table = np.concatenate((-freq_impedance_table, freq_impedance_table))
+
+        def impedance_function(x):
+            if np.isscalar(x):
+                x = np.array([x])
+            ind_p = x >= 0
+            ind_n = x < 0
+            result = np.zeros_like(x, dtype=complex)
+            result[ind_p] = (np.interp(x[ind_p], freq_impedance_table, np.real(impedance_table)) +
+                             1j * np.interp(x[ind_p], freq_impedance_table, np.imag(impedance_table)))
+            result[ind_n] = -((np.interp(np.abs(x[ind_n]), freq_impedance_table, np.real(impedance_table)) +
+                               1j * np.interp(np.abs(x[ind_n]), freq_impedance_table,
+                                                 np.imag(impedance_table)))).conjugate()
+
+            return result
 
     eps = 1.e-5  # relative precision of the summations
     tune_shift_nx = np.zeros((len(nx_array), 2 * m_max + 1), dtype=complex)
@@ -255,16 +240,13 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             # on all single-bunch harmonics instead of only coupled-bunch
             # harmonics (and then the frequency shift should be multiplied by
             # n_bunches). This has to be checked.
-            sum1 = hmm_sum(m, omega_rev, n_bunches, nx + fractional_tune, bunch_length_seconds, omega_ksi,
-                           impedance_function=None, impedance_table=None,
-                           omega_impedance_table=None, eps=eps, omegas=omegas, k_max=20,
-                           mode_type=mode_type, flag_trapz=flag_trapz)
+            sum1 = hmm_weighted_sum(m, omega_rev, n_bunches, nx + fractional_tune, bunch_length_seconds, omega_ksi,
+                                    eps=eps, omegas=omegas, k_max=20, mode_type=mode_type, flag_trapz=flag_trapz)
 
             # effective impedance
-            sum2 = hmm_sum(m, omega_rev, n_bunches, nx + fractional_tune, bunch_length_seconds, omega_ksi, eps=eps,
-                           omegas=omegas, k_max=20, mode_type=mode_type, impedance_function=impedance_function,
-                           impedance_table=impedance_table, omega_impedance_table=omega_impedance_table,
-                           flag_trapz=flag_trapz)
+            sum2 = hmm_weighted_sum(m, omega_rev, n_bunches, nx + fractional_tune, bunch_length_seconds, omega_ksi, eps=eps,
+                                    omegas=omegas, k_max=20, mode_type=mode_type, weight_function=impedance_function,
+                                    flag_trapz=flag_trapz)
 
             effective_impedance[inx, im] = sum2 / sum1
             # 15/04/2019 NM: beta suppressed (was for a "beta-normalized" definition of impedance)
