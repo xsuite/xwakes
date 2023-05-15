@@ -358,10 +358,9 @@ def create_iw2d_input_file(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], fil
 def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
                            name: str) -> Tuple[bool, str, Union[str, Path]]:
     """
-    Checks if a simulation with inputs iw2d inputs is already present in the hash database (possibly with a different
-    name). It works both for a single iw2d input and for a list of inputs.
-    :param iw2d_inputs: a list of iw2d input objects or a single iw2d input object
-    :param names: a list of names or a single name
+    Checks if a simulation with inputs iw2d_input is already present in the hash database.
+    :param iw2d_input: an iw2d input object
+    :param name: the name of the object
     :return: two lists: one indicatind if the iw2d_inputs have been already and the other containing the hash keys
     corresponding to the inputs. If scalar inputs were passed then the function returns two scalars instead of two lists
     """
