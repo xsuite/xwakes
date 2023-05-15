@@ -6,13 +6,14 @@ from pywit.element import Element
 import pickle
 import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union
-from os import listdir, makedirs
+from os import listdir
 from dataclasses import dataclass
 from pathlib import Path
 from hashlib import sha256
+import collections
 
 import numpy as np
-from yaml import load, BaseLoader, dump
+from yaml import load, BaseLoader
 from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 
@@ -124,7 +125,7 @@ def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[
                      wake=(None if is_impedance else func),
                      plane=plane,
                      source_exponents=exponents[:2],
-                     test_exponents=exponents[2:],)
+                     test_exponents=exponents[2:], )
 
 
 @dataclass(frozen=True, eq=True)
@@ -166,6 +167,7 @@ class _IW2DInputBase:
     calculate_wake: bool
     f_params: Sampling
 
+
 @dataclass(frozen=True, eq=True)
 class _IW2DInputOptional:
     z_params: Optional[Sampling] = None
@@ -174,9 +176,11 @@ class _IW2DInputOptional:
     freq_lin_bisect: Optional[float] = None
     comment: Optional[str] = None
 
+
 @dataclass(frozen=True, eq=True)
 class IW2DInput(_IW2DInputOptional, _IW2DInputBase):
     pass
+
 
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputBase(_IW2DInputBase):
@@ -185,9 +189,11 @@ class _RoundIW2DInputBase(_IW2DInputBase):
     # (long, xdip, ydip, xquad, yquad)
     yokoya_factors: Tuple[float, float, float, float, float]
 
+
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputOptional(_IW2DInputOptional):
     pass
+
 
 @dataclass(frozen=True, eq=True)
 class RoundIW2DInput(_RoundIW2DInputOptional, _RoundIW2DInputBase):
@@ -200,10 +206,12 @@ class _FlatIW2DInputBase(_IW2DInputBase):
     top_layers: Tuple[Layer]
     top_half_gap: float
 
+
 @dataclass(frozen=True, eq=True)
 class _FlatIW2DInputOptional(_IW2DInputOptional):
     bottom_layers: Optional[Tuple[Layer]] = None
     bottom_half_gap: Optional[float] = None
+
 
 @dataclass(frozen=True, eq=True)
 class FlatIW2DInput(_FlatIW2DInputOptional, _FlatIW2DInputBase):
@@ -216,7 +224,6 @@ def _iw2d_format_layer(layer: Layer, n: int) -> str:
     Intended only as a helper-function for create_iw2d_input_file.
     :param layer: A Layer object
     :param n: The 1-indexed index of the layer
-    :param thickness: The thickness of the given layer
     :return: A string on the correct format for IW2D
     """
     return (f"Layer {n} DC resistivity (Ohm.m):\t{layer.dc_resistivity}\n"
@@ -286,7 +293,7 @@ def _iw2d_format_z_params(params: Sampling) -> str:
     return "\n".join(lines) + "\n"
 
 
-def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) -> None:
+def create_iw2d_input_file(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], filename: Union[str, Path]) -> None:
     """
     Writes an IW2DInput object to the specified filename using the appropriate format for interfacing with the IW2D
     software.
@@ -348,8 +355,8 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
-def check_already_computed(iw2d_inputs: Union[IW2DInput, List[IW2DInput]],
-                           names: Union[str, List[str]]) -> Tuple[Union[bool, List[bool]], Union[str, List[str]]]:
+def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
+                           name: str) -> Tuple[bool, str, Union[str, Path]]:
     """
     Checks if a simulation with inputs iw2d inputs is already present in the hash database (possibly with a different
     name). It works both for a single iw2d input and for a list of inputs.
@@ -358,69 +365,66 @@ def check_already_computed(iw2d_inputs: Union[IW2DInput, List[IW2DInput]],
     :return: two lists: one indicatind if the iw2d_inputs have been already and the other containing the hash keys
     corresponding to the inputs. If scalar inputs were passed then the function returns two scalars instead of two lists
     """
-    # check if scalar inputs have been given. In that case, transform them in length one lists
-    scalar_inputs = False
-    if np.isscalar(iw2d_inputs):
-        scalar_inputs = True
-        iw2d_inputs = [iw2d_inputs]
-    if np.isscalar(names):
-        scalar_inputs = True
-        names = [names]
-
-    assert len(iw2d_inputs) == len(names), 'the length of the iw2d inputs list and the names list must be equal'
-
     projects_path = Path(get_iw2d_config_value('project_directory'))
-
-    delete_removed_projects()
 
     # initialize read ready to all False for convenience
-    read_ready = [False for _ in iw2d_inputs]
-    # create the list of hash keys
-    input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
+    # create the hash key
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     input_hashes_computed = os.listdir(projects_path)
 
-    # for each IW2D input check if the elements is already in the ashmap
-    for i, input_hash in enumerate(input_hashes):
-        if input_hash in input_hashes_computed:
-            print(f"The computation of '{names[i]}' has already been performed with the exact given parameters. "
-                  f"These results will be used to generate the element.")
-            read_ready[i] = True
+    # for each IW2D input check if the elements is already in the hashmap
 
-    if not scalar_inputs:
-        return read_ready, input_hashes
-    else:
-        return read_ready[0], input_hashes[0]
+    directory_level_1 = projects_path.joinpath(input_hash[0])
+    directory_level_2 = directory_level_1.joinpath(input_hash[1])
+    working_directory = directory_level_2.joinpath(input_hash[2:])
+
+    read_ready = False
+
+    if not os.path.exists(directory_level_1):
+        os.mkdir(directory_level_1)
+        return read_ready, input_hash, working_directory
+
+    if not os.path.exists(directory_level_2):
+        os.mkdir(directory_level_2)
+        return read_ready, input_hash, working_directory
+
+    input_hashes_computed = os.listdir(directory_level_2)
+
+    if input_hash[2:] in input_hashes_computed:
+        print(f"The computation of '{name}' has already been performed with the exact given parameters. "
+              f"These results will be used to generate the element.")
+        read_ready = True
+
+    return read_ready, input_hash, working_directory
 
 
-def add_elements_to_hashmap(comments: Union[str, List[str]], input_hashes: Union[str, List[str]]) -> None:
+def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], input_hash: str,
+                               working_directory: Union[str, Path]):
     """
-    Adds one or several input_hash -> comment pairs to the hashmap. The inputs can be either scalars or lists.
-    :param comments: a list of comments of an iw2d simulation
-    :param input_hashes: a list of input_hashes
-    :return: nothing
+    Add the iw2d inputs to the repository containing the simulations
+    :param: iw2d_input the input object of the IW2D simulation
+    :param: input_hash the hash key corresponding to the input
+    :return: the directory containing the iw2d input file
     """
-    # check if scalar inputs have been given. In that case, transform them in length one lists
-    if np.isscalar(comments):
-        comments = [comments]
-
-    if np.isscalar(comments):
-        input_hashes = [input_hashes]
-
-    assert len(comments) == len(input_hashes), 'the length of the comments list and the input_hashes list must be equal'
-
     projects_path = Path(get_iw2d_config_value('project_directory'))
+    directory_level_1 = working_directory.parent.parent
+    directory_level_2 = working_directory.parent
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
+    if not os.path.exists(directory_level_1):
+        os.mkdir(directory_level_1)
+    if not os.path.exists(directory_level_2):
+        os.mkdir(directory_level_2)
 
-    for i, input_hash in enumerate(input_hashes):
-        hashmap[input_hash] = comments[i]
+    working_directory = directory_level_2.joinpath(input_hash[2:])
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    if not os.path.exists(working_directory):
+        os.mkdir(working_directory)
+
+    create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"input.txt"))
 
 
-def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
+def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], name: str, beta_x: float, beta_y: float,
+                              tag: str = 'IW2D') -> Element:
     """
     Create and return an Element using IW2D object.
     :param iw2d_input: the IW2DInput object
@@ -435,14 +439,15 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
-    # when looking for this IW2DInput in the database, the comment doesn't necessarily need to be the same as the
-    # in the old simulation so we ignore it for creating the hash
+    # when looking for this IW2DInput in the database, the comment and the machine name don't necessarily need to be
+    # the same as the in the old simulation so we ignore it for creating the hash
     iw2d_input_dict = iw2d_input.__dict__
     iw2d_input_dict['comment'] = ''
+    iw2d_input_dict['machine'] = ''
     if type(iw2d_input) == FlatIW2DInput:
-        iw2d_input_no_comment = FlatIW2DInput(**iw2d_input_dict)
+        iw2d_input_essential = FlatIW2DInput(**iw2d_input_dict)
     else:
-        iw2d_input_no_comment = RoundIW2DInput(**iw2d_input_dict)
+        iw2d_input_essential = RoundIW2DInput(**iw2d_input_dict)
 
     # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
@@ -450,30 +455,20 @@ def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, b
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
-    read_ready, input_hash = check_already_computed([iw2d_input_no_comment], name)
-
-    iw2d_input_no_comment_dict = iw2d_input_no_comment.__dict__
-    iw2d_input_no_comment_dict['comment'] = input_hash
-    if type(iw2d_input_no_comment) == FlatIW2DInput:
-        iw2d_input_comment_hash = FlatIW2DInput(**iw2d_input_no_comment_dict)
-    else:
-        iw2d_input_comment_hash = RoundIW2DInput(**iw2d_input_no_comment_dict)
+    read_ready, input_hash, working_directory = check_already_computed(iw2d_input_essential, name)
 
     # if an element with the same inputs is not found inside the database, perform the computations and add the results
     # to the database
     if not read_ready:
+        add_iw2d_input_to_database(iw2d_input_essential, input_hash, working_directory)
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
-        subprocess.run(['mkdir', input_hash], cwd=projects_path)
-        working_directory = projects_path.joinpath(input_hash)
-        create_iw2d_input_file(iw2d_input_comment_hash, working_directory.joinpath(f"{iw2d_input_comment_hash.comment}_input.txt"))
-        subprocess.run(f'{bin_path.joinpath(bin_string)} < {iw2d_input_comment_hash.comment}_input.txt',
-                       shell=True, cwd=working_directory)
+        subprocess.run(f'{bin_path.joinpath(bin_string)} < input.txt', shell=True, cwd=working_directory)
 
     # read the computed components from the database
     # the common string passed to import_data_iw2d must be the comment used the first time that the simulation was
     # performed
-    component_recipes = import_data_iw2d(directory=projects_path.joinpath(input_hash), common_string=input_hash)
+    component_recipes = import_data_iw2d(directory=working_directory, common_string='')
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
@@ -493,27 +488,7 @@ def verify_iw2d_config_file() -> bool:
         if filename not in contents:
             return False
 
-    if 'hashmap.pickle' not in listdir(projects_path):
-        return False
-
     return True
-
-
-def delete_removed_projects() -> None:
-    """
-    Updates the dictionary in hashmap.pickle by deleting any references to project folders which have been deleted by
-    the user.
-    :return: Nothing
-    """
-    projects_path = Path(get_iw2d_config_value('project_directory'))
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-
-    projects = listdir(projects_path)
-    new_dict = {k: v for k, v in hashmap.items() if k in projects}
-
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(new_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def _typecast_sampling_dict(d: Dict[str, str]) -> Dict[str, Any]:
@@ -528,7 +503,7 @@ def _typecast_sampling_dict(d: Dict[str, str]) -> Dict[str, Any]:
     return new_dict
 
 
-def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
+def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> Union[FlatIW2DInput, RoundIW2DInput]:
     is_round = d['is_round'].lower() in ['true', 'yes', 'y', '1']
     d.pop('is_round')
     layers, inner_layer_radius, yokoya_factors = list(), float(), tuple()
@@ -593,14 +568,14 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
             z_params=z_params,
             top_bottom_symmetry=d['top_bottom_symmetry'].lower() in ['true', 'yes', 'y', '1'],
             top_layers=tuple(top_layers),
-            top_half_gap = top_half_gap,
+            top_half_gap=top_half_gap,
             bottom_layers=bottom_layers,
             bottom_half_gap=bottom_half_gap,
             **new_dict
         )
 
 
-def create_iw2d_input_from_yaml(name: str) -> IW2DInput:
+def create_iw2d_input_from_yaml(name: str) -> Union[FlatIW2DInput, RoundIW2DInput]:
     path = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_inputs.yaml')
     with open(path) as file:
         inputs = load(file, Loader=BaseLoader)
@@ -620,62 +595,14 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
-    bin_path = Path(get_iw2d_config_value('binary_directory'))
-    projects_path = Path(get_iw2d_config_value('project_directory'))
-    delete_removed_projects()
-
-    iw2d_input_dicts = [iw2d_input.__dict__ for iw2d_input in iw2d_inputs]
-    for iw2d_input_dict in iw2d_input_dicts:
-        iw2d_input_dict['comment'] = ''
-
-    iw2d_inputs_no_comment = [IW2DInput(**iw2d_input_dict) for iw2d_input_dict in iw2d_input_dicts]
-
-    read_ready, input_hashes = check_already_computed(iw2d_inputs_no_comment, names)
-
-    elements = Parallel(n_jobs=-1, prefer='threads')(delayed(_generate_iw2d_element_async)(
-        iw2d_input=iw2d_inputs[i],
-        input_hash=input_hashes[i],
-        name=names[i],
-        beta_x=beta_xs[i],
-        beta_y=beta_ys[i],
-        read_ready=read_ready[i],
-        projects_path=projects_path,
-        bin_path=bin_path
+    elements = Parallel(n_jobs=-1, prefer='threads')(delayed(create_element_using_iw2d)(
+        iw2d_inputs[i],
+        names[i],
+        beta_xs[i],
+        beta_ys[i]
     ) for i in range(len(names)))
 
-    add_elements_to_hashmap(names, input_hashes)
-
     return elements
-
-
-def _generate_iw2d_element_async(iw2d_input: IW2DInput, input_hash: str, name: str, beta_x: float, beta_y: float,
-                                 read_ready: bool, projects_path: Union[str, Path],
-                                 bin_path: Union[str, Path]) -> Element:
-    if not read_ready:
-        print(f'Running IW2D computation for {name}')
-        bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
-                     ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
-
-        subprocess.run(['mkdir', name], cwd=projects_path)
-        working_directory = Path(projects_path).joinpath(name)
-        create_iw2d_input_file(iw2d_input, working_directory.joinpath(f'{name}_input.txt'))
-        proc = subprocess.run(f'{Path(bin_path).joinpath(bin_string)} < {name}_input.txt',
-                              shell=True, cwd=working_directory, stdout=subprocess.PIPE)
-        with open(working_directory.joinpath(f'IW2D_terminal_output{iw2d_input.comment}.txt'), 'w') as file:
-            file.write(proc.stdout.decode())
-
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-    comment = hashmap[input_hash]
-    component_recipes = import_data_iw2d(projects_path.joinpath(input_hash), comment)
-    components = [create_component_from_data(*recipe, relativistic_gamma=iw2d_input.relativistic_gamma)
-                  for recipe in component_recipes]
-
-    print(f'Element {name} completed')
-    return Element(length=iw2d_input.length,
-                   beta_x=beta_x, beta_y=beta_y,
-                   components=components,
-                   name=name, tag='IW2D', description='A resistive wall element created using IW2D')
 
 
 def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: Union[str, Path]) -> None:
@@ -714,9 +641,9 @@ def _read_cst_data(filename: Union[str, Path]) -> np.ndarray:
     with open(filename, 'r') as f:
         lines = f.readlines()
     data = []
-    for l in lines:
+    for line in lines:
         try:
-            data.append([float(e) for e in l.strip().split()])
+            data.append([float(e) for e in line.strip().split()])
         except ValueError:
             pass
 
