@@ -191,6 +191,9 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
     """
     z_0 = mu_0 * c_light  # free space impedance
 
+    if cutoff_frequency is None and component_id == 'zlong':
+        raise ValueError("cutoff_frequency must be specified when component_id is 'zlong'")
+
     if component_id == 'zlong':
         g_index = 0
         g_power = 0
