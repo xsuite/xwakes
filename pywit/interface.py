@@ -369,30 +369,51 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     # initialize read ready to all False for convenience
     # create the hash key
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
-    input_hashes_computed = os.listdir(projects_path)
 
-    # for each IW2D input check if the elements is already in the hashmap
-
+    # we have three levels of directories: the first two are given by the first and second letters of the hash keys,
+    # the third is given by the rest of the hash keys.
     directory_level_1 = projects_path.joinpath(input_hash[0])
     directory_level_2 = directory_level_1.joinpath(input_hash[1])
     working_directory = directory_level_2.joinpath(input_hash[2:])
 
-    read_ready = False
+    read_ready = True
 
+    # check if the directories exist. If they do not exist we create
     if not os.path.exists(directory_level_1):
+        read_ready = False
         os.mkdir(directory_level_1)
-        return read_ready, input_hash, working_directory
 
     if not os.path.exists(directory_level_2):
+        read_ready = False
         os.mkdir(directory_level_2)
-        return read_ready, input_hash, working_directory
 
-    input_hashes_computed = os.listdir(directory_level_2)
+    if not os.path.exists(working_directory):
+        read_ready = False
+        os.mkdir(working_directory)
 
-    if input_hash[2:] in input_hashes_computed:
+    components = []
+    if not iw2d_input.calculate_wake:
+        for component in component_names.keys():
+            # the ycst component is only given in the case of a flat chamber and the x component is never given
+            if component.startswith('z') and 'cst' not in component:
+                components.append(component)
+            if isinstance(iw2d_input, FlatIW2DInput):
+                components.append('zycst')
+    else:
+        components = component_names.keys()
+
+    # this list also includes the input file but it doesn't matter
+    computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
+    print(components)
+    print(computed_components)
+    for component in components:
+        if component not in computed_components:
+            read_ready = False
+            break
+
+    if read_ready:
         print(f"The computation of '{name}' has already been performed with the exact given parameters. "
               f"These results will be used to generate the element.")
-        read_ready = True
 
     return read_ready, input_hash, working_directory
 
@@ -405,7 +426,6 @@ def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     :param: input_hash the hash key corresponding to the input
     :return: the directory containing the iw2d input file
     """
-    projects_path = Path(get_iw2d_config_value('project_directory'))
     directory_level_1 = working_directory.parent.parent
     directory_level_2 = working_directory.parent
 
@@ -451,7 +471,6 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
     # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     # the path to the folder containing the database of already computed elements
-    projects_path = Path(get_iw2d_config_value('project_directory'))
 
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
     read_ready, input_hash, working_directory = check_already_computed(iw2d_input_essential, name)
@@ -696,12 +715,3 @@ def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Co
 
     return components
 
-
-def clear_iw2d_hashmap():
-    print("WARNING: This will delete all of PyWIT's information about performed IW2D computations. The impedance/wake"
-          "data itself will not be touched.")
-    answer = input("Clear PyWIT's IW2D cache? (y / N): ")
-    if answer in ('y', 'Y', 'yes'):
-        with open(Path.home().joinpath('pywit').joinpath('IW2D').joinpath('projects').joinpath('hashmap.pickle'),
-                  'wb') as handle:
-            pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
