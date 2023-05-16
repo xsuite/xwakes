@@ -1,12 +1,16 @@
-from pywit.interface import import_data_iw2d, create_component_from_data, IW2DInput, Sampling, check_already_computed, \
-    get_iw2d_config_value, add_elements_to_hashmap
+import os
+
+from pywit.interface import import_data_iw2d, create_component_from_data, Sampling
+from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
+from pywit.materials import tungsten
 
 from pathlib import Path
 from typing import Dict
 import pickle
 from hashlib import sha256
 from pytest import raises
+import subprocess
 
 import numpy as np
 
@@ -53,61 +57,66 @@ def test_valid_iw2d_component_import():
 def test_check_already_computed():
     # create dummy iw2d input
     f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
-    iw2d_input = IW2DInput(machine='test', length=1, relativistic_gamma=100, calculate_wake=True, f_params=f_params)
+    layers_tung = (tungsten(),)
+    iw2d_input = RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
+                                calculate_wake=False, f_params=f_params, comment='test',
+                                layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
+
     name = 'test_hash'
 
+    # create the expected directories for the dummy input
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    # add the dummy input the the hashmap
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+    directory_level_1 = projects_path.joinpath(input_hash[0])
+    directory_level_2 = directory_level_1.joinpath(input_hash[1])
+    working_directory = directory_level_2.joinpath(input_hash[2:])
 
-    working_directory = Path.joinpath(projects_path, input_hash)
+    if not os.path.exists(directory_level_1):
+        os.mkdir(directory_level_1)
 
-    if Path.exists(working_directory):
-        Path.rmdir(working_directory)
+    if not os.path.exists(directory_level_2):
+        os.mkdir(directory_level_2)
 
-    Path.mkdir(Path.joinpath(projects_path, input_hash))
+    # check if the directory already existed, otherwise remove it with the content
+    if os.path.exists(working_directory):
+        os.system(f'rm {working_directory}/*')
+    else:
+        os.mkdir(working_directory)
 
-    hashmap[input_hash] = name
-
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    dummy_string = 'dummy_string'
+    for comp in ['Zlong', 'Zxdip','Zydip','Zxquad','Zyquad']:
+        with open(f'{working_directory}/{comp}_test.txt', 'w') as f:
+            f.write(dummy_string)
 
     # check that the input is detected in the hashmap
-    read_ready, input_hash = check_already_computed(iw2d_input, name)
-
-    # remove the dummy input from the hashmap
-    hashmap.pop(input_hash)
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
-    Path.rmdir(Path.joinpath(projects_path, input_hash))
-
+    read_ready, input_hash, working_directory = check_already_computed(iw2d_input, name)
     assert read_ready
 
+    # now we remove the folder and check that check_already_computed gives false
+    os.system(f'rm -r {working_directory}')
+    read_ready, input_hash, working_directory = check_already_computed(iw2d_input, name)
 
-def test_add_elements_to_hashmap():
-    # create dummy iw2d input
+    assert not read_ready
+
+    # check_already_computed creates working_directory again so we clean it up
+    os.system(f'rm -r {working_directory}')
+
+
+def test_add_iw2d_input_to_database():
     f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
-    iw2d_input = IW2DInput(machine='test', length=1, relativistic_gamma=100, calculate_wake=True, f_params=f_params)
-    name = 'test_hash'
-    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+    layers_tung = (tungsten(),)
+    iw2d_input = RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
+                                calculate_wake=False, f_params=f_params, comment='test',
+                                layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
 
-    # add the input to the hashmap
-    add_elements_to_hashmap(name, input_hash)
-
-    # check that the input is in the hashmap
+    # create the expected directories for the dummy input
     projects_path = Path(get_iw2d_config_value('project_directory'))
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+    directory_level_1 = projects_path.joinpath(input_hash[0])
+    directory_level_2 = directory_level_1.joinpath(input_hash[1])
+    working_directory = directory_level_2.joinpath(input_hash[2:])
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
+    add_iw2d_input_to_database(iw2d_input, input_hash, working_directory)
 
-    hashmap_keys = list(hashmap.keys())
+    assert os.path.exists(f"{working_directory}/input.txt")
 
-    # remove the dummy input from the hashmap
-    hashmap.pop(input_hash)
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-    assert input_hash in hashmap_keys
