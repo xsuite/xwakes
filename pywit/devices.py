@@ -33,7 +33,7 @@ def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, in
     # material_relative_permeability = layer.magnetic_susceptibility
     # material_permeability = material_relative_permeability * scipy.constants.mu_0
 
-    # Create the skin depth as a function offrequency and layer properties
+    # Create the skin depth as a function of frequency and layer properties
     # delta_skin = lambda freq: (material_resistivity/ (2*pi*abs(freq) * material_permeability)) ** (1/2)
 
     gamma = g / L
