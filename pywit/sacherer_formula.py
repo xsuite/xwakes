@@ -52,6 +52,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     :return effective_impedance: the effective impedance for all multibunch modes and synchrotron modes. It is an array
     of dimensions ( len(nx_scan), (2*m_max+1) )
     """
+
     def hmm(m_mode: int, omega: Union[float, np.ndarray]):
         """
         Compute hmm power spectrum of Sacherer formula, for azimuthal mode number m,
@@ -78,7 +79,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
 
         return hmm_val
 
-    def hmm_weighted_sum(m_mode: int, nx_mode: int, weight_function: Callable[[float], complex]=None):
+    def hmm_weighted_sum(m_mode: int, nx_mode: int, weight_function: Callable[[float], complex] = None):
         """
         Compute sum of hmm functions in the Sacherer formula, optionally
         weighted by weight_function.
@@ -219,7 +220,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     for inx, nx in enumerate(nx_array):  # coupled-bunch modes
 
         for im, m in enumerate(range(-m_max, m_max + 1)):
-
             # consider each synchrotron mode individually
             # sum power spectrum functions and computes effective impedance
 
@@ -234,8 +234,8 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             sum2 = hmm_weighted_sum(m, nx, weight_function=impedance_function)
 
             effective_impedance[inx, im] = sum2 / sum1
-            freq_shift = 1j*charge*single_bunch_current/(2 * (np.abs(m) + 1.) * m0 * gamma * tune * omega_rev *
-                                                         bunch_length_seconds_meters) * sum2 / sum1
+            freq_shift = 1j * charge * single_bunch_current / (2 * (np.abs(m) + 1.) * m0 * gamma * tune * omega_rev *
+                                                               bunch_length_seconds_meters) * sum2 / sum1
 
             tune_shift = (freq_shift / omega_rev + m * omegas / omega_rev)
 
