@@ -10,7 +10,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
                      omega_rev: float, tune: float, gamma: float, eta: float, bunch_length_seconds: float, m_max: int,
                      impedance_table: np.array = None, freq_impedance_table: np.array = None,
                      impedance_function: Callable[[float], float] = None, m0: float = m_p, charge: float = q_p,
-                     mode_type: str = 'sinusoidal', flag_trapz: bool = None) -> Tuple[np.array, float, np.array]:
+                     mode_type: str = 'sinusoidal') -> Tuple[np.array, float, np.array]:
     """
     Computes frequency shift and effective impedance from Sacherer formula, in transverse, in the case of low
     intensity perturbations (no mode coupling), for modes of kind 'mode_type'.
@@ -83,8 +83,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
         """
         Compute sum of hmm functions in the Sacherer formula, optionally
         weighted by weight_function.
-        Use the trapz integration method if flag_trapz==True, to make the
-        convergence faster.
         Note: In the end the sum runs over k with hmm taken at the angular frequencies
         (k_offset+k*n_bunches)*omega0+m*omegas-omegaksi but the impedance is taken at
         (k_offset+k*n_bunches)*omega0+m*omegas
@@ -104,35 +102,12 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
         omega = np.arange(-100.01 / bunch_length_seconds, 100.01 / bunch_length_seconds,
                           0.01 / bunch_length_seconds)
 
-        if flag_trapz:
-            # initialization of correcting term sum_i (with an integral instead of discrete sum)
-            # we select angular frequencies just above (omega_k + n_bunches*omega_rev)
-            # and those just below (omega_k - n_bunches*omega_rev) (and up to 10^15
-            # in absolute value)
-            ind_i = np.where(np.sign(omega - omega_k - n_bunches * omega_rev) * np.sign(omega - 1e15) == -1)
-            ind_mi = np.where(np.sign(omega - omega_k + n_bunches * omega_rev) * np.sign(omega + 1e15) == -1)
-            omega_i = omega[ind_i]
-            omega_mi = omega[ind_mi]
-            hmm_i = hmm(m_mode, omega_i - omega_ksi)
-            hmm_mi = hmm(m_mode, omega_mi - omega_ksi)
-            if weight_function is not None:
-                z_i = weight_function(omega_i / (2 * np.pi))
-                z_mi = weight_function(omega_mi / (2 * np.pi))
-            else:
-                z_i = np.ones_like(ind_i)
-                z_mi = np.ones_like(ind_mi)
-
-            sum_i = (np.trapz(z_i * hmm_i, omega_i) + np.trapz(z_mi * hmm_mi, omega_mi)) / (
-                    n_bunches * omega_rev)
-        else:
-            sum_i = 0.
-
         if weight_function is not None:
             z_pk = weight_function(omega_k / (2 * np.pi))
         else:
             z_pk = np.ones_like(omega_k)
 
-        sum1_inner = z_pk * hmm_k + sum_i
+        sum1_inner = z_pk * hmm_k
 
         k = np.arange(1, k_max + 1)
         old_sum1 = 10. * sum1_inner
@@ -147,30 +122,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             hmm_k = hmm(m_mode, omega_k - omega_ksi)
             hmm_mk = hmm(m_mode, omega_mk - omega_ksi)
 
-            if flag_trapz:
-                # subtract correction (rest of the sum considered as integral -> should suppress redundant terms)
-                ind_i = np.where(
-                    np.sign(omega - omega_k[0]) * np.sign(omega - omega_k[-1] - n_bunches * omega_rev) == -1)
-                ind_mi = np.where(
-                    np.sign(omega - omega_mk[0]) * np.sign(omega - omega_mk[-1] + n_bunches * omega_rev) == -1)
-                omega_i = omega[ind_i]
-                omega_mi = omega[ind_mi]
-                hmm_i = hmm(m_mode, omega_i - omega_ksi)
-                hmm_mi = hmm(m_mode, omega_mi - omega_ksi)
-
-                if weight_function is not None:
-                    z_i = weight_function(omega_i / (2 * np.pi))
-                    z_mi = weight_function(omega_mi / (2 * np.pi))
-                else:
-                    z_i = np.ones_like(ind_i)
-                    z_mi = np.ones_like(ind_mi)
-
-                sum_i = (np.trapz(z_i * hmm_i, omega_i) + np.trapz(z_mi * hmm_mi, omega_mi)) / (
-                        n_bunches * omega_rev)
-
-            else:
-                sum_i = 0.
-
             if weight_function is not None:
                 z_pk = weight_function(omega_k / (2 * np.pi))
                 z_pmk = weight_function(omega_mk / (2 * np.pi))
@@ -179,7 +130,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
                 z_pmk = np.ones_like(omega_mk)
 
             # sum
-            sum1_inner = sum1_inner + np.sum(z_pk * hmm_k) + np.sum(z_pmk * hmm_mk) - sum_i
+            sum1_inner = sum1_inner + np.sum(z_pk * hmm_k) + np.sum(z_pmk * hmm_mk)
 
             k = k + k_max
 
