@@ -1,8 +1,8 @@
-from typing import Tuple
+from typing import Tuple,Sequence
 from pywit.component import Component
 from pywit.element import Element
 from pywit.utilities import create_resonator_component
-from pywit.interface import component_names
+from pywit.interface import component_names,get_component_name
 from pywit.utils import create_list
 
 import numpy as np
@@ -171,23 +171,24 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
     """
     Computes the shunt impedance in Ohm(/m if not longitudinal) of one single rectangular linear taper using Stupakov's
     formulae (Phys. Rev. STAB 10, 094401 - 2007), multiplied by Z0*c/(4*pi) to convert to SI units.
-    Taper is in the vertical plane.
-    We use here half apertures (half-gap and half-width) whereas Stupakov's paper is expressed with full apertures. This
-    does not make any difference except for an additional factor 4 here for longitudinal impedance.
+    Taper is in the vertical plane (i.e. the change of half-gap is in vertical, but the width is along the horizontal plane
+    - this is typical of a taper going towards a vertical collimator with horizontal jaws).
+    We use here half values for geometrical parameters (half-gap and half-width) whereas Stupakov's paper is expressed
+    with full values. This does not make any difference except for an additional factor 4 here for longitudinal impedance.
 
     The formula is valid under the conditions of low frequency and length of taper much larger than its transverse
-    dimensions
+    dimensions.
 
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
-    :param half_width: width of the taper (constant)
+    :param half_width: half width of the taper (constant)
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
-    :param component_id: is a list with the names or a single name of the components for which ones computes the R/Q
+    :param component_id: a component name for which one computes the R/Q
     (ex: zlong, zydip, zxquad, etc.)
     :param approximate_integrals: use approximated formulas to compute the integrals. It can be used if one assumes
-    small half_gap_big/half_width ratio
-    :return: the shunt impedance of each component in comp
+    small half_gap_big/half_width ratio (<<1)
+    :return: the shunt impedance of the component
     """
     z_0 = mu_0 * c_light  # free space impedance
 
@@ -199,7 +200,7 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
         g_power = 0
         cst = 4. * mu_0 * cutoff_frequency / 2.  # factor 4 due to use of half-gaps here
         i = 7. * zeta(3, 1) / (2. * np.pi ** 2) * taper_slope * (
-                half_gap_big - half_gap_small)  # approx. integral (sp.zeta(3.,1.) is Riemann zeta function at x=3)
+                half_gap_big - half_gap_small)  # approx. integral (zeta(3.,1.) is Riemann zeta function at x=3)
         # I=7.*1.202057/(2.*np.pi**2)*tantheta*(b-a);
 
     elif component_id == 'zydip':
@@ -244,21 +245,19 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
 
 def create_flat_taper_stupakov_formula_component(half_gap_small: float, half_gap_big: float, taper_slope: float,
                                                  half_width: float, plane: str, exponents: Tuple[int, int, int, int],
-                                                 cutoff_frequency: float = None, component_id: str = None) -> Component:
+                                                 cutoff_frequency: float = None) -> Component:
     """
     Creates a component using the flat taper Stupakov formula
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
-    :param half_width: width of the taper (constant)
+    :param half_width: half width of the taper (constant)
     :param plane: the plane the component corresponds to
     :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
-    :param component_id: the components for which the R/Q is computed (ex: zlong, zydip, zxqua, etc.)
     :return: A component object of a flat taper
     """
-    if component_id not in component_names.keys():
-        raise ValueError(f"component_id must be one of the following: {component_names.keys()}")
+    component_id = get_component_name(True, plane, exponents)
 
     r_shunt = shunt_impedance_flat_taper_stupakov_formula(half_gap_small=half_gap_small, half_gap_big=half_gap_big,
                                                           taper_slope=taper_slope, half_width=half_width,
@@ -269,7 +268,8 @@ def create_flat_taper_stupakov_formula_component(half_gap_small: float, half_gap
 
 def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_big: float, taper_slope: float,
                                                half_width: float, beta_x: float, beta_y: float,
-                                               cutoff_frequency: float = None, component_ids: str = None,
+                                               cutoff_frequency: float = None,
+                                               component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
                                                name: str = "Flat taper", tag: str = "",
                                                description: str = "") -> Element:
     """
@@ -277,7 +277,7 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
-    :param half_width: width of the taper (constant)
+    :param half_width: half width of the taper (constant)
     :param beta_x: The size of the beta function in the x-plane at the position of the taper
     :param beta_y: The size of the beta function in the y-plane at the position of the taper
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
@@ -285,23 +285,20 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
     :param name: A user-specified name of the Element
     :param tag: A string corresponding to a specific Element
     :param description: A description for the Element
-    :return: A component object of a flat taper
+    :return: An Element object of a flat taper
     """
-    length = (half_gap_big - half_gap_small) * taper_slope
-
-    if component_ids is None:
-        component_ids = ['zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua']
+    length = (half_gap_big - half_gap_small) / taper_slope
 
     components = []
     for component_id in component_ids:
-        plane, exponents, _ = component_names[component_id]
+        _, plane, exponents = component_names[component_id]
         components.append(create_flat_taper_stupakov_formula_component(half_gap_small=half_gap_small,
                                                                        half_gap_big=half_gap_big,
                                                                        taper_slope=taper_slope,
                                                                        half_width=half_width,
                                                                        plane=plane, exponents=exponents,
                                                                        cutoff_frequency=cutoff_frequency,
-                                                                       component_id=component_id))
+                                                                       ))
 
     return Element(length=length, beta_x=beta_x, beta_y=beta_y, components=components, name=name, tag=tag,
                    description=description)
