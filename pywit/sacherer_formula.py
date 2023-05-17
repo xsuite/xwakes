@@ -116,7 +116,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             hmm_mi = hmm(m_mode, omega_mi - omega_ksi)
             if weight_function is not None:
                 z_i = weight_function(omega_i / (2 * np.pi))
-                z_mi = weight_function(omega_i / (2 * np.pi))
+                z_mi = weight_function(omega_mi / (2 * np.pi))
             else:
                 z_i = np.ones_like(ind_i)
                 z_mi = np.ones_like(ind_mi)
