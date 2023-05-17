@@ -193,23 +193,14 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     bunch_length_seconds_meters = bunch_length_seconds * beta * c  # full bunch length (in meters)
 
     if impedance_table is not None:
-        # compute complex impedance and 'symmetrize' it for negative frequencies
-        impedance_table_p = np.copy(impedance_table)
-        impedance_table_m = -impedance_table[::-1].conjugate()
-        impedance_table = np.concatenate((impedance_table_m, impedance_table_p))
-        freq_impedance_table = np.concatenate((-freq_impedance_table, freq_impedance_table))
-
         def impedance_function(x):
             if np.isscalar(x):
                 x = np.array([x])
             ind_p = x >= 0
             ind_n = x < 0
             result = np.zeros_like(x, dtype=complex)
-            result[ind_p] = (np.interp(x[ind_p], freq_impedance_table, np.real(impedance_table)) +
-                             1j * np.interp(x[ind_p], freq_impedance_table, np.imag(impedance_table)))
-            result[ind_n] = -((np.interp(np.abs(x[ind_n]), freq_impedance_table, np.real(impedance_table)) +
-                               1j * np.interp(np.abs(x[ind_n]), freq_impedance_table,
-                                                 np.imag(impedance_table)))).conjugate()
+            result[ind_p] = np.interp(x[ind_p], freq_impedance_table, impedance_table)
+            result[ind_n] = -np.interp(np.abs(x[ind_n]), freq_impedance_table, impedance_table).conjugate()
 
             return result
 
@@ -219,8 +210,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     effective_impedance = np.zeros((len(nx_array), 2 * m_max + 1), dtype=complex)
 
     omega_ksi = qp * omega_rev / eta
-    if flag_trapz is None:
-        flag_trapz = np.ceil(100 * (4*np.pi / bunch_length_seconds + abs(omega_ksi)) / (omega_rev * n_bunches)) > 1e9
 
     for inx, nx in enumerate(nx_array):  # coupled-bunch modes
 
