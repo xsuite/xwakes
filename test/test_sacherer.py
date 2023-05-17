@@ -1,4 +1,3 @@
-import numpy
 import numpy as np
 from scipy import constants as cst
 
@@ -72,7 +71,7 @@ def test_sacherer_formula_function():
                                                            omega_rev=omega_rev, tune=tune, gamma=gamma, eta=eta,
                                                            bunch_length_seconds=bunch_length,
                                                            m_max=m_max, impedance_function=impedance_func_correct,
-                                                           mode_type='sinusoidal', flag_trapz=False)
+                                                           mode_type='sinusoidal')
 
     assert np.allclose(tune_shift_nx, tune_shift_nx_ref)
     assert np.isclose(tune_shift_m0, tune_shift_m0_ref)
@@ -105,7 +104,7 @@ def test_sacherer_formula_table():
                                                            bunch_length_seconds=bunch_length,
                                                            m_max=m_max, impedance_table=impedance_table,
                                                            freq_impedance_table=freq_impedance_table,
-                                                           mode_type='sinusoidal', flag_trapz=False)
+                                                           mode_type='sinusoidal')
 
     assert np.allclose(tune_shift_nx, tune_shift_nx_ref)
     assert np.isclose(tune_shift_m0, tune_shift_m0_ref)
