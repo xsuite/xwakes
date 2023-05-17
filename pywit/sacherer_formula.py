@@ -23,7 +23,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     https://indico.cern.ch/event/766028/contributions/3179810/attachments/1737652/2811046/Z_definition.pptx)
     Here this formula is instead divided by beta (compared to Sacherer initial one),
     so is valid with our usual definition of impedance (not beta-normalized).
-    This was corrected on April 15th, 2019. NM
 
     :param qp: the chromaticity (defined as $\frac{\Delta q \cdot p}{\Delta p}$
     :param nx_array: a vector of coupled bunch modes for which the tune shift is computed (it must contain integers in
@@ -32,11 +31,11 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     :param omegas: the synchrotron angular frequency (i.e. $Q_s \cdot \omega_{rev}$)
     :param n_bunches: the number of bunches
     :param omega_rev: the revolution angular frequency (i.e. $2\cdot \pi f_{rev}$)
-    :param tune: machine tune in the considered plane (the total tune comprehensive of the integer part must be passed)
+    :param tune: machine tune in the considered plane (the TOTAL tune, including the integer part, must be passed)
     :param gamma: the relativistic gamma factor of the beam
-    :param eta: the slip factor
-    :param bunch_length_seconds: the bunch length in seconds (4 times $\sigma$ for a Gaussian bunch)
-    :param m_max: specifies the the range (-m_max to m_max) of the azimuthal modes to be considered
+    :param eta: the slippage factor (i.e. alpha_p - 1/gamma^2, with alpha_p the momentum compaction factor)
+    :param bunch_length_seconds: the total bunch length in seconds (4 times $\sigma$ for a Gaussian bunch)
+    :param m_max: specifies the range (-m_max to m_max) of the azimuthal modes to be considered
     :param impedance_table: a numpy array giving the complex impedance at a discrete set of points. It must be specified
     if impedance_function is not specified
     :param freq_impedance_table: the frequencies at which the impedance is sampled. It must be specified if
@@ -44,20 +43,21 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
     :param impedance_function: the impedance function. It must be specified if impedance_table is not specified
     :param m0: the rest mass of the considered particles
     :param charge: the charge of the considered particles
-    :param mode_type: the tipe of modes in the effective impedance. It can be 'sinusoidal' or 'hermite'
+    :param mode_type: the type of modes in the effective impedance. It can be 'sinusoidal' (typically
+    well-adpated for protons) or 'hermite' (typically better for leptons).
 
-    :return tune_shift_nx: tune shifts for all multibunch modes and synchrotron modes. It is and array of dimensions
-    len(nx_scan)*(2*m_max+1)
-    :return tune_shift_m0: tune shifts of the most unstable mode with m=0
-    :return effective_impedance: the effective impedance for all multibunch modes and synchrotron modes. It is and array
-    of dimensions len(nx_scan)*(2*m_max+1)
+    :return tune_shift_nx: tune shifts for all multibunch modes and synchrotron modes. It is an array of dimensions
+    ( len(nx_scan), (2*m_max+1) )
+    :return tune_shift_m0: tune shift of the most unstable coupled-bunch mode with m=0
+    :return effective_impedance: the effective impedance for all multibunch modes and synchrotron modes. It is an array
+    of dimensions ( len(nx_scan), (2*m_max+1) )
     """
     def hmm(m_mode: int, omega: Union[float, np.ndarray]):
         """
         Compute hmm power spectrum of Sacherer formula, for azimuthal mode number m,
         at angular frequency 'omega' (rad/s) (can be an array), for total bunch length
         'bunch_length_seconds' (s), and for a kind of mode specified by 'mode_type'
-        (which can be 'hermite' - leptons -  or 'sinusoidal' - protons)
+        (which can be 'hermite' or 'sinusoidal')
         :param m_mode: the azimuthal mode number
         :param omega: the angular frequency at which hmm is computed
         """
@@ -78,19 +78,22 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
 
         return hmm_val
 
-    def hmm_weighted_sum(m_mode: int, nx_mode: int, weight_function: Callable[[float], float]=None):
+    def hmm_weighted_sum(m_mode: int, nx_mode: int, weight_function: Callable[[float], complex]=None):
         """
-        Compute sum of hmm functions in the Sacherer formula, weighted or not by the impedance Z, depending if
-        the impedance is specified or not.
-        Use the trapz integration method if flag_trapz==True
+        Compute sum of hmm functions in the Sacherer formula, optionally
+        weighted by weight_function.
+        Use the trapz integration method if flag_trapz==True, to make the
+        convergence faster.
         Note: In the end the sum runs over k with hmm taken at the angular frequencies
         (k_offset+k*n_bunches)*omega0+m*omegas-omegaksi but the impedance is taken at
         (k_offset+k*n_bunches)*omega0+m*omegas
         :param m_mode: the azimuthal mode number
         :param nx_mode: the coupled-bunch mode number
-        :param weight_function: function indicating the sum weights (optional)
-        :return: the sum of hmm functions, possibly weighted by the impedance
+        :param weight_function: function of frequency (NOT angular) giving
+        the sum weights (typically, it is the impedance) (optional)
+        :return: the (possibly weigthed) sum of hmm functions
         """
+        eps = 1.e-5  # relative precision of the summations
         k_max = 20
         k_offset = nx_mode + fractional_tune
         # sum initialization
@@ -102,6 +105,9 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
 
         if flag_trapz:
             # initialization of correcting term sum_i (with an integral instead of discrete sum)
+            # we select angular frequencies just above (omega_k + n_bunches*omega_rev)
+            # and those just below (omega_k - n_bunches*omega_rev) (and up to 10^15
+            # in absolute value)
             ind_i = np.where(np.sign(omega - omega_k - n_bunches * omega_rev) * np.sign(omega - 1e15) == -1)
             ind_mi = np.where(np.sign(omega - omega_k + n_bunches * omega_rev) * np.sign(omega + 1e15) == -1)
             omega_i = omega[ind_i]
@@ -204,7 +210,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
 
             return result
 
-    eps = 1.e-5  # relative precision of the summations
     tune_shift_nx = np.zeros((len(nx_array), 2 * m_max + 1), dtype=complex)
     tune_shift_m0 = complex(0)
     effective_impedance = np.zeros((len(nx_array), 2 * m_max + 1), dtype=complex)
@@ -229,7 +234,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             sum2 = hmm_weighted_sum(m, nx, weight_function=impedance_function)
 
             effective_impedance[inx, im] = sum2 / sum1
-            # 15/04/2019 NM: beta suppressed (was for a "beta-normalized" definition of impedance)
             freq_shift = 1j*charge*single_bunch_current/(2 * (np.abs(m) + 1.) * m0 * gamma * tune * omega_rev *
                                                          bunch_length_seconds_meters) * sum2 / sum1
 
