@@ -1,5 +1,7 @@
 import os
 
+import pytest
+
 from pywit.interface import import_data_iw2d, create_component_from_data, Sampling
 from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
@@ -54,22 +56,24 @@ def test_valid_iw2d_component_import():
             np.testing.assert_allclose(y_actual, component.wake(x), rtol=REL_TOL, atol=ABS_TOL)
 
 
-def test_check_already_computed():
-    # create dummy iw2d input
+@pytest.fixture
+def round_tung_layer_iw2d_input():
     f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
     layers_tung = (tungsten(),)
-    iw2d_input = RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
-                                calculate_wake=False, f_params=f_params, comment='test',
-                                layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
+    return RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
+                          calculate_wake=False, f_params=f_params, comment='test',
+                          layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
 
+
+def test_check_already_computed(round_tung_layer_iw2d_input):
     name = 'test_hash'
 
     # create the expected directories for the dummy input
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
-    directory_level_1 = projects_path.joinpath(input_hash[0])
-    directory_level_2 = directory_level_1.joinpath(input_hash[1])
-    working_directory = directory_level_2.joinpath(input_hash[2:])
+    input_hash = sha256(round_tung_layer_iw2d_input.__str__().encode()).hexdigest()
+    directory_level_1 = projects_path.joinpath(input_hash[0:2])
+    directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
+    working_directory = directory_level_2.joinpath(input_hash[4:])
 
     if not os.path.exists(directory_level_1):
         os.mkdir(directory_level_1)
@@ -79,7 +83,7 @@ def test_check_already_computed():
 
     # check if the directory already existed, otherwise remove it with the content
     if os.path.exists(working_directory):
-        os.system(f'rm {working_directory}/*')
+        os.rmdir(f'{working_directory}/*')
     else:
         os.mkdir(working_directory)
 
@@ -89,34 +93,27 @@ def test_check_already_computed():
             f.write(dummy_string)
 
     # check that the input is detected in the hashmap
-    read_ready, input_hash, working_directory = check_already_computed(iw2d_input, name)
-    assert read_ready
+    already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
+    assert already_computed
 
     # now we remove the folder and check that check_already_computed gives false
     os.system(f'rm -r {working_directory}')
-    read_ready, input_hash, working_directory = check_already_computed(iw2d_input, name)
+    already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
 
-    assert not read_ready
+    assert not already_computed
 
     # check_already_computed creates working_directory again so we clean it up
     os.system(f'rm -r {working_directory}')
 
 
-def test_add_iw2d_input_to_database():
-    f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
-    layers_tung = (tungsten(),)
-    iw2d_input = RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
-                                calculate_wake=False, f_params=f_params, comment='test',
-                                layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
-
-    # create the expected directories for the dummy input
+def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
-    directory_level_1 = projects_path.joinpath(input_hash[0])
-    directory_level_2 = directory_level_1.joinpath(input_hash[1])
-    working_directory = directory_level_2.joinpath(input_hash[2:])
+    input_hash = sha256(round_tung_layer_iw2d_input.__str__().encode()).hexdigest()
+    directory_level_1 = projects_path.joinpath(input_hash[0:2])
+    directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
+    working_directory = directory_level_2.joinpath(input_hash[4:])
 
-    add_iw2d_input_to_database(iw2d_input, input_hash, working_directory)
+    add_iw2d_input_to_database(round_tung_layer_iw2d_input, input_hash, working_directory)
 
     assert os.path.exists(f"{working_directory}/input.txt")
 

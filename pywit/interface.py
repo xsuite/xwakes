@@ -3,14 +3,11 @@ import os
 from pywit.component import Component
 from pywit.element import Element
 
-import pickle
 import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union
-from os import listdir
 from dataclasses import dataclass
 from pathlib import Path
 from hashlib import sha256
-import collections
 
 import numpy as np
 from yaml import load, BaseLoader
@@ -64,7 +61,7 @@ def import_data_iw2d(directory: Union[str, Path],
     seen_configs = []
 
     # A list of all of the filenames in the user-specified directory
-    filenames = listdir(directory)
+    filenames = os.listdir(directory)
     for i, filename in enumerate(filenames):
         # If the string preceding ".dat" in the filename does not match common_string, or if the first 5 letters
         # of the filename are not recognized as a type of impedance/wake, the file is skipped
@@ -362,7 +359,7 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     :param iw2d_input: an iw2d input object
     :param name: the name of the object
     :return: two lists: one indicatind if the iw2d_inputs have been already and the other containing the hash keys
-    corresponding to the inputs. If scalar inputs were passed then the function returns two scalars instead of two lists
+
     """
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
@@ -372,23 +369,23 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
 
     # we have three levels of directories: the first two are given by the first and second letters of the hash keys,
     # the third is given by the rest of the hash keys.
-    directory_level_1 = projects_path.joinpath(input_hash[0])
-    directory_level_2 = directory_level_1.joinpath(input_hash[1])
-    working_directory = directory_level_2.joinpath(input_hash[2:])
+    directory_level_1 = projects_path.joinpath(input_hash[0:2])
+    directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
+    working_directory = directory_level_2.joinpath(input_hash[4:])
 
-    read_ready = True
+    already_computed = True
 
     # check if the directories exist. If they do not exist we create
     if not os.path.exists(directory_level_1):
-        read_ready = False
+        already_computed = False
         os.mkdir(directory_level_1)
 
-    if not os.path.exists(directory_level_2):
-        read_ready = False
+    elif not os.path.exists(directory_level_2):
+        already_computed = False
         os.mkdir(directory_level_2)
 
-    if not os.path.exists(working_directory):
-        read_ready = False
+    elif not os.path.exists(working_directory):
+        already_computed = False
         os.mkdir(working_directory)
 
     components = []
@@ -404,28 +401,30 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
 
     # this list also includes the input file but it doesn't matter
     computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
-    print(components)
-    print(computed_components)
+
     for component in components:
         if component not in computed_components:
-            read_ready = False
+            already_computed = False
             break
 
-    if read_ready:
+    if already_computed:
         print(f"The computation of '{name}' has already been performed with the exact given parameters. "
               f"These results will be used to generate the element.")
 
-    return read_ready, input_hash, working_directory
+    return already_computed, input_hash, working_directory
 
 
 def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], input_hash: str,
                                working_directory: Union[str, Path]):
     """
-    Add the iw2d inputs to the repository containing the simulations
-    :param: iw2d_input the input object of the IW2D simulation
-    :param: input_hash the hash key corresponding to the input
-    :return: the directory containing the iw2d input file
+    Add the iw2d input to the repository containing the simulations
+    :param iw2d_input: the input object of the IW2D simulation
+    :param input_hash: the hash key corresponding to the input
+    :param working_directory: the directory where to put the iw2d input file
     """
+    if type(working_directory) == str:
+        working_directory = Path(working_directory)
+
     directory_level_1 = working_directory.parent.parent
     directory_level_2 = working_directory.parent
 
@@ -434,7 +433,7 @@ def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     if not os.path.exists(directory_level_2):
         os.mkdir(directory_level_2)
 
-    working_directory = directory_level_2.joinpath(input_hash[2:])
+    working_directory = directory_level_2.joinpath(input_hash[4:])
 
     if not os.path.exists(working_directory):
         os.mkdir(working_directory)
@@ -461,32 +460,30 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
     # when looking for this IW2DInput in the database, the comment and the machine name don't necessarily need to be
     # the same as the in the old simulation so we ignore it for creating the hash
     iw2d_input_dict = iw2d_input.__dict__
+    comment = iw2d_input_dict['comment']
+    machine = iw2d_input_dict['machine']
     iw2d_input_dict['comment'] = ''
     iw2d_input_dict['machine'] = ''
-    if type(iw2d_input) == FlatIW2DInput:
-        iw2d_input_essential = FlatIW2DInput(**iw2d_input_dict)
-    else:
-        iw2d_input_essential = RoundIW2DInput(**iw2d_input_dict)
 
     # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     # the path to the folder containing the database of already computed elements
 
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
-    read_ready, input_hash, working_directory = check_already_computed(iw2d_input_essential, name)
+    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
 
     # if an element with the same inputs is not found inside the database, perform the computations and add the results
     # to the database
-    if not read_ready:
-        add_iw2d_input_to_database(iw2d_input_essential, input_hash, working_directory)
+    if not already_computed:
+        add_iw2d_input_to_database(iw2d_input, input_hash, working_directory)
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
         subprocess.run(f'{bin_path.joinpath(bin_string)} < input.txt', shell=True, cwd=working_directory)
 
-    # read the computed components from the database
-    # the common string passed to import_data_iw2d must be the comment used the first time that the simulation was
-    # performed
     component_recipes = import_data_iw2d(directory=working_directory, common_string='')
+
+    iw2d_input_dict['comment'] = comment
+    iw2d_input_dict['machine'] = machine
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
@@ -501,7 +498,7 @@ def verify_iw2d_config_file() -> bool:
     if not bin_path.exists() or not projects_path.exists():
         return False
 
-    contents = listdir(bin_path)
+    contents = os.listdir(bin_path)
     for filename in ('flatchamber.x', 'roundchamber.x', 'wake_flatchamber.x', 'wake_roundchamber.x'):
         if filename not in contents:
             return False
@@ -649,7 +646,7 @@ def _verify_iw2d_binary_directory(ignore_missing_files: bool = False) -> None:
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     if not ignore_missing_files:
         filenames = ('flatchamber.x', 'roundchamber.x', 'wake_flatchamber.x', 'wake_roundchamber.x')
-        assert all(filename in listdir(bin_path) for filename in filenames), \
+        assert all(filename in os.listdir(bin_path) for filename in filenames), \
             "In order to utilize IW2D with PyWIT, the four binary files 'flatchamber.x', 'roundchamber.x', " \
             f"'wake_flatchamber.x' and 'wake_roundchamber.x' (as generated by IW2D) must be placed in the directory " \
             f"'{bin_path}'."
