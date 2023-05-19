@@ -5,7 +5,7 @@ import pytest
 from pywit.interface import import_data_iw2d, create_component_from_data, Sampling, check_valid_working_directory
 from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
-from pywit.materials import tungsten
+from pywit.materials import layer_from_json_material_library
 
 from pathlib import Path
 import glob
@@ -57,7 +57,7 @@ def test_valid_iw2d_component_import():
 @pytest.fixture
 def round_tung_layer_iw2d_input():
     f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
-    layers_tung = (tungsten(),)
+    layers_tung = (layer_from_json_material_library(thickness=np.inf, material_key='W'),)
     return RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
                           calculate_wake=False, f_params=f_params, comment='test',
                           layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
