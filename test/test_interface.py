@@ -8,11 +8,9 @@ from pywit.parameters import *
 from pywit.materials import tungsten
 
 from pathlib import Path
-from typing import Dict
-import pickle
+import glob
 from hashlib import sha256
 from pytest import raises
-import subprocess
 
 import numpy as np
 
@@ -83,7 +81,7 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
 
     # check if the directory already existed, otherwise remove it with the content
     if os.path.exists(working_directory):
-        os.rmdir(f'{working_directory}/*')
+        [os.remove(old_file) for old_file in glob.glob(f'{working_directory}/*')]
     else:
         os.mkdir(working_directory)
 
