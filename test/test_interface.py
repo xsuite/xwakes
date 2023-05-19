@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from pywit.interface import import_data_iw2d, create_component_from_data, Sampling
+from pywit.interface import import_data_iw2d, create_component_from_data, Sampling, check_valid_working_directory
 from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
 from pywit.materials import tungsten
@@ -110,6 +110,10 @@ def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
     directory_level_1 = projects_path.joinpath(input_hash[0:2])
     directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
     working_directory = directory_level_2.joinpath(input_hash[4:])
+
+    if not check_valid_working_directory(working_directory):
+        raise ValueError("working directory is not in the right format. The right format is "
+                         "`<project_directory>/hash[0:2]/hash[2:4]/hash[4:]`")
 
     add_iw2d_input_to_database(round_tung_layer_iw2d_input, input_hash, working_directory)
 
