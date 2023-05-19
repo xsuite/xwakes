@@ -414,6 +414,42 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     return already_computed, input_hash, working_directory
 
 
+def check_valid_hash_chunk(hash_chunk: str, length: int):
+    """
+    Checks that the hash_chunk string can be the part of an hash key of given length. This means that hash_chunk must
+    have the right length and it must be a hexadecimal string
+    :param hash_chunk: the string to be checked
+    :param length: the length which the hash chunk should have
+    :return: True if hash_chunk is valid, False otherwise
+    """
+    if len(hash_chunk) != length:
+        return False
+
+    # check if the hash is an hexadecimal string
+    try:
+        int(hash_chunk, 16)
+        return True
+    except ValueError:
+        return False
+
+
+def check_valid_working_directory(working_directory: Path):
+    """
+    Checks if working_directory is valid. To be valid working directory must be of the form
+    `<project_directory>/hash[0:2]/hash[2:4]/hash[4:]`
+    :param working_directory: the path to the directory to be checked
+    :return: True if the working_directory is valid, False otherwise
+    """
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+
+    if working_directory.parent.parent.parent != projects_path:
+        raise ValueError(f"The working directory must be located inside {projects_path}")
+
+    return (check_valid_hash_chunk(working_directory.parent.parent.name, 2) and
+            check_valid_hash_chunk(working_directory.parent.name, 2) and
+            check_valid_hash_chunk(working_directory.name, 60))
+
+
 def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], input_hash: str,
                                working_directory: Union[str, Path]):
     """
@@ -424,6 +460,10 @@ def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     """
     if type(working_directory) == str:
         working_directory = Path(working_directory)
+
+    if not check_valid_working_directory(working_directory):
+        raise ValueError("working directory is not in the right format. The right format is "
+                         "`<project_directory>/hash[0:2]/hash[2:4]/hash[4:]`")
 
     directory_level_1 = working_directory.parent.parent
     directory_level_2 = working_directory.parent
