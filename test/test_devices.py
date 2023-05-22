@@ -7,21 +7,24 @@ def test_create_tesla_cavity_component():
     ref_1ghz_zlong_re = np.array([21382.03077218])
     ref_1ghz_zlong_im = np.array([26226.15240245])
     # using the parameters from SLAC-PUB-9663, "Short-range dipole wakefields in accelerating structures for the NLC"
-    zlong_comp = create_tesla_cavity_component(L=8.75e-3, a=4.92e-3, g=6.89e-3, plane='z', exponents=(0, 0, 0, 0))
+    zlong_comp = create_tesla_cavity_component(period_length=8.75e-3, a=4.92e-3, g=6.89e-3, plane='z', exponents=(0, 0,
+                                                                                                                  0, 0))
     freq = np.array([1e9])
     assert np.isclose(ref_1ghz_zlong_re[0], np.real(zlong_comp.impedance(freq)[0]))
     assert np.isclose(ref_1ghz_zlong_im[0], np.imag(zlong_comp.impedance(freq)[0]))
 
     ref_1ghz_zxdip_re = np.array([84292624.28074735])
     ref_1ghz_zxdip_im = np.array([1.03389207e+08])
-    zxdip_comp = create_tesla_cavity_component(L=8.75e-3, a=4.92e-3, g=6.89e-3, plane='x', exponents=(1, 0, 0, 0))
+    zxdip_comp = create_tesla_cavity_component(period_length=8.75e-3, a=4.92e-3, g=6.89e-3, plane='x', exponents=(1, 0,
+                                                                                                                  0, 0))
     freq = np.array([1e9])
     assert np.isclose(ref_1ghz_zxdip_re[0], np.real(zxdip_comp.impedance(freq)[0]))
     assert np.isclose(ref_1ghz_zxdip_im[0], np.imag(zxdip_comp.impedance(freq)[0]))
 
     ref_1ghz_zydip_re = np.array([84292624.28074735])
     ref_1ghz_zydip_im = np.array([1.03389207e+08])
-    zydip_comp = create_tesla_cavity_component(L=8.75e-3, a=4.92e-3, g=6.89e-3, plane='y', exponents=(0, 1, 0, 0))
+    zydip_comp = create_tesla_cavity_component(period_length=8.75e-3, a=4.92e-3, g=6.89e-3, plane='y', exponents=(0, 1,
+                                                                                                                  0, 0))
     freq = np.array([1e9])
     assert np.isclose(ref_1ghz_zydip_re[0], np.real(zydip_comp.impedance(freq)[0]))
     assert np.isclose(ref_1ghz_zydip_im[0], np.imag(zydip_comp.impedance(freq)[0]))

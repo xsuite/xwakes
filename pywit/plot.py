@@ -1,16 +1,9 @@
-import asyncio
-import genericpath
-
 from pywit.component import Component
 from pywit.element import Element
 from pywit.model import Model
 from pywit.parameters import *
-from pywit.interface import create_iw2d_input_from_yaml, create_element_using_iw2d, create_multiple_elements_using_iw2d
-from pathlib import Path
-from pywit.utilities import create_resonator_component
 
-
-from typing import List, Dict, Union, Optional
+from typing import List, Dict, Union, Optional, Set
 from collections import defaultdict
 
 import matplotlib.pyplot as plt
@@ -151,7 +144,7 @@ def generate_contribution_plots(model: Model, start_freq: float = MIN_FREQ, stop
     for element in model.elements:
         elements[element.tag] += element
 
-    components_defined_for_tag: Dict[str, set[str]] = dict()
+    components_defined_for_tag: Dict[str, Set[str]] = dict()
     all_type_strings = set()
     for tag, element in elements.items():
         components_defined_for_tag[tag] = {c.get_shorthand_type() for c in element.components}

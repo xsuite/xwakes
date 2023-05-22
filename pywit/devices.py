@@ -15,7 +15,7 @@ free_space_impedance = mu_0 * c_light
 
 
 def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, int], a: float, g: float,
-                                  L: float) -> Component:
+                                  period_length: float) -> Component:
     """
     Creates a single component object modeling a periodic accelerating stucture.
     Follow K. Bane formalism developped in SLAC-PUB-9663, "Short-range dipole wakefields
@@ -24,7 +24,7 @@ def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, in
     :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
     :param a: accelerating structure iris gap in m
     :param g: individual cell gap in m
-    :param L: period length in m
+    :param period_length: period length in m
     :return: A component object of a periodic accelerating structure
     """
 
@@ -36,17 +36,17 @@ def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, in
     # Create the skin depth as a function of frequency and layer properties
     # delta_skin = lambda freq: (material_resistivity/ (2*pi*abs(freq) * material_permeability)) ** (1/2)
 
-    gamma = g / L
+    gamma = g / period_length
     alpha1 = 0.4648
     alpha = 1 - alpha1 * np.sqrt(gamma) - (1 - 2*alpha1) * gamma
 
-    s00 = g/8 * (a/(alpha * L)) ** 2
+    s00 = g / 8 * (a / (alpha * period_length)) ** 2
 
     # Longitudinal impedance and wake
     if plane == 'z' and exponents == (0, 0, 0, 0):
         def longitudinal_impedance_tesla_cavity(freq):
             return (1j * free_space_impedance / (np.pi * (2 * np.pi * freq / c_light) * a ** 2) *
-                    (1 + (1 + 1j) * alpha * L / a * np.sqrt(np.pi / ((2 * np.pi * freq / c_light) * g))) ** (-1))
+                    (1 + (1 + 1j) * alpha * period_length / a * np.sqrt(np.pi / ((2 * np.pi * freq / c_light) * g))) ** (-1))
 
         def longitudinal_wake_tesla_cavity(time):
             return ((free_space_impedance * c_light / (np.pi * a ** 2)) * np.heaviside(time, 0) *
@@ -60,7 +60,7 @@ def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, in
         def transverse_dipolar_impedance_tesla_cavity(freq):
             return 2 / ((2 * np.pi * freq / c_light) * a ** 2) * 1j * free_space_impedance / (
                     np.pi * (2 * np.pi * freq / c_light) * a ** 2) * (
-                           1 + (1 + 1j) * alpha * L / a * np.sqrt(np.pi / ((2 * np.pi * freq / c_light) * g))) ** (-1)
+                    1 + (1 + 1j) * alpha * period_length / a * np.sqrt(np.pi / ((2 * np.pi * freq / c_light) * g))) ** (-1)
 
         def transverse_dipolar_wake_tesla_cavity(time):
             return ((4 * free_space_impedance * c_light * s00) / (np.pi * a ** 4) * np.heaviside(time, 0) *

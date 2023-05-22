@@ -4,13 +4,13 @@ from pywit.element import Element
 import pickle
 import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union
-from os import listdir, makedirs
+from os import listdir
 from dataclasses import dataclass
 from pathlib import Path
 from hashlib import sha256
 
 import numpy as np
-from yaml import load, BaseLoader, dump
+from yaml import load, BaseLoader
 from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 
@@ -122,7 +122,7 @@ def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[
                      wake=(None if is_impedance else func),
                      plane=plane,
                      source_exponents=exponents[:2],
-                     test_exponents=exponents[2:],)
+                     test_exponents=exponents[2:], )
 
 
 @dataclass(frozen=True, eq=True)
@@ -164,6 +164,7 @@ class _IW2DInputBase:
     calculate_wake: bool
     f_params: Sampling
 
+
 @dataclass(frozen=True, eq=True)
 class _IW2DInputOptional:
     z_params: Optional[Sampling] = None
@@ -172,9 +173,11 @@ class _IW2DInputOptional:
     freq_lin_bisect: Optional[float] = None
     comment: Optional[str] = None
 
+
 @dataclass(frozen=True, eq=True)
 class IW2DInput(_IW2DInputOptional, _IW2DInputBase):
     pass
+
 
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputBase(_IW2DInputBase):
@@ -183,9 +186,11 @@ class _RoundIW2DInputBase(_IW2DInputBase):
     # (long, xdip, ydip, xquad, yquad)
     yokoya_factors: Tuple[float, float, float, float, float]
 
+
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputOptional(_IW2DInputOptional):
     pass
+
 
 @dataclass(frozen=True, eq=True)
 class RoundIW2DInput(_RoundIW2DInputOptional, _RoundIW2DInputBase):
@@ -198,10 +203,12 @@ class _FlatIW2DInputBase(_IW2DInputBase):
     top_layers: Tuple[Layer]
     top_half_gap: float
 
+
 @dataclass(frozen=True, eq=True)
 class _FlatIW2DInputOptional(_IW2DInputOptional):
     bottom_layers: Optional[Tuple[Layer]] = None
     bottom_half_gap: Optional[float] = None
+
 
 @dataclass(frozen=True, eq=True)
 class FlatIW2DInput(_FlatIW2DInputOptional, _FlatIW2DInputBase):
@@ -214,7 +221,6 @@ def _iw2d_format_layer(layer: Layer, n: int) -> str:
     Intended only as a helper-function for create_iw2d_input_file.
     :param layer: A Layer object
     :param n: The 1-indexed index of the layer
-    :param thickness: The thickness of the given layer
     :return: A string on the correct format for IW2D
     """
     return (f"Layer {n} DC resistivity (Ohm.m):\t{layer.dc_resistivity}\n"
@@ -346,7 +352,8 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
-def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
+def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float,
+                              tag: str = 'IW2D') -> Element:
     assert " " not in name, "Spaces are not allowed in element name"
 
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
@@ -446,7 +453,7 @@ def _typecast_sampling_dict(d: Dict[str, str]) -> Dict[str, Any]:
     return new_dict
 
 
-def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
+def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> Union[FlatIW2DInput, RoundIW2DInput]:
     is_round = d['is_round'].lower() in ['true', 'yes', 'y', '1']
     d.pop('is_round')
     layers, inner_layer_radius, yokoya_factors = list(), float(), tuple()
@@ -511,14 +518,14 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
             z_params=z_params,
             top_bottom_symmetry=d['top_bottom_symmetry'].lower() in ['true', 'yes', 'y', '1'],
             top_layers=tuple(top_layers),
-            top_half_gap = top_half_gap,
+            top_half_gap=top_half_gap,
             bottom_layers=bottom_layers,
             bottom_half_gap=bottom_half_gap,
             **new_dict
         )
 
 
-def create_iw2d_input_from_yaml(name: str) -> IW2DInput:
+def create_iw2d_input_from_yaml(name: str) -> Union[FlatIW2DInput, RoundIW2DInput]:
     path = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_inputs.yaml')
     with open(path) as file:
         inputs = load(file, Loader=BaseLoader)
@@ -641,9 +648,9 @@ def _read_cst_data(filename: Union[str, Path]) -> np.ndarray:
     with open(filename, 'r') as f:
         lines = f.readlines()
     data = []
-    for l in lines:
+    for line in lines:
         try:
-            data.append([float(e) for e in l.strip().split()])
+            data.append([float(e) for e in line.strip().split()])
         except ValueError:
             pass
 

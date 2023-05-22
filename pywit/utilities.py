@@ -6,8 +6,9 @@ from yaml import load, SafeLoader
 from typing import Tuple, Dict, List
 from collections import defaultdict
 
-from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign, heaviside
+from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign
 import scipy.constants
+
 
 def string_to_params(name: str, include_is_impedance: bool = True):
     """
@@ -19,6 +20,7 @@ def string_to_params(name: str, include_is_impedance: bool = True):
     :param include_is_impedance: A flag indicating whether or not "name" includes a 'z' or 'w' at the beginning.
     :return: A tuple containing the necessary information to describe the type of the given component
     """
+    is_impedance = False
     if include_is_impedance:
         is_impedance = name[0] == 'z'
         name = name[1:]
@@ -37,8 +39,10 @@ def create_component_from_config(identifier: str) -> Component:
     """
     with open("config/component.yaml", "r") as f:
         cdict = load(f, Loader=SafeLoader)[identifier]
-        wake = vectorize(lambda x: eval(cdict['wake'], {'exp': exp, 'sqrt': sqrt, 'pi': pi, 'x': x})) if 'wake' in cdict else None
-        impedance = vectorize(lambda x: eval(cdict['impedance'], {'exp': exp, 'sqrt': sqrt, 'pi': pi, 'x': x})) if 'impedance' in cdict else None
+        wake = vectorize(lambda x: eval(cdict['wake'], {'exp': exp, 'sqrt': sqrt,
+                                                        'pi': pi, 'x': x})) if 'wake' in cdict else None
+        impedance = vectorize(lambda x: eval(cdict['impedance'], {'exp': exp, 'sqrt': sqrt,
+                                                                  'pi': pi, 'x': x})) if 'impedance' in cdict else None
         name = cdict['name'] if 'name' in cdict else ""
         plane = cdict['plane']
         source_exponents = (int(cdict['source_exponents'][0]), int(cdict['source_exponents'][-1]))
