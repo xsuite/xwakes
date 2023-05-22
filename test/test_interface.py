@@ -1,9 +1,9 @@
-from pywit.interface import import_data_iw2d, create_component_from_data,get_component_name
+from pywit.interface import import_data_iw2d, create_component_from_data, get_component_name
 from pywit.parameters import *
 
 from pathlib import Path
 
-from pytest import raises,mark
+from pytest import raises, mark
 import numpy as np
 
 
@@ -35,9 +35,13 @@ def test_duplicate_component_iw2d_import():
         import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
-    assert error_message.value.args[0] == "The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and " \
-                                          "'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
-                                          "z-plane with exponents (0, 0, 0, 0)."
+    assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and " \
+                                           "'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
+                                           "z-plane with exponents (0, 0, 0, 0).",
+                                           "The wake files 'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' and " \
+                                           "'WlongWLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
+                                           "z-plane with exponents (0, 0, 0, 0).",
+                                           ]
 
 
 def test_no_matching_filename_iw2d_import():

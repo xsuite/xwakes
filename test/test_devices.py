@@ -30,6 +30,8 @@ def test_create_tesla_cavity_component(plane, exponents, expected_z):
                     ['zxqua', True, -89.8927562],
                     ['zyqua', False, 89.89264417],
                     ['zyqua', True, 89.8927562],
+                    ['zxcst', False, 0.],
+                    ['zycst', True, 0.],
                   ])
 def test_shunt_impedance_flat_taper_stupakov_formula(component_id, approximate_integrals, expected_r_shunt):
     length = 97e-3
