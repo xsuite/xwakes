@@ -1,5 +1,4 @@
 from typing import Sequence, Union
-from copy import deepcopy
 
 import numpy as np
 
