@@ -376,8 +376,11 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     Checks if a simulation with inputs iw2d_input is already present in the hash database.
     :param iw2d_input: an iw2d input object
     :param name: the name of the object
-    :return: two lists: one indicatind if the iw2d_inputs have been already and the other containing the hash keys
-
+    :return already_computed: boolean indicating if the iw2d_inputs have been already
+    computed
+    :return input_hash: string with the hash key corresponding to the inputs
+    :return working_directory: the path to the directory where the files were put, which is built as
+    `<first_two_characters_of_the_hash>/<next_two_characters>/<rest of the hash>
     """
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
