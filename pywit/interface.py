@@ -36,6 +36,24 @@ component_names = {'wlong': (False, 'z', (0, 0, 0, 0)),
 IW2D_SETTINGS_PATH = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_settings.yaml')
 
 
+def get_component_name(is_impedance, plane, exponents):
+    """
+    Get the component name from is_impedance, plane and exponents (doing the
+    reverse operation of the dictionary in component_names)
+    :param is_impedance: True for impedance component, False for wake
+    :param plane: plane ('x', 'y' or 'z')
+    :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
+    :return: str with component name (e.g. 'zydip' or 'wxqua')
+    """
+    comp_list = [comp_name for comp_name, v in component_names.items()
+                 if v == (is_impedance, plane, exponents)]
+    if len(comp_list) != 1:
+        raise ValueError(f"({is_impedance},{plane},{exponents}) cannot be found in"
+                         " the values of component_names dictionary")
+
+    return comp_list[0]
+
+
 def get_iw2d_config_value(key: str) -> Any:
     with open(IW2D_SETTINGS_PATH, 'r') as file:
         config = load(file, Loader=BaseLoader)

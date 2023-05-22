@@ -2,7 +2,8 @@ import os
 
 import pytest
 
-from pywit.interface import import_data_iw2d, create_component_from_data, Sampling, check_valid_working_directory
+from pywit.interface import import_data_iw2d, create_component_from_data, Sampling
+from pywit.interface import check_valid_working_directory, get_component_name
 from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
 from pywit.materials import layer_from_json_material_library
@@ -10,9 +11,32 @@ from pywit.materials import layer_from_json_material_library
 from pathlib import Path
 import glob
 from hashlib import sha256
-from pytest import raises
+from pytest import raises, mark
 
 import numpy as np
+
+
+@mark.parametrize('is_impedance, plane, exponents, expected_comp_name',
+                  [ [True,  'z', (0, 0, 0, 0), 'zlong'],
+                    [False, 'y', (0, 1, 0, 0), 'wydip'],
+                    [True,  'x', (0, 0, 1, 0), 'zxqua'],
+                    [False, 'y', (0, 0, 0, 0), 'wycst'],
+                  ])
+def test_get_component_name(is_impedance, plane, exponents, expected_comp_name):
+    assert get_component_name(is_impedance, plane, exponents) == expected_comp_name
+
+
+@mark.parametrize('is_impedance, plane, exponents',
+                  [ [None,  'l', (0, 0, 0, 0)],
+                    [True,  'l', (0, 1, 0, 0)],
+                    [False, 'x', ('a', 0, 1, 0)],
+                  ])
+def test_get_component_name_raise(is_impedance, plane, exponents):
+    with raises(ValueError) as error_message:
+        get_component_name(is_impedance, plane, exponents)
+
+    assert error_message.value.args[0] == f"({is_impedance},{plane},{exponents}) cannot be found in" \
+                                           " the values of component_names dictionary"
 
 
 def test_duplicate_component_iw2d_import():
@@ -20,9 +44,13 @@ def test_duplicate_component_iw2d_import():
         import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
-    assert error_message.value.args[0] == "The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and " \
-                                          "'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
-                                          "z-plane with exponents (0, 0, 0, 0)."
+    assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and " \
+                                           "'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
+                                           "z-plane with exponents (0, 0, 0, 0).",
+                                           "The wake files 'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' and " \
+                                           "'WlongWLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
+                                           "z-plane with exponents (0, 0, 0, 0).",
+                                           ]
 
 
 def test_no_matching_filename_iw2d_import():
