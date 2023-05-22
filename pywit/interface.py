@@ -35,6 +35,7 @@ component_names = {'wlong': (False, 'z', (0, 0, 0, 0)),
 # The parent directory of this file
 IW2D_SETTINGS_PATH = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_settings.yaml')
 
+
 def get_component_name(is_impedance,plane,exponents):
     """
     Get the component name from is_impedance, plane and exponents (doing the
