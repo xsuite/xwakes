@@ -1,9 +1,8 @@
-from typing import Tuple
+from typing import Tuple,Sequence
 from pywit.component import Component
 from pywit.element import Element
 from pywit.utilities import create_resonator_component
-from pywit.interface import component_names
-from pywit.utils import create_list
+from pywit.interface import component_names, get_component_name
 
 import numpy as np
 from scipy import integrate
@@ -83,86 +82,103 @@ def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, in
                      plane=plane, source_exponents=exponents[:2], test_exponents=exponents[2:])
 
 
-def g_addend(m, x, g_index):
+def _integral_stupakov(half_gap_small: float, half_gap_big: float,
+                       half_width: float, g_index: int, g_power: int,
+                       approximate_integrals: bool = False):
     """
-    Computes the m-th addend of series defining F (when Gint=0) or G_[Gint] function from Stupakov's formulas for a
-    rectangular linear taper at a given halfagp/width. m can be an array, in which case the function returns an array.
-    See Phys. Rev. STAB 10, 094401 (2007)
-    :param m: the index of the addend (it can be an array)
-    :param x: halfagp/width ratio
-    :param g_index: the index of the G function
+    Computes the Stupakov's integral for a rectangular linear taper.
+    Note that (g')^2 has been taken out of the integral. See Phys. Rev. STAB 10, 094401 (2007)
+    :param half_gap_small: the small half-gap of the taper
+    :param half_gap_big: the large half-gap of the taper
+    :param half_width: the half-width of the taper
+    :param g_index: the indice of the G function to use (0 is for G0=F in Stupakov's paper)
+    :param g_power: is the power to which 1/g is taken
+    :param approximate_integrals: use approximated formulas to compute the integrals.
+    It can be used if one assumes small half_gap_big/half_width ratio << 1
     """
+    def _integrand_stupakov(g):
+        """
+        Computes the integrand for the Stupakov integral
+        :param g: the half-gap of the taper
+        """
+        x = g/half_width # half-gap over half-width ratio
 
-    if g_index == 0:
-        val = (2 * m + 1) * np.pi * x / 2
-        res2 = ((1 - np.exp(-2 * val)) / (1 + np.exp(-2 * val)) * (
-                2 * (np.exp(-val)) / (1 + np.exp(-2 * val))) ** 2) / (2 * m + 1)
+        def g_addend(m):
+            """
+            Computes the m-th addend of series defining F (when g_index=0) or G_[g_index] function from Stupakov's formulas for a
+            rectangular linear taper at a given x=half-gap/half-width. m can be an array, in which case the function returns an array.
+            See Phys. Rev. STAB 10, 094401 (2007)
+            :param m: the index of the addend (it can be an array)
+            """
 
-        return res2
+            if g_index == 0:
+                val = (2 * m + 1) * np.pi * x / 2
+                res = ((1 - np.exp(-2 * val)) / (1 + np.exp(-2 * val)) * (
+                        2 * (np.exp(-val)) / (1 + np.exp(-2 * val))) ** 2) / (2 * m + 1)
 
-    elif g_index == 1:
-        val = (2 * m + 1) * np.pi * x / 2
-        res2 = x ** 3 * (2 * m + 1) * (4 * np.exp(-2 * val)) * (1 + np.exp(-2 * val)) / ((1 - np.exp(-2 * val)) ** 3)
-        return res2
+                return res
 
-    elif g_index == 2:
-        val = (2 * m + 1) * np.pi * x / 2
-        res2 = x ** 2 * (2 * m + 1) * (
-            ((1 - np.exp(-2 * val)) / (1 + np.exp(-2 * val)) * (2 * (np.exp(-val)) / (1 + np.exp(-2 * val))) ** 2))
-        return res2
+            elif g_index == 1:
+                val = (2 * m + 1) * np.pi * x / 2
+                res = x ** 3 * (2 * m + 1) * (4 * np.exp(-2 * val)) * (1 + np.exp(-2 * val)) / ((1 - np.exp(-2 * val)) ** 3)
+                return res
 
-    elif g_index == 3:
-        val = m * np.pi * x
-        res2 = x ** 2 * (2 * m) * ((1 - np.exp(-2 * val)) / (1 + np.exp(-2 * val)) * (
-                2 * (np.exp(-val)) / (1 + np.exp(-2 * val))) ** 2)
-        return res2
+            elif g_index == 2:
+                val = (2 * m + 1) * np.pi * x / 2
+                res = x ** 2 * (2 * m + 1) * (
+                    ((1 - np.exp(-2 * val)) / (1 + np.exp(-2 * val)) * (2 * (np.exp(-val)) / (1 + np.exp(-2 * val))) ** 2))
+                return res
 
-    else:
-        print("Pb in G_element for Stupakov's formulas: Gint not 0, 1, 2 or 3 !")
+            elif g_index == 3:
+                val = m * np.pi * x
+                res = x ** 2 * (2 * m) * ((1 - np.exp(-2 * val)) / (1 + np.exp(-2 * val)) * (
+                        2 * (np.exp(-val)) / (1 + np.exp(-2 * val))) ** 2)
+                return res
 
+            else:
+                raise ValueError("Pb in g_addend for Stupakov's formulas: g_index not 0, 1, 2 or 3 !")
 
-def g_stupakov(x: float, g_index: int):
-    """
-    Computes F (when Gint=0) or G_[Gint] function from Stupakov's formulas for a rectangular linear taper at a given
-    x=halfagp/width ratio. See Phys. Rev. STAB 10, 094401 (2007)
-    :param x: the halfagp/width ratio
-    :param g_index: the index of the G function
-    """
-    x = np.array(create_list(x))
-    g = np.zeros(len(x))
-
-    for ix, xelem in enumerate(x):
-
-        old_g = 1.
+        # Computes F (when g_index=0) or G_[g_index] function from Stupakov's formulas.
+        g_stupakov = 0.
+        old_g_stupakov = 1.
         eps = 1e-5  # relative precision of the summation
         incr = 10  # increment for sum computation
         m = np.arange(incr)
         m_limit = 1e6
 
-        while (abs(g[ix] - old_g) > eps * abs(g[ix])) and (m[-1] < m_limit):
-            g_array = g_addend(m, xelem, g_index)
-            old_g = g[ix]
-            g[ix] += np.sum(g_array)
+        while (abs(g_stupakov - old_g_stupakov) > eps * abs(g_stupakov)) and (m[-1] < m_limit):
+            g_array = g_addend(m)
+            old_g_stupakov = g_stupakov
+            g_stupakov += np.sum(g_array)
             m += incr
 
         if m[-1] >= m_limit:
-            print("Warning: maximum number of elements reached in g_stupakov!", m[-1], xelem, ", err=",
-                  abs((g[ix] - old_g) / g[ix]))
+            print("Warning: maximum number of elements reached in g_stupakov!", m[-1], x, ", err=",
+                  abs((g_stupakov - old_g_stupakov) / g_stupakov))
 
-    return g
+        return g_stupakov / (g ** g_power)
 
+    if approximate_integrals:
+        if g_index == 0 and g_power == 0:
+            i = 7. * zeta(3, 1) / (2. * np.pi ** 2) * (
+                    half_gap_big - half_gap_small)  # (zeta(3.,1.) is Riemann zeta function at x=3)
 
-def integrand_stupakov(g: float, w: float, g_index: int, g_power: int):
-    """
-    Computes the integrand for the Stupakov integral for a rectangular linear taper at a given vertical half-gap g
-    Note that (g')^2 has been taken out of the integral. See Phys. Rev. STAB 10, 094401 (2007)
-    :param g: the small halfagp of the taper
-    :param w: the width of the taper
-    :param g_index: the indice of the G function to use (0 is for G0=F in Stupakov's paper)
-    :param g_power: is the power to which 1/g is taken
-    """
+        elif g_index == 1 and g_power == 3:
+            i = (1. / (half_gap_small ** 2) - 1. / (half_gap_big ** 2)) / (
+                        2. * np.pi)  # approx. integral
 
-    return g_stupakov(g / w, g_index) / (g ** g_power)
+        elif g_index in [2,3] and g_power == 2:
+            i = (1. / half_gap_small - 1. / half_gap_big) / (np.pi ** 2)
+
+        else:
+            raise ValueError("Wrong values of g_index and g_power in _integral_stupakov")
+
+    else:
+        # computes numerically the integral instead of using its approximation
+        i, err = integrate.quadrature(_integrand_stupakov, half_gap_small, half_gap_big,
+                                      tol=1.e-3, maxiter=200, vec_func=False)
+
+    return i
 
 
 def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_big: float, taper_slope: float,
@@ -171,23 +187,26 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
     """
     Computes the shunt impedance in Ohm(/m if not longitudinal) of one single rectangular linear taper using Stupakov's
     formulae (Phys. Rev. STAB 10, 094401 - 2007), multiplied by Z0*c/(4*pi) to convert to SI units.
-    Taper is in the vertical plane.
-    We use here half apertures (half-gap and half-width) whereas Stupakov's paper is expressed with full apertures. This
-    does not make any difference except for an additional factor 4 here for longitudinal impedance.
+    Taper is in the vertical plane (i.e. the change of half-gap is in vertical, but the width is along the horizontal plane
+    - this is typical of a taper going towards a vertical collimator with horizontal jaws).
+    We use here half values for geometrical parameters (half-gap and half-width) whereas Stupakov's paper is expressed
+    with full values. This does not make any difference except for an additional factor 4 here for longitudinal impedance.
 
     The formula is valid under the conditions of low frequency and length of taper much larger than its transverse
-    dimensions
+    dimensions.
+
+    Note: one gets zero if component_id is not in [zlong, zxdip, zydip, zxqua, zyqua].
 
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
-    :param half_width: width of the taper (constant)
+    :param half_width: half width of the taper (constant)
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
-    :param component_id: is a list with the names or a single name of the components for which ones computes the R/Q
-    (ex: zlong, zydip, zxquad, etc.)
+    :param component_id: a component name for which one computes the R/Q
+    (ex: zlong, zydip, zxqua, etc.)
     :param approximate_integrals: use approximated formulas to compute the integrals. It can be used if one assumes
-    small half_gap_big/half_width ratio
-    :return: the shunt impedance of each component in comp
+    small half_gap_big/half_width ratio (<<1)
+    :return: the shunt impedance of the component.
     """
     z_0 = mu_0 * c_light  # free space impedance
 
@@ -198,67 +217,55 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
         g_index = 0
         g_power = 0
         cst = 4. * mu_0 * cutoff_frequency / 2.  # factor 4 due to use of half-gaps here
-        i = 7. * zeta(3, 1) / (2. * np.pi ** 2) * taper_slope * (
-                half_gap_big - half_gap_small)  # approx. integral (sp.zeta(3.,1.) is Riemann zeta function at x=3)
-        # I=7.*1.202057/(2.*np.pi**2)*tantheta*(b-a);
 
     elif component_id == 'zydip':
         g_index = 1
         g_power = 3
         cst = z_0 * half_width * np.pi / 4.
-        i = taper_slope * (1. / (half_gap_small ** 2) - 1. / (half_gap_big ** 2)) / (
-                    2. * np.pi)  # approx. integral
 
     elif component_id == 'zxqua':
         g_index = 2
         g_power = 2
         cst = -z_0 * np.pi / 4.
-        i = taper_slope * (1. / half_gap_small - 1. / half_gap_big) / (np.pi ** 2)  # approx. integral
 
     elif component_id == 'zxdip':
         g_index = 3
         g_power = 2
         cst = z_0 * np.pi / 4.
-        i = taper_slope * (1. / half_gap_small - 1. / half_gap_big) / (np.pi ** 2)  # approx. integral
 
     elif component_id == 'zyqua':
         g_index = 2
         g_power = 2
         cst = z_0 * np.pi / 4.
-        i = taper_slope * (1. / half_gap_small - 1. / half_gap_big) / (np.pi ** 2)  # approx. integral
     else:
-        # mock backup values
+        # mock-up values
         g_power = 0
         g_index = 0
         cst = 0
-        i = 0
 
-    if not approximate_integrals:
-        # computes numerically the integral instead of using its approximation
-        i, err = integrate.quadrature(integrand_stupakov, half_gap_small, half_gap_big,
-                                      args=(half_width, g_index, g_power), tol=1.e-3, maxiter=200)
-        i *= taper_slope  # put back g' factor that was dropped
+    # computes the integral
+    i = _integral_stupakov(half_gap_small, half_gap_big, half_width, g_index, g_power,
+                           approximate_integrals = approximate_integrals)
+    i *= taper_slope  # put back g' factor that was dropped
 
     return cst * i
 
 
 def create_flat_taper_stupakov_formula_component(half_gap_small: float, half_gap_big: float, taper_slope: float,
                                                  half_width: float, plane: str, exponents: Tuple[int, int, int, int],
-                                                 cutoff_frequency: float = None, component_id: str = None) -> Component:
+                                                 cutoff_frequency: float = None) -> Component:
     """
     Creates a component using the flat taper Stupakov formula
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
-    :param half_width: width of the taper (constant)
+    :param half_width: half width of the taper (constant)
     :param plane: the plane the component corresponds to
     :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
-    :param component_id: the components for which the R/Q is computed (ex: zlong, zydip, zxqua, etc.)
     :return: A component object of a flat taper
     """
-    if component_id not in component_names.keys():
-        raise ValueError(f"component_id must be one of the following: {component_names.keys()}")
+    component_id = get_component_name(True, plane, exponents)
 
     r_shunt = shunt_impedance_flat_taper_stupakov_formula(half_gap_small=half_gap_small, half_gap_big=half_gap_big,
                                                           taper_slope=taper_slope, half_width=half_width,
@@ -269,7 +276,8 @@ def create_flat_taper_stupakov_formula_component(half_gap_small: float, half_gap
 
 def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_big: float, taper_slope: float,
                                                half_width: float, beta_x: float, beta_y: float,
-                                               cutoff_frequency: float = None, component_ids: str = None,
+                                               cutoff_frequency: float = None,
+                                               component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
                                                name: str = "Flat taper", tag: str = "",
                                                description: str = "") -> Element:
     """
@@ -277,7 +285,7 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
-    :param half_width: width of the taper (constant)
+    :param half_width: half width of the taper (constant)
     :param beta_x: The size of the beta function in the x-plane at the position of the taper
     :param beta_y: The size of the beta function in the y-plane at the position of the taper
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
@@ -285,23 +293,20 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
     :param name: A user-specified name of the Element
     :param tag: A string corresponding to a specific Element
     :param description: A description for the Element
-    :return: A component object of a flat taper
+    :return: An Element object of a flat taper
     """
-    length = (half_gap_big - half_gap_small) * taper_slope
-
-    if component_ids is None:
-        component_ids = ['zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua']
+    length = (half_gap_big - half_gap_small) / taper_slope
 
     components = []
     for component_id in component_ids:
-        plane, exponents, _ = component_names[component_id]
+        _, plane, exponents = component_names[component_id]
         components.append(create_flat_taper_stupakov_formula_component(half_gap_small=half_gap_small,
                                                                        half_gap_big=half_gap_big,
                                                                        taper_slope=taper_slope,
                                                                        half_width=half_width,
                                                                        plane=plane, exponents=exponents,
                                                                        cutoff_frequency=cutoff_frequency,
-                                                                       component_id=component_id))
+                                                                       ))
 
     return Element(length=length, beta_x=beta_x, beta_y=beta_y, components=components, name=name, tag=tag,
                    description=description)
