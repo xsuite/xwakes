@@ -86,7 +86,7 @@ def _integral_stupakov(half_gap_small: float, half_gap_big: float,
                        half_width: float, g_index: int, g_power: int,
                        approximate_integrals: bool = False):
     """
-    Computes the Stupakov's integral for a rectangular linear taper at a given vertical half-gap g
+    Computes the Stupakov's integral for a rectangular linear taper.
     Note that (g')^2 has been taken out of the integral. See Phys. Rev. STAB 10, 094401 (2007)
     :param half_gap_small: the small half-gap of the taper
     :param half_gap_big: the large half-gap of the taper
@@ -195,16 +195,18 @@ def shunt_impedance_flat_taper_stupakov_formula(half_gap_small: float, half_gap_
     The formula is valid under the conditions of low frequency and length of taper much larger than its transverse
     dimensions.
 
+    Note: one gets zero if component_id is not in [zlong, zxdip, zydip, zxqua, zyqua].
+
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
     :param half_width: half width of the taper (constant)
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
     :param component_id: a component name for which one computes the R/Q
-    (ex: zlong, zydip, zxquad, etc.)
+    (ex: zlong, zydip, zxqua, etc.)
     :param approximate_integrals: use approximated formulas to compute the integrals. It can be used if one assumes
     small half_gap_big/half_width ratio (<<1)
-    :return: the shunt impedance of the component
+    :return: the shunt impedance of the component.
     """
     z_0 = mu_0 * c_light  # free space impedance
 
