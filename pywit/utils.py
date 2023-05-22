@@ -15,5 +15,3 @@ def round_sigfigs(arr: Union[float,Sequence[float]], sigfigs: int):
         return np.round(arr, sigfigs - 1 - int(np.floor(np.log10(np.abs(arr)))))
     else:
         return np.array([round_sigfigs(value, sigfigs) for value in arr])
-
-
