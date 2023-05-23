@@ -4,6 +4,8 @@ from scipy import constants as cst
 from pywit.sacherer_formula import sacherer_formula
 from pywit.utilities import create_resonator_component
 
+# values obtained with the old impedance model
+# (https://gitlab.cern.ch/IRIS/IW2D/-/blob/master/PYTHON_codes_and_scripts/Impedance_lib_Python/Impedance.py)
 tune_shift_nx_ref = np.array([[-1.89467139e-03 + 2.00708263e-06j, -3.59042292e-05 + 4.25385266e-05j,
                                1.83556168e-03 + 2.00708264e-06j],
                               [-1.89467139e-03 + 2.00708463e-06j, -3.59042230e-05 + 4.25385269e-05j,
