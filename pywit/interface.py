@@ -652,6 +652,11 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> Union[FlatIW2DInput, Roun
 
 
 def create_iw2d_input_from_yaml(name: str) -> Union[FlatIW2DInput, RoundIW2DInput]:
+    """
+    Create a IW2DInput object from one of the inputs specified in the `pywit/config/iw2d_inputs.yaml` database
+    :param name: the name of the input which is read from the yaml database
+    :return: the newly initialized IW2DInput object
+    """
     path = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_inputs.yaml')
     with open(path) as file:
         inputs = load(file, Loader=BaseLoader)
@@ -668,7 +673,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     :param names: the list of names of the Element's
     :param beta_xs: the list of beta function values in the x-plane at the position of each Element
     :param beta_ys: the list of beta function values in the x-plane at the position of each Element
-    :return: The list of newly computed Element's
+    :return: the list of newly computed Element's
     """
     assert len(iw2d_inputs) == len(names) == len(beta_xs) == len(beta_ys), "All input lists need to have the same" \
                                                                            "number of elements"
