@@ -82,7 +82,7 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
      'not found' if the threshold cannot be found (failure of Newton's algorithm).
     """
     # evaluate azimuthal mode number
-    l_mode = np.int(np.ceil(np.real(tune_shift) / q_s))
+    l_mode = int(np.ceil(np.real(tune_shift) / q_s))
     if (l_mode - np.real(tune_shift) / q_s) > 1 - fraction_of_qs_allowed_on_positive_side:
         l_mode -= 1
     # take away the shift from azimuthal mode number
