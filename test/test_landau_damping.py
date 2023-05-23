@@ -22,13 +22,16 @@ def b_cross_ref():
 def i_ref():
     return 550
 
+
 @pytest.fixture
 def q_s():
     return 2e-3
 
+
 @pytest.fixture
 def polarity():
     return 1
+
 
 def test_dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref):
 
