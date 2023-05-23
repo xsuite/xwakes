@@ -641,6 +641,14 @@ def create_iw2d_input_from_yaml(name: str) -> Union[FlatIW2DInput, RoundIW2DInpu
 
 def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: List[str],
                                         beta_xs: List[float], beta_ys: List[float]) -> List[Element]:
+    """
+    Create and return a list of Element's using a list of IW2D objects.
+    :param iw2d_inputs: the list of IW2DInput objects
+    :param names: the list of names of the Element's
+    :param beta_xs: the list of beta function values in the x-plane at the position of each Element
+    :param beta_ys: the list of beta function values in the x-plane at the position of each Element
+    :return: The list of newly computed Element's
+    """
     assert len(iw2d_inputs) == len(names) == len(beta_xs) == len(beta_ys), "All input lists need to have the same" \
                                                                            "number of elements"
 
