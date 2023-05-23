@@ -36,6 +36,24 @@ component_names = {'wlong': (False, 'z', (0, 0, 0, 0)),
 IW2D_SETTINGS_PATH = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_settings.yaml')
 
 
+def get_component_name(is_impedance, plane, exponents):
+    """
+    Get the component name from is_impedance, plane and exponents (doing the
+    reverse operation of the dictionary in component_names)
+    :param is_impedance: True for impedance component, False for wake
+    :param plane: plane ('x', 'y' or 'z')
+    :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
+    :return: str with component name (e.g. 'zydip' or 'wxqua')
+    """
+    comp_list = [comp_name for comp_name, v in component_names.items()
+                 if v == (is_impedance, plane, exponents)]
+    if len(comp_list) != 1:
+        raise ValueError(f"({is_impedance},{plane},{exponents}) cannot be found in"
+                         " the values of component_names dictionary")
+
+    return comp_list[0]
+
+
 def get_iw2d_config_value(key: str) -> Any:
     with open(IW2D_SETTINGS_PATH, 'r') as file:
         config = load(file, Loader=BaseLoader)
@@ -358,8 +376,11 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     Checks if a simulation with inputs iw2d_input is already present in the hash database.
     :param iw2d_input: an iw2d input object
     :param name: the name of the object
-    :return: two lists: one indicatind if the iw2d_inputs have been already and the other containing the hash keys
-
+    :return already_computed: boolean indicating if the iw2d_inputs have been already
+    computed
+    :return input_hash: string with the hash key corresponding to the inputs
+    :return working_directory: the path to the directory where the files were put, which is built as
+    `<first_two_characters_of_the_hash>/<next_two_characters>/<rest of the hash>
     """
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
