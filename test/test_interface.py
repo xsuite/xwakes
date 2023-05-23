@@ -123,13 +123,13 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
     assert already_computed
 
     # now we remove the folder and check that check_already_computed gives false
-    os.system(f'rm -r {working_directory}')
+    os.rmdir(working_directory)
     already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
 
     assert not already_computed
 
     # check_already_computed creates working_directory again so we clean it up
-    os.system(f'rm -r {working_directory}')
+    os.rmdir(working_directory)
 
 
 def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
