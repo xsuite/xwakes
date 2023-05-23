@@ -17,26 +17,26 @@ import numpy as np
 
 
 @mark.parametrize('is_impedance, plane, exponents, expected_comp_name',
-                  [ [True,  'z', (0, 0, 0, 0), 'zlong'],
-                    [False, 'y', (0, 1, 0, 0), 'wydip'],
-                    [True,  'x', (0, 0, 1, 0), 'zxqua'],
-                    [False, 'y', (0, 0, 0, 0), 'wycst'],
-                  ])
+                  [[True, 'z', (0, 0, 0, 0), 'zlong'],
+                   [False, 'y', (0, 1, 0, 0), 'wydip'],
+                   [True, 'x', (0, 0, 1, 0), 'zxqua'],
+                   [False, 'y', (0, 0, 0, 0), 'wycst'],
+                   ])
 def test_get_component_name(is_impedance, plane, exponents, expected_comp_name):
     assert get_component_name(is_impedance, plane, exponents) == expected_comp_name
 
 
 @mark.parametrize('is_impedance, plane, exponents',
-                  [ [None,  'l', (0, 0, 0, 0)],
-                    [True,  'l', (0, 1, 0, 0)],
-                    [False, 'x', ('a', 0, 1, 0)],
-                  ])
+                  [[None, 'l', (0, 0, 0, 0)],
+                   [True, 'l', (0, 1, 0, 0)],
+                   [False, 'x', ('a', 0, 1, 0)],
+                   ])
 def test_get_component_name_raise(is_impedance, plane, exponents):
     with raises(ValueError) as error_message:
         get_component_name(is_impedance, plane, exponents)
 
     assert error_message.value.args[0] == f"({is_impedance},{plane},{exponents}) cannot be found in" \
-                                           " the values of component_names dictionary"
+                                          " the values of component_names dictionary"
 
 
 def test_duplicate_component_iw2d_import():
@@ -44,11 +44,11 @@ def test_duplicate_component_iw2d_import():
         import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
-    assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and " \
-                                           "'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
+    assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and "
+                                           "'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' both correspond to the "
                                            "z-plane with exponents (0, 0, 0, 0).",
-                                           "The wake files 'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' and " \
-                                           "'WlongWLHC_2layersup_0layersdown6.50mm.dat' both correspond to the " \
+                                           "The wake files 'Wlong2WLHC_2layersup_0layersdown6.50mm.dat' and "
+                                           "'WlongWLHC_2layersup_0layersdown6.50mm.dat' both correspond to the "
                                            "z-plane with exponents (0, 0, 0, 0).",
                                            ]
 
@@ -114,7 +114,7 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
         os.mkdir(working_directory)
 
     dummy_string = 'dummy_string'
-    for comp in ['Zlong', 'Zxdip','Zydip','Zxquad','Zyquad']:
+    for comp in ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad']:
         with open(f'{working_directory}/{comp}_test.txt', 'w') as f:
             f.write(dummy_string)
 
