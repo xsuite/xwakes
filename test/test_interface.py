@@ -123,12 +123,21 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
     assert already_computed
 
     # now we remove the folder and check that check_already_computed gives false
+    for root, _, files in os.walk(working_directory, topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+
     os.rmdir(working_directory)
+
     already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
 
     assert not already_computed
 
     # check_already_computed creates working_directory again so we clean it up
+    for root, _, files in os.walk(working_directory, topdown=False):
+        for name in files:
+            os.remove(os.path.join(root, name))
+
     os.rmdir(working_directory)
 
 
@@ -139,11 +148,13 @@ def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
     directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
     working_directory = directory_level_2.joinpath(input_hash[4:])
 
-    if not check_valid_working_directory(working_directory):
-        raise ValueError("working directory is not in the right format. The right format is "
-                         "`<project_directory>/hash[0:2]/hash[2:4]/hash[4:]`")
-
     add_iw2d_input_to_database(round_tung_layer_iw2d_input, input_hash, working_directory)
 
     assert os.path.exists(f"{working_directory}/input.txt")
 
+
+def test_check_valid_working_directory():
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+    working_directory = projects_path.joinpath(Path("a/wrong/working_directory"))
+
+    assert not check_valid_working_directory(working_directory=working_directory)
