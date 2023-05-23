@@ -23,13 +23,21 @@ def i_ref():
     return 550
 
 
-@pytest.fixture
-def distribution():
-    return 'gaussian'
+def test_dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref):
 
+    distribution = 'gaussian'
 
-def test_dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref, distribution):
     ref_value = 7153.859519171599-2722.966574677259j
+
+    assert np.isclose(np.real(ref_value), np.real(dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref,
+                                                                         distribution)))
+    assert np.isclose(np.imag(ref_value), np.imag(dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref,
+                                                                         distribution)))
+
+    distribution = 'parabolic'
+
+    ref_value = 6649.001778623455-3168.4257879737443j
+
     assert np.isclose(np.real(ref_value), np.real(dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref,
                                                                          distribution)))
     assert np.isclose(np.imag(ref_value), np.imag(dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref,
