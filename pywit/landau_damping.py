@@ -9,9 +9,8 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
     """
     Compute the dispersion integral in 2D from q complex tuneshift, given the detuning coefficients (multiplied by
     sigma). This is the integral vs Jx and Jy of Jx*dphi/dJx/(Q-bx*Jx-bxy*Jy-i0) (with phi the distribution function)
-    The transverse distribution can be 'gaussian' or 'parabolic'
-    NOTE: for stability diagrams, use -1/dispersion_integral, and usually the convention is to plot
-    -Im[Q] vs Re[Q].
+    The transverse distribution can be 'gaussian' or 'parabolic'.
+    Note: for stability diagrams, use -1/dispersion_integral, and usually the convention is to plot -Im[Q] vs Re[Q]
     :param tune_shift: the complex tune shift
     :param b_direct: the direct detuning coefficient multiplied by sigma (i.e. $\alpha_x \sigma_x$ if working in
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
