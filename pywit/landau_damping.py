@@ -7,7 +7,7 @@ from typing import Sequence
 
 def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: float, distribution: str = 'gaussian'):
     """
-    Compute the dispersion integral in 2D from q complex tuneshift, given the detuning coefficients (multiplied by
+    Compute the dispersion integral in 2D from q complex tune shift, given the detuning coefficients (multiplied by
     sigma). This is the integral vs Jx and Jy of Jx*dphi/dJx/(Q-bx*Jx-bxy*Jy-i0) (with phi the distribution function)
     The transverse distribution can be 'gaussian' or 'parabolic'.
     Note: for stability diagrams, use -1/dispersion_integral, and usually the convention is to plot -Im[Q] vs Re[Q]
@@ -58,11 +58,11 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
     return -i
 
 
-def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, b_cross_ref: float, i_ref: float,
+def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, b_cross_ref: float, i_focusing_ref: float,
                             polarity: int = 1, fraction_of_qs_allowed_on_positive_side: float = 0.05,
                             use_newton: float = True, distribution: str = 'gaussian'):
     """
-    Find the octupole threshod from a complex tuneshift, given the detuning coefficients (multiplied by sigma).
+    Find the octupole threshold from a complex tune shift, given the detuning coefficients (multiplied by sigma).
     Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
     It assumes that the focusing and defocusing octupole currents have the same absolute value.
     :param tune_shift: the tune shift for which the octupole threshold is computed
@@ -71,13 +71,13 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
-    :param i_ref: the octupole current for which the detuning coefficients have been computed
+    :param i_focusing_ref: the focusing octupole current for which the detuning coefficients have been computed
     :param polarity: 1 if using positive octupole polarity, -1 if using negative octupole polarity,
     :param use_newton: if True, solve for the octupole current using Newton's algorithm (default), if False, do a simple
     estimate
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
-    stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
+    stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
     :return: the octupole threshold if the corresponding mode is unstable, 0 if the corresponding mode is stable or
      'not found' if the threshold cannot be found (failure of Newton's algorithm).
     """
@@ -92,8 +92,8 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
 
         # function to solve (distance in imag. part w.r.t stab. diagram, as a function of oct. current)
         def f(i):
-            b_direct_i = b_direct_ref * i / i_ref
-            b_cross_i = b_cross_ref * i / i_ref
+            b_direct_i = polarity * b_direct_ref * i / i_focusing_ref
+            b_cross_i = polarity * b_cross_ref * i / i_focusing_ref
             stab = [-1. / dispersion_integral_2d(t_s, b_direct_i, b_cross_i, distribution=distribution) for e in (-1, 1)
                     for t_s in b_direct_i * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
             # note: one has to reverse the table to get the interpolation right,
@@ -102,8 +102,8 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
             return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::polarity], np.imag(stab)[::polarity])
 
         # first estimate (using a interpolation of complex argument and a linear scaling)
-        bx1 = b_direct_ref * 1 / i_ref
-        bxy1 = b_cross_ref * 1 / i_ref
+        bx1 = polarity * b_direct_ref * 1 / i_focusing_ref
+        bxy1 = polarity * b_cross_ref * 1 / i_focusing_ref
         stab1 = [-1. / dispersion_integral_2d(t_s, bx1, bxy1, distribution=distribution) for e in (-1, 1)
                  for t_s in bx1 * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
         # note: one has to reverse the table to get the interpolation right,
@@ -129,7 +129,7 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
 
 
 def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float,
-                                             b_cross_ref: float, i_ref: float, polarity: int = 1,
+                                             b_cross_ref: float, i_focusing_ref: float, polarity: int = 1,
                                              use_newton: bool = True, distribution: str = 'gaussian',
                                              fraction_of_qs_allowed_on_positive_side: float = 0.05):
     """
@@ -141,7 +141,7 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
-    :param i_ref: the octupole current for which the detuning coefficients have been computed
+    :param i_focusing_ref: the focusing octupole current for which the detuning coefficients have been computed
     :param polarity: 1 if using positive octupole polarity, -1 if using negative octupole polarity,
     :param use_newton: if True, solve for the octupole current using Newton's algorithm (default), if False, do a simple
     estimate
@@ -150,7 +150,8 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
     """
     # find max octupole current required from a list of modes, given their tuneshifts
-    i_oct_all = [find_octupole_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref, b_cross_ref=b_cross_ref, i_ref=i_ref,
+    i_oct_all = [find_octupole_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
+                                         b_cross_ref=b_cross_ref, i_focusing_ref=i_focusing_ref,
                                          polarity=polarity, use_newton=use_newton, distribution=distribution,
                                          fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side
                                          )
