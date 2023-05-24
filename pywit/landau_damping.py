@@ -128,10 +128,10 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
     return i_oct
 
 
-def find_max_i_oct_from_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float, b_cross_ref: float,
-                                    i_ref: float, polarity: int = 1, use_newton: bool = True,
-                                    distribution: str = 'gaussian',
-                                    fraction_of_qs_allowed_on_positive_side: float = 0.05):
+def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float,
+                                             b_cross_ref: float, i_ref: float, polarity: int = 1,
+                                             use_newton: bool = True, distribution: str = 'gaussian',
+                                             fraction_of_qs_allowed_on_positive_side: float = 0.05):
     """
     Compute the maximum octupole threshold for a sequence of complex tune shifts. It assumes that the focusing and
     defocusing octupole currents have the same absolute value.
