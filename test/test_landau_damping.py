@@ -1,7 +1,8 @@
 import pytest
 import numpy as np
 
-from pywit.landau_damping import dispersion_integral_2d, find_octupole_threshold, find_octupole_threshold_many_tune_shifts
+from pywit.landau_damping import dispersion_integral_2d, find_octupole_threshold
+from pywit.landau_damping import find_octupole_threshold_many_tune_shifts
 
 @pytest.fixture
 def tune_shift():
@@ -65,7 +66,12 @@ def test_find_octupole_threshold(tune_shift, b_direct_ref, b_cross_ref, i_ref, q
     ref_value = 138.07353400731185
 
     assert np.isclose(ref_value, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
-                                                         b_cross_ref=b_cross_ref, i_ref=i_ref, polarity=1))
+                                                         b_cross_ref=b_cross_ref, i_focusing_ref=i_ref, polarity=1))
+    # reference value obtained with the old impedance wake model
+    ref_value = 88.67484711914847
+
+    assert np.isclose(ref_value, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
+                                                         b_cross_ref=b_cross_ref, i_focusing_ref=i_ref, polarity=-1))
 
 
 def test_find_octupole_threshold_many_tune_shifts(tune_shift, b_direct_ref, b_cross_ref, i_ref, q_s):
@@ -76,5 +82,12 @@ def test_find_octupole_threshold_many_tune_shifts(tune_shift, b_direct_ref, b_cr
 
     assert np.isclose(ref_value, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
                                                                           b_direct_ref=b_direct_ref,
-                                                                          b_cross_ref=b_cross_ref, i_ref=i_ref,
+                                                                          b_cross_ref=b_cross_ref, i_focusing_ref=i_ref,
                                                                           polarity=1))
+    # reference value obtained with the old impedance wake model
+    ref_value = 177.34969424665547
+
+    assert np.isclose(ref_value, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
+                                                                          b_direct_ref=b_direct_ref,
+                                                                          b_cross_ref=b_cross_ref, i_focusing_ref=i_ref,
+                                                                          polarity=-1))
