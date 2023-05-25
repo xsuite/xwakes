@@ -2,5 +2,6 @@ run_tests:
   image: python:3.9-slim-buster
   before_script:
     - pip install .
+    - pip install pytest
   script:
     - pytest
