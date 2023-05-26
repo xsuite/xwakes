@@ -91,7 +91,10 @@ def round_tung_layer_iw2d_input():
                           layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
 
 
-def _clean_directory(directory_path: Path):
+def _remove_non_empty_directory(directory_path: Path):
+    if not os.path.exists(directory_path):
+        raise ValueError(f"directory {directory_path} doesn't exist")
+
     for root, _, files in os.walk(directory_path, topdown=False):
         for name in files:
             os.remove(os.path.join(root, name))
@@ -131,16 +134,14 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
     assert already_computed
 
     # now we remove the folder and check that check_already_computed gives false
-    _clean_directory(working_directory)
-    os.rmdir(working_directory)
+    _remove_non_empty_directory(working_directory)
 
     already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
 
     assert not already_computed
 
     # check_already_computed creates working_directory again so we clean it up
-    _clean_directory(working_directory)
-    os.rmdir(working_directory)
+    _remove_non_empty_directory(working_directory)
 
 
 def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
@@ -154,8 +155,7 @@ def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
 
     assert os.path.exists(f"{working_directory}/input.txt")
 
-    _clean_directory(working_directory)
-    os.rmdir(working_directory)
+    _remove_non_empty_directory(working_directory)
 
     # delete the upper level directories if they are empty
     if not any(os.scandir(directory_level_2)):
