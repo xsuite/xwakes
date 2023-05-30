@@ -420,13 +420,16 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     else:
         components = component_names.keys()
 
-    # this list also includes the input file but it doesn't matter
-    computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
+    # The simulation seems to have been already computed, but we check if all the components of the impedance
+    # wake have been computed. If not, the computation will be relaunched
+    if already_computed:
+        # this list also includes the input file but it doesn't matter
+        computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
 
-    for component in components:
-        if component not in computed_components:
-            already_computed = False
-            break
+        for component in components:
+            if component not in computed_components:
+                already_computed = False
+                break
 
     if already_computed:
         print(f"The computation of '{name}' has already been performed with the exact given parameters. "
