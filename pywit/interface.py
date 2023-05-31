@@ -418,7 +418,14 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
             if isinstance(iw2d_input, FlatIW2DInput):
                 components.append('zycst')
     else:
-        components = component_names.keys()
+        for component in component_names.keys():
+            # if the wake is computed, all keys from component_names dict are added, except the constant impedance/wake
+            # in first instance. If the simulation is a flat chamber, we add the vertical constant impedance/wake
+            if 'cst' not in component:
+                components.append(component)
+            if isinstance(iw2d_input, FlatIW2DInput):
+                components.append('wycst')
+                components.append('zycst')
 
     # The simulation seems to have been already computed, but we check if all the components of the impedance
     # wake have been computed. If not, the computation will be relaunched
