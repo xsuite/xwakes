@@ -10,7 +10,8 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
     Compute the dispersion integral in 2D from q complex tune shift, given the detuning coefficients (multiplied by
     sigma). This is the integral vs Jx and Jy of Jx*dphi/dJx/(Q-bx*Jx-bxy*Jy-i0) (with phi the distribution function)
     The transverse distribution can be 'gaussian' or 'parabolic'.
-    Note: for stability diagrams, use -1/dispersion_integral, and usually the convention is to plot -Im[Q] vs Re[Q]
+    Note: for stability diagrams, use -1/dispersion_integral, and usually the convention is to plot -Im[Q] vs Re[Q].
+    Reference: Berg-Ruggiero: https://cds.cern.ch/record/318826?ln=it
     :param tune_shift: the complex tune shift
     :param b_direct: the direct detuning coefficient multiplied by sigma (i.e. $\alpha_x \sigma_x$ if working in
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
@@ -37,8 +38,7 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
         xi = q / 5.
 
         if np.abs(xi) > 100.:
-            # asymptotic form for large q (assuming c is of order 1) (obtained thanks to Mathematica - actually the same
-            # as for Gaussian)
+            # asymptotic form for large q (assuming c is of order 1)
             i1 = 1. / q - (c + 2) / q ** 2
         else:
             i1 = (((c + xi) ** 3 * np.log((1 + xi) / (c + xi)) +
@@ -53,14 +53,14 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
 
     i = -i1 / b_direct
 
-    # additional minus sign because for DELPHI we want the integral with dphi/dJx (derivative of distribution) on the
+    # additional minus sign because we want the integral with dphi/dJx (derivative of distribution) on the
     # numerator, so -[the one of Berg-Ruggiero]
     return -i
 
 
-def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, b_cross_ref: float, i_focusing_ref: float,
-                            polarity: int = 1, fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                            use_newton: float = True, distribution: str = 'gaussian'):
+def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, b_cross_ref: float,
+                            fraction_of_qs_allowed_on_positive_side: float = 0.05,
+                            distribution: str = 'gaussian'):
     """
     Find the octupole threshold from a complex tune shift, given the detuning coefficients (multiplied by sigma).
     Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
@@ -71,10 +71,6 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
-    :param i_focusing_ref: the focusing octupole current for which the detuning coefficients have been computed
-    :param polarity: 1 if using positive octupole polarity, -1 if using negative octupole polarity,
-    :param use_newton: if True, solve for the octupole current using Newton's algorithm (default), if False, do a simple
-    estimate
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
@@ -88,49 +84,37 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
     # take away the shift from azimuthal mode number
     tune_shift -= q_s * l_mode
 
+    b_ratio = b_cross_ref/b_direct_ref
     if tune_shift.imag < 0.:
 
         # function to solve (distance in imag. part w.r.t stab. diagram, as a function of oct. current)
-        def f(i):
-            b_direct_i = polarity * b_direct_ref * i / i_focusing_ref
-            b_cross_i = polarity * b_cross_ref * i / i_focusing_ref
+        def f(b_direct):
+            b_direct_i = b_direct
+            b_cross_i = b_ratio * b_direct
             stab = [-1. / dispersion_integral_2d(t_s, b_direct_i, b_cross_i, distribution=distribution) for e in (-1, 1)
                     for t_s in b_direct_i * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
-            # note: one has to reverse the table to get the interpolation right,
-            # for negative polarity
-            # (np.interp always wants monotonically increasing abscissae)
-            return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::polarity], np.imag(stab)[::polarity])
+            # note: one has to reverse the table to get the interpolation right, for negative polarity (np.interp always
+            # wants monotonically increasing abscissae)
+            return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::int(np.sign(b_direct_ref))],
+                                               np.imag(stab)[::int(np.sign(b_direct_ref))])
 
-        # first estimate (using a interpolation of complex argument and a linear scaling)
-        bx1 = polarity * b_direct_ref * 1 / i_focusing_ref
-        bxy1 = polarity * b_cross_ref * 1 / i_focusing_ref
-        stab1 = [-1. / dispersion_integral_2d(t_s, bx1, bxy1, distribution=distribution) for e in (-1, 1)
-                 for t_s in bx1 * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
-        # note: one has to reverse the table to get the interpolation right,
-        # for negative polarity (see above)
-        i_oct_0 = np.abs(tune_shift) / np.interp(np.angle(tune_shift), np.angle(stab1)[::polarity],
-                                                 np.abs(stab1)[::polarity])
-
-        if use_newton:
-            # Newton root finding
-            try:
-                i_oct = newton(f, i_oct_0, tol=1e-10)
-            except RuntimeError:
-                i_oct = 'not found'
-            else:
-                if np.abs(f(i_oct)) > 1e-10:
-                    i_oct = 'not found'
+        # Newton root finding
+        try:
+            b_direct_new = newton(f, b_direct_ref, tol=1e-10)
+        except RuntimeError:
+            b_direct_new = np.nan
         else:
-            i_oct = i_oct_0
+            if np.abs(f(b_direct_new)) > 1e-10:
+                b_direct_new = np.nan
     else:
-        i_oct = 0.
+        b_direct_new = 0.
 
-    return i_oct
+    return b_direct_new, b_ratio*b_direct_new
 
 
 def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float,
-                                             b_cross_ref: float, i_focusing_ref: float, polarity: int = 1,
-                                             use_newton: bool = True, distribution: str = 'gaussian',
+                                             b_cross_ref: float, use_newton: bool = True,
+                                             distribution: str = 'gaussian',
                                              fraction_of_qs_allowed_on_positive_side: float = 0.05):
     """
     Compute the maximum octupole threshold for a sequence of complex tune shifts. It assumes that the focusing and
@@ -141,8 +125,6 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
-    :param i_focusing_ref: the focusing octupole current for which the detuning coefficients have been computed
-    :param polarity: 1 if using positive octupole polarity, -1 if using negative octupole polarity,
     :param use_newton: if True, solve for the octupole current using Newton's algorithm (default), if False, do a simple
     estimate
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
@@ -150,13 +132,13 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
     """
     # find max octupole current required from a list of modes, given their tuneshifts
-    i_oct_all = [find_octupole_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
-                                         b_cross_ref=b_cross_ref, i_focusing_ref=i_focusing_ref,
-                                         polarity=polarity, use_newton=use_newton, distribution=distribution,
-                                         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side
-                                         )
-                 for tune_shift in tune_shifts if not np.isnan(tune_shift)]
+    b_coefficients = [find_octupole_threshold(
+        tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
+        b_cross_ref=b_cross_ref, use_newton=use_newton, distribution=distribution,
+        fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side
+                                             )
+                      for tune_shift in tune_shifts if not np.isnan(tune_shift)]
 
-    i_oct_max = np.max([i_oct for i_oct in i_oct_all if i_oct != 'not found'])
+    ind_b_direct_max = np.argmax([abs(b_direct) for b_direct, _ in b_coefficients if b_direct != np.nan])
 
-    return i_oct_max
+    return b_coefficients[ind_b_direct_max]
