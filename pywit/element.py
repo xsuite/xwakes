@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pywit.component import Component, Union
 
-from typing import List
+from typing import List, Dict, Optional
 from collections import defaultdict
 
 from scipy.special import comb
@@ -155,6 +155,30 @@ class Element:
         y_ratio = self.beta_y / new_beta_y
         new_components = [((x_ratio ** c.power_x) * (y_ratio ** c.power_y)) * c for c in self.components]
         return Element(self.length, new_beta_x, new_beta_y, new_components, self.name, self.tag, self.description)
+    
+    
+    def calculate_all_element_wakes(self, discretization_kwarg_list: Optional[List[Dict[str, Union[int, float]]]]=None) -> None:
+        """Generate wakes for all constituent components.
+
+        :param discretization_kwarg_list: A list of the same length as `self.components` of dictionaries containing the keyword arguments for
+        the `Component.generate_wake_from_impedance` method. Each dictionary takes a string (the argument name) as a key and the value will be passed
+        as a parameter to the `generate_wake_from_impedance` method. See example below. None (default) if no keywords should be given
+        :type discretization_kwarg_list: Optional[List[Dict[str, Union[int, float]]]], optional
+        
+        Example: Make the 3rd (0-indexed) component calculate the wake with 10k points:
+            my_element = ... # Generate an Element
+            discretization_kwargs_list = [{} for component in my_element.components]
+            discretization_kwargs_list[3]["time_points"] = 10000
+        """
+        
+        if discretization_kwarg_list is None:
+            discretization_kwarg_list = [{} for component in self.components]
+        
+        assert len(discretization_kwarg_list) == len(self.components), "discretization_kwarg_list must be None or a list of the same length as self.components"
+        
+        for component, discretization_kwargs in zip(self.components, discretization_kwarg_list):
+            component.generate_wake_from_impedance(**discretization_kwargs)
+        
 
     def __add__(self, other: Element) -> Element:
         """
