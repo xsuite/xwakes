@@ -87,7 +87,9 @@ class Component:
         self.f_rois = f_rois if f_rois else []
         self.t_rois = t_rois if t_rois else []
 
-    def generate_wake_from_impedance(self) -> None:
+    def generate_wake_from_impedance(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
+                                    time_start: float = MIN_TIME, time_stop: float = MAX_TIME, freq_precision_factor: float = FREQ_P_FACTOR,
+                                    time_precision_factor: float = TIME_P_FACTOR) -> None:
         """
         Uses the impedance function of the Component object to generate its wake function, using
         a Fourier transform.
@@ -101,8 +103,8 @@ class Component:
     
         # TODO: Don't use magic number 1000 and 5000 here, and maybe not defaults for the rest.
         # Find a good place to have the user input them
-        times = self._time_array(rough_points=1000)
-        frequencies = self._frequency_array(rough_points=5000)
+        times = self._time_array(time_points, time_start, time_stop, time_precision_factor)
+        frequencies = self._frequency_array(freq_points, freq_start, freq_stop, freq_precision_factor)
     
         transform_arr = fourier_integral_fixed_sampling(
             times=times,
