@@ -130,7 +130,7 @@
     "resistivity_relaxation_time": 0.01e-12,
     "re_dielectric_constant": 1,
     "magnetic_susceptibility":0,
-    "permeability_relaxation_frequency": -1,
+    "permeability_relaxation_frequency": Infinity,
     "comment": "Molybdenum material at room temperature (between 0 and 25 Celsius)",
     "reference": "Properties of commercial metals and alloys, in CRC Handbook of Chemistry and Physics 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022), confirmed by N. Biancacci, A. Kurtulus (https://cds.cern.ch/record/2811057/files/document.pdf)"
   },
