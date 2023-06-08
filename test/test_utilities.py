@@ -1,11 +1,11 @@
-from pywit.utilities import create_resonator_component, create_resonator_element
+from pywit.utilities import create_resonator_component, create_resonator_element, create_many_resonators_element
 from test_common import relative_error
 from pywit.parameters import *
 
 from typing import Dict
 from pathlib import Path
 
-from pytest import raises
+from pytest import raises, mark
 import numpy as np
 
 
@@ -34,7 +34,6 @@ def test_resonator_functions():
 
          -1.64047989255734044430680584824414225044330450145887282475 * 1e-52),
 
-
         (1, 2e6, 1e-9,
 
          400.0000639999999999983615997378560000000067108874737418239999725 +
@@ -47,7 +46,6 @@ def test_resonator_functions():
 
          -4.6784101513043641063808617269665441974594819336165860702670 * 1e9),
 
-
         (1, 5e9, 1e-10,
 
          1e6,
@@ -57,7 +55,6 @@ def test_resonator_functions():
          3.08108843686609735291707294749863455067119767175475504569435 * 1e15,
 
          -7.501299063383624459887240816560900288553129357784921049140 * 1e15),
-
 
         (1000, 1e3, 1e-8,
 
@@ -71,7 +68,6 @@ def test_resonator_functions():
 
          2.68491822708118498041028798429290190516850878075318261084845 * 1e13),
 
-
         (1000, 2e6, 1e-9,
 
          0.000400000127999966719965593595166724839180685593689238045309985 +
@@ -83,7 +79,6 @@ def test_resonator_functions():
          -1.2144732628197967915943457947230343699439427175360563689881 * 1e8,
 
          3.09263019467959901903826466633770980448650547056418446854141 * 1e13),
-
 
         (1000, 5e9, 1e-10,
 
@@ -154,3 +149,58 @@ def test_resonator():
 
     for correct, calculated in zip(correct_wakes.values(), wakes.values()):
         np.testing.assert_allclose(correct, calculated)
+
+
+FREQS_LIST = [10, 20, 40, 60, 80, 100]
+
+
+@mark.parametrize('test_freq', FREQS_LIST)
+def test_many_resonators(test_freq):
+    params_dict = {
+        'z0000':
+            [
+                {'r': 10, 'q': 10, 'f': 50},
+                {'r': 40, 'q': 100, 'f': 60}
+            ],
+        'x1000':
+            [
+                {'r': 20, 'q': 10, 'f': 40},
+                {'r': 50, 'q': 100, 'f': 70}
+            ],
+        'y0100':
+            [
+                {'r': 30, 'q': 10, 'f': 70},
+                {'r': 60, 'q': 100, 'f': 80}
+            ]
+    }
+
+    elem = create_many_resonators_element(length=1, beta_x=1, beta_y=1, params_dict=params_dict)
+
+    elem1 = create_resonator_element(length=1, beta_x=1, beta_y=1,
+                                     rs={'z0000': params_dict['z0000'][0]['r'],
+                                         'x1000': params_dict['x1000'][0]['r'],
+                                         'y0100': params_dict['y0100'][0]['r']},
+                                     qs={'z0000': params_dict['z0000'][0]['q'],
+                                         'x1000': params_dict['x1000'][0]['q'],
+                                         'y0100': params_dict['y0100'][0]['q']},
+                                     fs={'z0000': params_dict['z0000'][0]['f'],
+                                         'x1000': params_dict['x1000'][0]['f'],
+                                         'y0100': params_dict['y0100'][0]['f']}
+                                     )
+
+    elem2 = create_resonator_element(length=1, beta_x=1, beta_y=1,
+                                     rs={'z0000': params_dict['z0000'][1]['r'],
+                                         'x1000': params_dict['x1000'][1]['r'],
+                                         'y0100': params_dict['y0100'][1]['r']},
+                                     qs={'z0000': params_dict['z0000'][1]['q'],
+                                         'x1000': params_dict['x1000'][1]['q'],
+                                         'y0100': params_dict['y0100'][1]['q']},
+                                     fs={'z0000': params_dict['z0000'][1]['f'],
+                                         'x1000': params_dict['x1000'][1]['f'],
+                                         'y0100': params_dict['y0100'][1]['f']}
+                                     )
+
+    sum_elem = elem1 + elem2
+
+    for comp in ['z0000', 'x1000', 'y0100']:
+        assert elem.get_component(comp).impedance(test_freq) == sum_elem.get_component(comp).impedance(test_freq)

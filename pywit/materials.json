@@ -1,0 +1,147 @@
+{
+  "vacuum": {
+    "dc_resistivity": Infinity,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity
+  },
+  "stainless_steel_316ln": {
+    "dc_resistivity": 75e-8,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "reference": "Transverse beam coupling impedance of the CERN Proton Synchrotron, Phys. Rev. Accel. Beams 19, 041001",
+    "doi": "https://doi.org/10.1103/PhysRevAccelBeams.19.041001"
+  },
+  "stainless_steel_p506_20k": {
+    "dc_resistivity": 6e-7,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "stainless steel grade P506 at 20 K for the LHC beam screen",
+    "reference": "N. Mounet, The LHC Transverse Coupled Bunched Instability, PhD Thesis, 2012, page 185",
+    "doi": "https://doi.org/10.5075/epfl-thesis-5305"
+  },
+  "TiN": {
+    "dc_resistivity": 4e-7,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "reference": "Transverse beam stability with low-impedance collimators in the High-Luminosity Large Hadron Collider: Status and challenges, Phys. Rev. Accel. Beams 23, 034403",
+    "doi": "https://doi.org/10.1103/PhysRevAccelBeams.23.034403"
+  },
+  "Al": {
+    "dc_resistivity": 2.65e-8,
+    "resistivity_relaxation_time": 0.008e-12,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Pure aluminum material at 293 K",
+    "reference": "Resistivity: Electrical Resistivity of Pure Elemental Metals, in CRC Handbook of Chemistry and Physics, 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022) and Relaxation time: N. W. Ashcroft and N. D. Mermin, Solid State Physics"
+  },
+  "W": {
+    "dc_resistivity": 5.4e-8,
+    "resistivity_relaxation_time": 0.005e-12,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Pure tungsten material at 300 K",
+    "reference": "Resistivity: Electrical Resistivity of Pure Elemental Metals, in CRC Handbook of Chemistry and Physics, 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022)"
+  },
+  "Ti-6Al-4V": {
+    "dc_resistivity": 1.7e-6,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "reference": "https://www.matweb.com/search/datasheet_print.aspx?matguid=10d463eb3d3d4ff48fc57e0ad1037434"
+  },
+  "graphite": {
+    "dc_resistivity": 15e-6,
+    "resistivity_relaxation_time": 1.3e-12,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Graphite SGL R4550",
+    "reference": "N. Mounet, The LHC Transverse Coupled Bunched Instability, PhD Thesis, 2012, page 183",
+    "doi": "https://doi.org/10.5075/epfl-thesis-5305"
+  },
+  "Cu": {
+    "dc_resistivity": 1.7e-8,
+    "resistivity_relaxation_time": 0.027e-12,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Pure copper material at 293 K",
+    "reference": "Resistivity: Electrical Resistivity of Pure Elemental Metals, in CRC Handbook of Chemistry and Physics, 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022)"
+  },
+  "hBN": {
+    "dc_resistivity": 4e12,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 4,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Hexagonal Boron Nitride Syntec BN5000",
+    "reference": "N. Mounet, The LHC Transverse Coupled Bunched Instability, PhD Thesis, 2012, page 183",
+    "doi": "https://doi.org/10.5075/epfl-thesis-5305"
+  },
+  "inconel_x750": {
+    "dc_resistivity": 120e-8,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "reference": "Transverse beam coupling impedance of the CERN Proton Synchrotron, Phys. Rev. Accel. Beams 19, 041001",
+    "doi": "https://doi.org/10.1103/PhysRevAccelBeams.19.041001"
+  },
+  "neg": {
+    "dc_resistivity": 1e-6,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "reference": "E. Koukovini-Platia, High Frequency, Electromagnetic Characterization of NEG properties for the CLIC Damping Rings, IPAC 2014, accelconf.web.cern.ch/accelconf/IPAC2014/papers/wepme050.pdf",
+    "doi": "https://doi.org/10.18429/JACoW-IPAC2014-WEPME050"
+  },
+  "stainless_steel_304l": {
+    "dc_resistivity": 7.2e-7,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Stainless steel material (304L) at room temperature (between 0 and 25 Celsius)",
+    "reference": "Properties of commercial metals and alloys, in CRC Handbook of Chemistry and Physics 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022)"
+  },
+  "Ti": {
+    "dc_resistivity": 4.3e-7,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Titanium material at room temperature (between 0 and 25 Celsius)",
+    "reference": "Properties of commercial metals and alloys, in CRC Handbook of Chemistry and Physics 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022)"
+  },
+  "Mo": {
+    "dc_resistivity": 5.35e-8,
+    "resistivity_relaxation_time": 0.01e-12,
+    "re_dielectric_constant": 1,
+    "magnetic_susceptibility":0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Molybdenum material at room temperature (between 0 and 25 Celsius)",
+    "reference": "Properties of commercial metals and alloys, in CRC Handbook of Chemistry and Physics 103rd Edition (https://hbcp.chemnetbase.com/faces/documents/12_09/12_09_0001.xhtml, 2022), confirmed by N. Biancacci, A. Kurtulus (https://cds.cern.ch/record/2811057/files/document.pdf)"
+  },
+  "ceramic_HA997": {
+    "dc_resistivity": 1e12,
+    "resistivity_relaxation_time": 0,
+    "re_dielectric_constant": 10,
+    "magnetic_susceptibility": 0,
+    "permeability_relaxation_frequency": Infinity,
+    "comment": "Ceramic at room temperature",
+    "reference": "A. Chao, Accelerator Handbook, p. 463, Material HA-997 or NGK/NTK material datasheet, https://www.ngkntk.co.jp/english/product/list/property.html",
+    "doi": "https://doi.org/10.1142/9789814415859_0006"
+  }
+}

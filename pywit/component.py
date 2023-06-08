@@ -32,7 +32,7 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
     # eliminate duplicates
     rois_no_dup = set(rois)
 
-    fine_points_per_roi = int(round(rough_points*precision_factor))
+    fine_points_per_roi = int(round(rough_points * precision_factor))
     
     intervals = [np.linspace(max(roi_start, start), min(roi_stop, stop), fine_points_per_roi)
                  for roi_start, roi_stop in rois_no_dup
@@ -47,6 +47,7 @@ class Component:
     """
     A data structure representing the impedance- and wake functions of some Component in a specified plane.
     """
+
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None, plane: str = '',
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
@@ -309,8 +310,8 @@ class Component:
         # for all of these components are sufficiently close. If they are, True is returned, otherwise, False is
         # returned.
         xs = np.linspace(1, 10000, 50)
-        return np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and \
-               np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
+        return (np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and
+                np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL))
 
 
     def _time_array(self, rough_points: int, start: float = MIN_TIME, stop: float = MAX_TIME,
@@ -376,8 +377,10 @@ class Component:
         return times, self.wake(times)
 
     def discretize(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
-                   time_start: float = MIN_TIME, time_stop: float = MAX_TIME, freq_precision_factor: float = FREQ_P_FACTOR,
-                   time_precision_factor: float = TIME_P_FACTOR) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
+                   time_start: float = MIN_TIME, time_stop: float = MAX_TIME,
+                   freq_precision_factor: float = FREQ_P_FACTOR,
+                   time_precision_factor: float = TIME_P_FACTOR
+                   ) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         """
         Combines the two discretization-functions in order to fully discretize the wake and impedance of the object
         as specified by a number of parameters.

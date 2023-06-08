@@ -3,10 +3,12 @@ from pywit.element import Element
 from pywit.interface import Layer
 
 from yaml import load, SafeLoader
-from typing import Tuple, Dict
+from typing import Tuple, Dict, List
+from collections import defaultdict
 
-from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign, heaviside
+from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign
 import scipy.constants
+
 
 def string_to_params(name: str, include_is_impedance: bool = True):
     """
@@ -18,6 +20,7 @@ def string_to_params(name: str, include_is_impedance: bool = True):
     :param include_is_impedance: A flag indicating whether or not "name" includes a 'z' or 'w' at the beginning.
     :return: A tuple containing the necessary information to describe the type of the given component
     """
+    is_impedance = False
     if include_is_impedance:
         is_impedance = name[0] == 'z'
         name = name[1:]
@@ -36,8 +39,10 @@ def create_component_from_config(identifier: str) -> Component:
     """
     with open("config/component.yaml", "r") as f:
         cdict = load(f, Loader=SafeLoader)[identifier]
-        wake = vectorize(lambda x: eval(cdict['wake'], {'exp': exp, 'sqrt': sqrt, 'pi': pi, 'x': x})) if 'wake' in cdict else None
-        impedance = vectorize(lambda x: eval(cdict['impedance'], {'exp': exp, 'sqrt': sqrt, 'pi': pi, 'x': x})) if 'impedance' in cdict else None
+        wake = vectorize(lambda x: eval(cdict['wake'], {'exp': exp, 'sqrt': sqrt,
+                                                        'pi': pi, 'x': x})) if 'wake' in cdict else None
+        impedance = vectorize(lambda x: eval(cdict['impedance'], {'exp': exp, 'sqrt': sqrt,
+                                                                  'pi': pi, 'x': x})) if 'impedance' in cdict else None
         name = cdict['name'] if 'name' in cdict else ""
         plane = cdict['plane']
         source_exponents = (int(cdict['source_exponents'][0]), int(cdict['source_exponents'][-1]))
@@ -121,6 +126,48 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
     return Element(length, beta_x, beta_y, components, tag=tag, description=description)
 
 
+def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
+                                   params_dict: Dict[str, List[Dict[str, float]]], tag: str = 'resonator',
+                                   description: str = '') -> Element:
+    """
+    Creates an element object representing many resonators.
+    :param length: The length, in meters, of the element
+    :param beta_x: The value of the beta function in the x-direction at the position of the element
+    :param beta_y: The value of the beta function in the y-direction at the position of the element
+    :param params_dict: a dictionary associating to each component a list of dictionaries containing the
+    parameters of a resonator component. E.g.:
+    params_dict = {
+        'z0000':
+            [
+                {'r': 10, 'q': 10, 'f': 50},
+                {'r': 40, 'q': 100, 'f': 60}
+            ],
+        'x1000':
+        ...
+    }
+    :param tag: An optional short string used to place elements into categories
+    :param description: An optional short description of the element
+    :return: An element object as specified by the user-input
+    """
+    all_components = []
+    for component_id, component_params_list in params_dict.items():
+        plane, exponents = string_to_params(component_id, include_is_impedance=False)
+        for component_params in component_params_list:
+            assert ('r' in component_params.keys() and 'q' in component_params.keys() and
+                    'f' in component_params.keys()), "each of the the component dictionaries must contain r, q and f"
+
+            all_components.append(create_resonator_component(plane, exponents, component_params['r'],
+                                                             component_params['q'], component_params['f']))
+
+    comp_dict = defaultdict(lambda: 0)
+    for c in all_components:
+        comp_dict[(c.plane, c.source_exponents, c.test_exponents)] += c
+
+    components = sorted(comp_dict.values(), key=lambda x: (x.plane, x.source_exponents, x.test_exponents))
+
+    return Element(length, beta_x, beta_y, components, tag=tag, description=description)
+
+
 def create_resistive_wall_component(plane: str, exponents: Tuple[int, int, int, int],
                                     layer: Layer, radius: float) -> Component:
     """
@@ -152,54 +199,6 @@ def create_resistive_wall_component(plane: str, exponents: Tuple[int, int, int, 
     elif (plane == 'x' and exponents == (1, 0, 0, 0)) or (plane == 'y' and exponents == (0, 1, 0, 0)):
         impedance = lambda f: (c_light/(2*pi*f)) * (1+sign(f)*1j) * material_resistivity / (pi * radius**3) * (1 / delta_skin(f))
         wake = lambda t: - (c_light) / (2*pi*radius**3) * (free_space_impedance * material_resistivity/pi)**(1/2) * 1/(t**(3/2))
-    else:
-        print("Warning: resistive wall impedance not implemented for component {}{}. Set to zero".format(plane, exponents))
-        impedance = lambda f: 0
-        wake = lambda f: 0
-
-    return Component(vectorize(impedance), vectorize(wake), plane, source_exponents=exponents[:2], test_exponents=exponents[2:])
-
-
-def create_TESLA_cavity(plane: str, exponents: Tuple[int, int, int, int],
-                                    a: float, g: float, L: float) -> Component:
-    """
-    Creates a single component object modeling a periodic accelerating stucture.
-    Follow K. Bane formalism developped in SLAC-PUB-9663, "Short-range dipole wakefields
-    in accelerating structures for the NLC".
-    :param plane: the plane the component corresponds to
-    :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
-    :param a: accelerating structure irig gap in m
-    :param g: individual cell gap in m
-    :param L: period length in m
-    :return: A component object of a periodic accelerating structure
-    """
-
-    c_light = scipy.constants.speed_of_light  # m s-1
-    free_space_impedance = scipy.constants.mu_0 * c_light
-    erfc = scipy.special.erfc
-
-    # Material properties required for the skin depth computation are derived from the input Layer attributes
-    # material_resistivity = layer.dc_resistivity
-    # material_relative_permeability = layer.magnetic_susceptibility
-    # material_permeability = material_relative_permeability * scipy.constants.mu_0
-
-    # Create the skin depth as a function offrequency and layer properties
-    # delta_skin = lambda f: (material_resistivity/ (2*pi*abs(f) * material_permeability)) ** (1/2)
-
-    gamma = g / L
-    alpha1 = 0.4648
-    alpha = 1 - alpha1 * sqrt(gamma) - (1 - 2*alpha1) * gamma
-
-    s00 = g/8 * (a/(alpha * L)) ** 2
-
-    # Longitudinal impedance and wake
-    if (plane == 'z' and exponents == (0, 0, 0, 0)):
-        impedance = lambda f: 1j*free_space_impedance/(pi* (2*pi*f/c_light) * a**2) * (1 + (1+1j) * alpha * L / a * sqrt(pi/((2*pi*f/c_light) * g)))**(-1)
-        wake = lambda t: (free_space_impedance * c_light/(pi*a**2)) * heaviside(t, 0) * exp(-pi*c_light*t/(4*s00)) * erfc(sqrt(pi*c_light*t/(4*s00)))
-    # Transverse dipolar impedance and wake
-    elif (plane == 'x' and exponents == (1, 0, 0, 0)) or (plane == 'y' and exponents == (0, 1, 0, 0)):
-        impedance = lambda f: 2 / ((2*pi*f/c_light) * a**2) * 1j*free_space_impedance/(pi* (2*pi*f/c_light) * a**2) * (1 + (1+1j) * alpha * L / a * sqrt(pi/((2*pi*f/c_light) * g)))**(-1)
-        wake = lambda t: (4*free_space_impedance*c_light*s00)/(pi*a**4) * heaviside(t, 0) * (1 - (1 + sqrt(c_light*t/s00)) * exp(-sqrt(c_light*t/s00)))
     else:
         print("Warning: resistive wall impedance not implemented for component {}{}. Set to zero".format(plane, exponents))
         impedance = lambda f: 0

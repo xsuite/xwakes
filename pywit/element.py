@@ -108,8 +108,10 @@ class Element:
                                                                    test_exponents=(new_c, new_d))
 
         # New beta_x and beta_y values are defined if the rotate_beta flag is active
-        new_beta_x = ((costheta * np.sqrt(self.beta_x) - sintheta * np.sqrt(self.beta_y)) ** 2) if rotate_beta else self.beta_x
-        new_beta_y = ((sintheta * np.sqrt(self.beta_x) + costheta * np.sqrt(self.beta_y)) ** 2) if rotate_beta else self.beta_y
+        new_beta_x = ((costheta * np.sqrt(self.beta_x) -
+                       sintheta * np.sqrt(self.beta_y)) ** 2) if rotate_beta else self.beta_x
+        new_beta_y = ((sintheta * np.sqrt(self.beta_x) +
+                       costheta * np.sqrt(self.beta_y)) ** 2) if rotate_beta else self.beta_y
 
         # Initializes and returns a new element with parameters calculated above. Its Component list is a list of
         # the values in the rotated_components dictionary, sorted by the key which is used consistently for
@@ -223,7 +225,8 @@ class Element:
                 new_components.append(left_coefficient * self.components[i])
                 i += 1
             else:
-                right_coefficient = (ratios[2] ** other.components[j].power_x) * (ratios[3] ** other.components[j].power_y)
+                right_coefficient = ((ratios[2] ** other.components[j].power_x) *
+                                     (ratios[3] ** other.components[j].power_y))
                 new_components.append(right_coefficient * other.components[j])
                 j += 1
 
