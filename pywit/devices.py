@@ -281,19 +281,19 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
                                                name: str = "Flat taper", tag: str = "",
                                                description: str = "") -> Element:
     """
-    Creates a component using the flat taper Stupakov formula
+    Creates an element using the flat taper Stupakov formula
     :param half_gap_small: small vertical half-gap
     :param half_gap_big: large vertical half-gap
     :param taper_slope: the slope of the taper
     :param half_width: half width of the taper (constant)
-    :param beta_x: The size of the beta function in the x-plane at the position of the taper
-    :param beta_y: The size of the beta function in the y-plane at the position of the taper
+    :param beta_x: The beta function in the x-plane at the position of the taper
+    :param beta_y: The beta function in the y-plane at the position of the taper
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
     :param component_ids: a list of components to be computed
-    :param name: A user-specified name of the Element
-    :param tag: A string corresponding to a specific Element
+    :param name: A user-specified name for the Element
+    :param tag: A string to tag the Element
     :param description: A description for the Element
-    :return: An Element object of a flat taper
+    :return: An Element object representing the flat taper
     """
     length = (half_gap_big - half_gap_small) / taper_slope
 
