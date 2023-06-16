@@ -1,12 +1,17 @@
-from pywit.utilities import create_resonator_component, create_resonator_element, create_many_resonators_element
+from pywit.utilities import (create_resonator_component, create_resonator_element,
+                             create_many_resonators_element, create_resistive_wall_single_layer_approx_element,
+                             create_resistive_wall_single_layer_approx_component)
 from test_common import relative_error
 from pywit.parameters import *
+from pywit.interface import Layer, FlatIW2DInput, RoundIW2DInput, Sampling, component_names
+from pywit.materials import layer_from_json_material_library, copper_at_temperature
 
 from typing import Dict
 from pathlib import Path
 
-from pytest import raises, mark
+from pytest import raises, mark, fixture
 import numpy as np
+from numpy import testing as npt
 
 
 def test_incompatible_dictionaries():
@@ -153,7 +158,6 @@ def test_resonator():
 
 FREQS_LIST = [10, 20, 40, 60, 80, 100]
 
-
 @mark.parametrize('test_freq', FREQS_LIST)
 def test_many_resonators(test_freq):
     params_dict = {
@@ -204,3 +208,135 @@ def test_many_resonators(test_freq):
 
     for comp in ['z0000', 'x1000', 'y0100']:
         assert elem.get_component(comp).impedance(test_freq) == sum_elem.get_component(comp).impedance(test_freq)
+
+
+@fixture
+def flat_symmetric_approx_rw_element():
+    flat_input = FlatIW2DInput(machine='LHC', length=1.,
+            relativistic_gamma=7460.5232328, calculate_wake=False,
+            f_params=Sampling(1e3,1e13,0,added=(1e4,1e9),points_per_decade=0),
+            top_bottom_symmetry=True,
+            top_layers=[layer_from_json_material_library(thickness=np.inf,
+                                                        material_key='Mo')],
+            top_half_gap=0.002)
+
+    return create_resistive_wall_single_layer_approx_element(
+            input_data=flat_input, beta_x=10,beta_y=10,
+            component_ids=('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
+            )
+
+
+@fixture
+def flat_single_plate_approx_rw_element():
+    flat_input = FlatIW2DInput(machine='LHC', length=1.,
+            relativistic_gamma=7460.5232328, calculate_wake=False,
+            f_params=Sampling(1e3,1e13,0,added=(1e5,1e9),points_per_decade=0),
+            top_bottom_symmetry=False,
+            top_layers=[layer_from_json_material_library(thickness=np.inf,
+                                                        material_key='graphite')],
+            top_half_gap=0.004,
+            bottom_layers=[],
+            bottom_half_gap=np.inf,
+            )
+
+    return create_resistive_wall_single_layer_approx_element(
+            input_data=flat_input, beta_x=1,beta_y=1,
+            component_ids=('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
+            )
+
+
+@fixture
+def round_single_layer_approx_rw_element():
+    round_input = RoundIW2DInput(machine='LHC', length=0.03,
+            relativistic_gamma=479.6, calculate_wake=False,
+            f_params=Sampling(1e3,1e13,0,added=(1e8),points_per_decade=0),
+            layers=[copper_at_temperature(thickness=np.inf,T=293)],
+            inner_layer_radius=0.02,
+            yokoya_factors=(1,1,1,0,0),
+            )
+
+    return create_resistive_wall_single_layer_approx_element(
+            input_data=round_input, beta_x=1,beta_y=1,
+            component_ids=('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
+            )
+
+
+# expected impedance values obtained from an exact flat chamber IW2D computation
+@mark.parametrize("freq, component_id, expected_Z, rtol",
+                  [
+                    [1e4, 'z0000', 2.73790435e-03+1j*3.52379262e-03, 5e-2],
+                    [1e4, 'x1000', 1.41444672e+06+1j*2.94098193e+06, 5e-2],
+                    [1e4, 'y0100', 2.90873693e+06+1j*5.92025573e+06, 5e-2],
+                    [1e4, 'x0010',-1.41444672e+06-1j*2.94098193e+06, 5e-2],
+                    [1e4, 'y0001', 1.41444672e+06+1j*2.94098193e+06, 5e-2],
+                    [1e9, 'z0000', 1.15540625e+00+1j*1.15680934e+00, 1e-3],
+                    [1e9, 'x1000', 1.13144575e+04+1j*1.13465281e+04, 1e-3],
+                    [1e9, 'y0100', 2.26466174e+04+1j*2.26502884e+04, 1e-3],
+                    [1e9, 'x0010',-1.13144575e+04-1j*1.13465281e+04, 1e-3],
+                    [1e9, 'y0001', 1.13144575e+04+1j*1.13465281e+04, 1e-3],
+                   ]
+                  )
+def test_single_layer_RW_approx_flat_sym(freq, component_id, expected_Z, rtol,
+                                         flat_symmetric_approx_rw_element):
+
+    npt.assert_allclose(flat_symmetric_approx_rw_element.get_component(component_id).impedance(freq),
+                        expected_Z, rtol=rtol)
+
+
+@mark.parametrize("component_id", ['zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'])
+def test_single_plate_RW_approx_error(component_id):
+
+    with raises(NotImplementedError):
+        flat_input = FlatIW2DInput(machine='LHC', length=1.,
+            relativistic_gamma=7460.5232328, calculate_wake=False,
+            f_params=Sampling(1e3,1e13,0,added=(1e4,1e9),points_per_decade=0),
+            top_bottom_symmetry=False,
+            top_layers=[layer_from_json_material_library(thickness=np.inf,
+                                                        material_key='Mo')],
+            top_half_gap=0.002,
+            bottom_layers=[],
+            bottom_half_gap=0.025,
+            )
+        _ , plane, exponents = component_names[component_id]
+        create_resistive_wall_single_layer_approx_component(
+                plane=plane,exponents=exponents,input_data=flat_input)
+
+
+# expected impedance values obtained from an exact flat chamber IW2D computation
+@mark.parametrize("freq, component_id, expected_Z, rtol",
+                  [
+                    [1e5, 'z0000', 5.01728296e-02+1j*8.19175077e-02, 3e-2],
+                    [1e5, 'x1000', 1.73918933e+05+1j*7.32919146e+05, 3e-2],
+                    [1e5, 'y0100', 1.73918933e+05+1j*7.32919146e+05, 3e-2],
+                    [1e5, 'x0010',-1.73918933e+05-1j*7.32919146e+05, 3e-2],
+                    [1e5, 'y0001', 1.73918933e+05+1j*7.32919146e+05, 3e-2],
+                    [1e9, 'z0000', 9.58598752e+00+1j*9.71657980e+00, 2e-3],
+                    [1e9, 'x1000', 1.40485975e+04+1j*1.44908306e+04, 1e-3],
+                    [1e9, 'y0100', 1.40485975e+04+1j*1.44908306e+04, 1e-3],
+                    [1e9, 'x0010',-1.40485975e+04-1j*1.44908306e+04, 1e-3],
+                    [1e9, 'y0001', 1.40485975e+04+1j*1.44908306e+04, 1e-3],
+                   ]
+                  )
+def test_single_layer_RW_approx_flat_sym(freq, component_id, expected_Z, rtol,
+                                         flat_single_plate_approx_rw_element):
+
+    npt.assert_allclose(flat_single_plate_approx_rw_element.get_component(component_id).impedance(freq),
+                        expected_Z, rtol=rtol)
+
+
+# expected impedance values obtained from an exact round chamber IW2D computation
+# (except xquad and yquad which are set to zero)
+@mark.parametrize("freq, component_id, expected_Z, rtol",
+                  [
+                    [1e8, 'z0000', 6.18359811e-04+1j*7.73533991e-04, 1e-6],
+                    [1e8, 'x1000', 1.47471685e+00+1j*1.49501534e+00, 1e-6],
+                    [1e8, 'y0100', 1.47471685e+00+1j*1.49501534e+00, 1e-6],
+                    [1e8, 'x0010', 0, 1e-15],
+                    [1e8, 'y0001', 0, 1e-15],
+                   ]
+                  )
+def test_single_layer_RW_approx_flat_sym(freq, component_id, expected_Z, rtol,
+                                         round_single_layer_approx_rw_element):
+
+    npt.assert_allclose(round_single_layer_approx_rw_element.get_component(component_id).impedance(freq),
+                        expected_Z, rtol=rtol)
