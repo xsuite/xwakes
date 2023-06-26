@@ -401,11 +401,11 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
         already_computed = False
         os.mkdir(directory_level_1)
 
-    elif not os.path.exists(directory_level_2):
+    if not os.path.exists(directory_level_2):
         already_computed = False
         os.mkdir(directory_level_2)
 
-    elif not os.path.exists(working_directory):
+    if not os.path.exists(working_directory):
         already_computed = False
         os.mkdir(working_directory)
 
