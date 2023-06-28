@@ -80,7 +80,7 @@ def create_element_from_config(identifier: str) -> Element:
 def compute_resonator_f_roi_half_width(q: float, f_r: float, f_roi_level: float = 0.5):
     aux = np.sqrt((1 - f_roi_level) / f_roi_level)
 
-    return (aux + np.sqrt(a**2 + 4*q**2))*f_r/(2*q) - f_r
+    return (aux + np.sqrt(aux**2 + 4*q**2))*f_r/(2*q) - f_r
 
 
 def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
