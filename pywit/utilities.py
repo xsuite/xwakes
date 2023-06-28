@@ -80,7 +80,7 @@ def create_element_from_config(identifier: str) -> Element:
 def compute_resonator_roi_half_width(q: float, f_r: float, roi_level: float = 0.5):
     a = np.sqrt((1-roi_level)/roi_level)
 
-    return (a + np.sqrt(a**2 + 4*q**2))*np.pi*f_r/q
+    return (a + np.sqrt(a**2 + 4*q**2))*f_r/(2*q) - f_r
 
 
 def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
@@ -109,12 +109,16 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
         wake = lambda t: (omega_r * r * exp(-omega_r * t / (2 * q)) * sin(omega_r * root_term * t) /
                           (q * root_term)).real
 
-    d = compute_resonator_roi_half_width(q=q, f_r=f_r, roi_level=roi_level)
+    if q > 1:
+        d = compute_resonator_roi_half_width(q=q, f_r=f_r, roi_level=roi_level)
+        f_rois = [(f_r - d, f_r + d)]
+    else:
+        f_rois = []
     # TODO: add ROI(s) for wake
 
     return Component(vectorize(impedance), vectorize(wake), plane, source_exponents=exponents[:2],
                      test_exponents=exponents[2:],
-                     f_rois=[(f_r - d, f_r + d)])
+                     f_rois=f_rois)
 
 
 def create_resonator_element(length: float, beta_x: float, beta_y: float,
@@ -188,7 +192,7 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
             assert ('r' in component_params.keys() and 'q' in component_params.keys() and
                     'f' in component_params.keys()), "each of the the component dictionaries must contain r, q and f"
 
-            roi_level = component_params.get('roi_level')
+            roi_level = component_params.get('roi_level', 0.5)
             all_components.append(create_resonator_component(plane, exponents, component_params['r'],
                                                              component_params['q'], component_params['f'],
                                                              roi_level=roi_level))
