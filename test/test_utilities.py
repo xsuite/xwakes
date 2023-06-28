@@ -211,16 +211,16 @@ def test_many_resonators(test_freq):
         assert elem.get_component(comp).impedance(test_freq) == sum_elem.get_component(comp).impedance(test_freq)
 
 
-def test_roi_resonator_component():
+def test_f_roi_resonator_component():
     r = 1e9
-    roi_level = 0.3
+    f_roi_level = 0.3
     resonator_component_z = create_resonator_component(plane='z', exponents=(0, 0, 0, 0), r=1e9, q=1e6, f_r=400e6,
-                                                       roi_level=roi_level)
-    assert np.isclose(np.real(resonator_component_z.impedance(resonator_component_z.f_rois[0][0]))/r, roi_level)
+                                                       f_roi_level=f_roi_level)
+    assert np.isclose(np.real(resonator_component_z.impedance(resonator_component_z.f_rois[0][0]))/r, f_roi_level)
 
-    resonator_component_x = create_resonator_component('x', exponents=(1, 0, 0, 0), r=1e9, q=1e6, f_r=400e6,
-                                                       roi_level=roi_level)
-    assert np.isclose(np.real(resonator_component_x.impedance(resonator_component_x.f_rois[0][0])/r), roi_level)
+    resonator_component_x = create_resonator_component(plane='x', exponents=(1, 0, 0, 0), r=1e9, q=1e6, f_r=400e6,
+                                                       f_roi_level=f_roi_level)
+    assert np.isclose(np.real(resonator_component_x.impedance(resonator_component_x.f_rois[0][0])/r), f_roi_level)
 
 
 @fixture

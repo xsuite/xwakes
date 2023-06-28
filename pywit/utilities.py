@@ -77,14 +77,14 @@ def create_element_from_config(identifier: str) -> Element:
         return Element(length, beta_x, beta_y, components, name, tag)
 
 
-def compute_resonator_roi_half_width(q: float, f_r: float, roi_level: float = 0.5):
-    a = np.sqrt((1-roi_level)/roi_level)
+def compute_resonator_f_roi_half_width(q: float, f_r: float, f_roi_level: float = 0.5):
+    aux = np.sqrt((1 - f_roi_level) / f_roi_level)
 
-    return (a + np.sqrt(a**2 + 4*q**2))*f_r/(2*q) - f_r
+    return (aux + np.sqrt(a**2 + 4*q**2))*f_r/(2*q) - f_r
 
 
 def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
-                               r: float, q: float, f_r: float, roi_level: float = 0.5) -> Component:
+                               r: float, q: float, f_r: float, f_roi_level: float = 0.5) -> Component:
     """
     Creates a single component object belonging to a resonator
     :param plane: the plane the component corresponds to
@@ -92,8 +92,8 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
     :param r: the shunt impedance of the given component of the resonator
     :param q: the quality factor of the given component of the resonator
     :param f_r: the resonance frequency of the given component of the resonator
-    :param roi_level: fraction of the peak ok the resonator which is covered by the ROI. I.e. the roi will cover
-    the frequencies for which the resonator impedance is larger than roi_level*r
+    :param f_roi_level: fraction of the peak ok the resonator which is covered by the ROI. I.e. the roi will cover
+    the frequencies for which the resonator impedance is larger than f_roi_level*r
     :return: A component object of a resonator, specified by the input arguments
     """
     root_term = sqrt(1 - 1 / (4 * q ** 2) + 0J)
@@ -110,7 +110,7 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
                           (q * root_term)).real
 
     if q > 1:
-        d = compute_resonator_roi_half_width(q=q, f_r=f_r, roi_level=roi_level)
+        d = compute_resonator_f_roi_half_width(q=q, f_r=f_r, f_roi_level=f_roi_level)
         f_rois = [(f_r - d, f_r + d)]
     else:
         f_rois = []
@@ -123,7 +123,7 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
 
 def create_resonator_element(length: float, beta_x: float, beta_y: float,
                              rs: Dict[str, float], qs: Dict[str, float], fs: Dict[str, float],
-                             roi_levels: Dict[str, float] = None, tag: str = 'resonator',
+                             f_roi_levels: Dict[str, float] = None, tag: str = 'resonator',
                              description: str = '') -> Element:
     """
     Creates an element object representing a resonator.
@@ -136,19 +136,19 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
     values give the quality factor of the specified component of the resonator
     :param fs: A dictionary where the keys correspond to a plane followed by four exponents, i.e. "y0100", and the
     values give the resonance frequency corresponding to the particular component
-    :param roi_levels: A dictionary where the keys correspond to a plane followed by four exponents, i.e. "y0100", and
+    :param f_roi_levels: A dictionary where the keys correspond to a plane followed by four exponents, i.e. "y0100", and
     the values give the fraction of the peak ok the resonator which is covered by the ROI. I.e. the roi will cover
-    the frequencies for which the resonator impedance is larger than roi_level*r
+    the frequencies for which the resonator impedance is larger than f_roi_level*r
     :param tag: An optional short string used to place elements into categories
     :param description: An optional short description of the element
     :return: An element object as specified by the user-input
     """
-    if roi_levels is None:
-        roi_levels = {}
+    if f_roi_levels is None:
+        f_roi_levels = {}
         for key in rs.keys():
-            roi_levels[key] = 0.5
+            f_roi_levels[key] = 0.5
 
-    assert set(rs.keys()) == set(qs.keys()) == set(fs.keys()) == set(roi_levels.keys()), "The three input " \
+    assert set(rs.keys()) == set(qs.keys()) == set(fs.keys()) == set(f_roi_levels.keys()), "The three input " \
                                                                                          "dictionaries describing " \
                                                                                          "the  resonator do not all " \
                                                                                          "have identical keys"
@@ -156,7 +156,7 @@ def create_resonator_element(length: float, beta_x: float, beta_y: float,
     for key in rs.keys():
         plane, exponents = string_to_params(key, include_is_impedance=False)
         components.append(create_resonator_component(plane, exponents, rs[key], qs[key], fs[key],
-                                                     roi_level=roi_levels[key]))
+                                                     f_roi_level=f_roi_levels[key]))
 
     return Element(length, beta_x, beta_y, components, tag=tag, description=description)
 
@@ -174,13 +174,13 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
     params_dict = {
         'z0000':
             [
-                {'r': 10, 'q': 10, 'f': 50, 'roi_level: 0.5},
+                {'r': 10, 'q': 10, 'f': 50, 'f_roi_level: 0.5},
                 {'r': 40, 'q': 100, 'f': 60}
             ],
         'x1000':
         ...
     }
-    roi_level is optional
+    f_roi_level is optional
     :param tag: An optional short string used to place elements into categories
     :param description: An optional short description of the element
     :return: An element object as specified by the user-input
@@ -192,10 +192,10 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
             assert ('r' in component_params.keys() and 'q' in component_params.keys() and
                     'f' in component_params.keys()), "each of the the component dictionaries must contain r, q and f"
 
-            roi_level = component_params.get('roi_level', 0.5)
+            f_roi_level = component_params.get('f_roi_level', 0.5)
             all_components.append(create_resonator_component(plane, exponents, component_params['r'],
                                                              component_params['q'], component_params['f'],
-                                                             roi_level=roi_level))
+                                                             f_roi_level=f_roi_level))
 
     comp_dict = defaultdict(lambda: 0)
     for c in all_components:
