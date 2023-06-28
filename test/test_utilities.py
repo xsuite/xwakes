@@ -158,6 +158,7 @@ def test_resonator():
 
 FREQS_LIST = [10, 20, 40, 60, 80, 100]
 
+
 @mark.parametrize('test_freq', FREQS_LIST)
 def test_many_resonators(test_freq):
     params_dict = {
@@ -208,6 +209,18 @@ def test_many_resonators(test_freq):
 
     for comp in ['z0000', 'x1000', 'y0100']:
         assert elem.get_component(comp).impedance(test_freq) == sum_elem.get_component(comp).impedance(test_freq)
+
+
+def test_roi_resonator_component():
+    r = 1e9
+    roi_level = 0.3
+    resonator_component_z = create_resonator_component(plane='z', exponents=(0, 0, 0, 0), r=1e9, q=1e6, f_r=400e6,
+                                                       roi_level=roi_level)
+    assert np.isclose(np.real(resonator_component_z.impedance(resonator_component_z.f_rois[0][0]))/r, roi_level)
+
+    resonator_component_x = create_resonator_component('x', exponents=(1, 0, 0, 0), r=1e9, q=1e6, f_r=400e6,
+                                                       roi_level=roi_level)
+    assert np.isclose(np.real(resonator_component_x.impedance(resonator_component_x.f_rois[0][0])/r), roi_level)
 
 
 @fixture
