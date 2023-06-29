@@ -116,7 +116,7 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
         f_rois = []
     # TODO: add ROI(s) for wake
 
-    return Component(vectorize(impedance), vectorize(wake), plane, source_exponents=exponents[:2],
+    return Component(impedance, wake, plane, source_exponents=exponents[:2],
                      test_exponents=exponents[2:],
                      f_rois=f_rois)
 
@@ -383,7 +383,7 @@ def create_resistive_wall_single_layer_approx_component(plane: str, exponents: T
         yok_quax = input_data.yokoya_factors[3]
         yok_quay = input_data.yokoya_factors[4]
     else:
-        raise NotImplementError("Input of type neither FlatIW2DInput nor RoundIW2DInput cannot be handled")
+        raise NotImplementedError("Input of type neither FlatIW2DInput nor RoundIW2DInput cannot be handled")
 
     # Longitudinal impedance
     if plane == 'z' and exponents == (0, 0, 0, 0):
