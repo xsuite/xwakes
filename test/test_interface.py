@@ -4,7 +4,7 @@ import pytest
 
 from pywit.interface import import_data_iw2d, create_component_from_data, Sampling
 from pywit.interface import check_valid_working_directory, get_component_name
-from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, add_iw2d_input_to_database
+from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, FlatIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
 from pywit.materials import layer_from_json_material_library
 
@@ -83,12 +83,20 @@ def test_valid_iw2d_component_import():
 
 
 @pytest.fixture
-def round_tung_layer_iw2d_input():
+def iw2d_input(request):
     f_params = Sampling(start=1, stop=1e9, scan_type=0, added=(1e2,))
+    z_params = Sampling(start=1e-9, stop=1, scan_type=0, added=(1e-6,))
     layers_tung = (layer_from_json_material_library(thickness=np.inf, material_key='W'),)
-    return RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
-                          calculate_wake=False, f_params=f_params, comment='test',
-                          layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1))
+
+    if request.param['chamber_type'] == 'round':
+        return RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
+                              calculate_wake=request.param['wake_computation'], f_params=f_params, comment='test',
+                              layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1), z_params=z_params)
+    
+    if request.param['chamber_type'] == 'flat':
+        return FlatIW2DInput(machine='test', length=1, relativistic_gamma=7000,
+                             calculate_wake=request.param['wake_computation'], f_params=f_params, comment='test',
+                             top_bottom_symmetry=True, top_layers=layers_tung, top_half_gap=5e-2, z_params=z_params)
 
 
 def _remove_non_empty_directory(directory_path: Path):
@@ -102,12 +110,17 @@ def _remove_non_empty_directory(directory_path: Path):
     os.rmdir(directory_path)
 
 
-def test_check_already_computed(round_tung_layer_iw2d_input):
+list_of_inputs_to_test = [({'chamber_type': 'round', 'wake_computation': False}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad']),
+                          ({'chamber_type': 'flat', 'wake_computation': False}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad', 'Zycst']),
+                          ({'chamber_type': 'round', 'wake_computation': True}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad', 'Wlong', 'Wxdip', 'Wydip', 'Wxquad', 'Wyquad']),
+                          ({'chamber_type': 'flat', 'wake_computation': True}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad', 'Zycst', 'Wlong', 'Wxdip', 'Wydip', 'Wxquad', 'Wyquad', 'Wycst'])]
+@pytest.mark.parametrize("iw2d_input, components_to_test", list_of_inputs_to_test, indirect=["iw2d_input"])
+def test_check_already_computed(iw2d_input, components_to_test):
     name = 'test_hash'
 
     # create the expected directories for the dummy input
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    input_hash = sha256(round_tung_layer_iw2d_input.__str__().encode()).hexdigest()
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     directory_level_1 = projects_path.joinpath(input_hash[0:2])
     directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
     working_directory = directory_level_2.joinpath(input_hash[4:])
@@ -125,18 +138,23 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
         os.mkdir(working_directory)
 
     dummy_string = 'dummy_string'
-    for comp in ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad']:
+    for comp in components_to_test:
         with open(f'{working_directory}/{comp}_test.txt', 'w') as f:
             f.write(dummy_string)
 
     # check that the input is detected in the hashmap
-    already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
+    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
     assert already_computed
+
+    # now we remove one component and verify that check_already_computed gives false
+    os.remove(f'{working_directory}/Zlong_test.txt')
+    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
+    assert not already_computed
 
     # now we remove the folder and check that check_already_computed gives false
     _remove_non_empty_directory(working_directory)
 
-    already_computed, input_hash, working_directory = check_already_computed(round_tung_layer_iw2d_input, name)
+    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
 
     assert not already_computed
 
@@ -144,14 +162,15 @@ def test_check_already_computed(round_tung_layer_iw2d_input):
     _remove_non_empty_directory(working_directory)
 
 
-def test_add_iw2d_input_to_database(round_tung_layer_iw2d_input):
+@pytest.mark.parametrize("iw2d_input", [{'chamber_type': 'round', 'wake_computation': False}], indirect=["iw2d_input"])
+def test_add_iw2d_input_to_database(iw2d_input):
     projects_path = Path(get_iw2d_config_value('project_directory'))
-    input_hash = sha256(round_tung_layer_iw2d_input.__str__().encode()).hexdigest()
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     directory_level_1 = projects_path.joinpath(input_hash[0:2])
     directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
     working_directory = directory_level_2.joinpath(input_hash[4:])
 
-    add_iw2d_input_to_database(round_tung_layer_iw2d_input, input_hash, working_directory)
+    add_iw2d_input_to_database(iw2d_input, input_hash, working_directory)
 
     assert os.path.exists(f"{working_directory}/input.txt")
 
