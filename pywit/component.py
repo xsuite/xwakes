@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pywit.parameters import *
-from pywit.utils import round_sigfigs
+from pywit.utils import unique_sigfigs
 
 from typing import Optional, Callable, Tuple, Union, List
 
@@ -30,8 +30,7 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
     fine_sampling_rois = np.hstack(intervals) if intervals else np.array([])
     rough_sampling = np.geomspace(start, stop, rough_points)
 
-    return np.sort(list(set(round_sigfigs(
-        snp.merge(fine_sampling_rois, rough_sampling), 7))))
+    return unique_sigfigs(snp.merge(fine_sampling_rois, rough_sampling), 7)
 
 
 class Component:
