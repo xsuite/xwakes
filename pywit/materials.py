@@ -1,4 +1,5 @@
-from pywit.interface import Layer
+from IW2D import IW2DLayer
+from pywit.interface import standard_layer
 from pywit.utils import round_sigfigs
 
 from pathlib import Path
@@ -7,7 +8,7 @@ import json
 from typing import Callable, Tuple
 
 
-def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
+def layer_from_dict(thickness: float, material_dict: dict) -> IW2DLayer:
     """
     Define a layer from a dictionary containing the materials properties.
 
@@ -31,7 +32,7 @@ def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
     assert not any(missing_properties_list), '{} missing from the input dictionary'.format(
             ", ".join(required_material_properties[np.asarray(missing_properties_list)]))
 
-    return Layer(thickness=thickness,
+    return standard_layer(thickness=thickness,
                  dc_resistivity=material_dict['dc_resistivity'],
                  resistivity_relaxation_time=material_dict['resistivity_relaxation_time'],
                  re_dielectric_constant=material_dict['re_dielectric_constant'],
@@ -40,7 +41,7 @@ def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
 
 
 def layer_from_json_material_library(thickness: float, material_key: str,
-                                     library_path: Path = Path(__file__).parent.joinpath('materials.json')) -> Layer:
+                                     library_path: Path = Path(__file__).parent.joinpath('materials.json')) -> IW2DLayer:
     """
     Define a layer using the materials.json library of materials properties.
 
@@ -132,7 +133,7 @@ def magnetoresistance_Kohler(B_times_Sratio: float, P: Tuple[float, ...]) -> flo
         return 10.**np.polyval(P, np.log10(B_times_Sratio))
 
 
-def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> Layer:
+def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> IW2DLayer:
     """
     Define a layer of pure copper material at any temperature, any B field and any RRR.
     We use a magnetoresistance law fitted from the UPPER curve of the plot in NIST, "Properties of copper and copper
@@ -178,7 +179,7 @@ def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: 
     n = 6.022e23*Z*rho_m*1e6 / A
     tauAC = round_sigfigs(me / (n*dc_resistivity*e**2),3)  # relaxation time (s) (3 significant digits)
 
-    return Layer(thickness=thickness,
+    return standard_layer(thickness=thickness,
                  dc_resistivity=dc_resistivity,
                  resistivity_relaxation_time=tauAC,
                  re_dielectric_constant=1,
@@ -186,7 +187,7 @@ def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: 
                  permeability_relaxation_frequency=np.inf)
 
 
-def tungsten_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> Layer:
+def tungsten_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> IW2DLayer:
     """
     Define a layer of tungsten at any temperature, any B field and any RRR.
     The resistivity vs. temperature and RRR is found from Hust & Lankford (see above).
@@ -232,7 +233,7 @@ def tungsten_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B
     n = 6.022e23 * Z * rhom * 1e6 / A
     tauAC = round_sigfigs(me/(n*dc_resistivity*e**2),3) # relaxation time (s) (3 significant digits)
 
-    return Layer(thickness=thickness,
+    return standard_layer(thickness=thickness,
                  dc_resistivity=dc_resistivity,
                  resistivity_relaxation_time=tauAC,
                  re_dielectric_constant=1,

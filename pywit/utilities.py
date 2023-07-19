@@ -1,6 +1,6 @@
 from pywit.component import Component
 from pywit.element import Element
-from pywit.interface import Layer, FlatIW2DInput, RoundIW2DInput
+from IW2D import IW2DLayer, Eps1FromResistivity, Mu1FromSusceptibility, FlatIW2DInput, RoundIW2DInput
 from pywit.interface import component_names
 
 from yaml import load, SafeLoader
@@ -207,7 +207,7 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
 
 
 def create_classic_thick_wall_component(plane: str, exponents: Tuple[int, int, int, int],
-                                        layer: Layer, radius: float) -> Component:
+                                        layer: IW2DLayer, radius: float) -> Component:
     """
     Creates a single component object modeling a resistive wall impedance/wake,
     based on the "classic thick wall formula" (see e.g. A. W. Chao, chap. 2 in
@@ -220,10 +220,16 @@ def create_classic_thick_wall_component(plane: str, exponents: Tuple[int, int, i
     :param radius: the chamber radius in m
     :return: A component object
     """
+    
+    if not isinstance(layer.eps1, Eps1FromResistivity):
+        raise ValueError(f"Input files can only be generated using IW2D.Eps1FromResistivity as eps1 attribute of IW2D.IW2DLayer")
+    
+    if not isinstance(layer.mu1, Mu1FromSusceptibility):
+        raise ValueError(f"Input files can only be generated using IW2D.Mu1FromSusceptibility as mu1 attribute of IW2D.IW2DLayer")
 
     # Material properties required for the skin depth computation are derived from the input Layer attributes
-    material_resistivity = layer.dc_resistivity
-    material_relative_permeability = 1. + layer.magnetic_susceptibility
+    material_resistivity = layer.eps1.dc_resistivity
+    material_relative_permeability = 1. + layer.mu1.magnetic_susceptibility
     material_permeability = material_relative_permeability * mu0
 
     # Create the skin depth as a function offrequency and layer properties
@@ -250,7 +256,7 @@ def create_classic_thick_wall_component(plane: str, exponents: Tuple[int, int, i
 
 
 def _zlong_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
-                                     layer: Layer, radius: float, length: float) -> ArrayLike:
+                                     layer: IW2DLayer, radius: float, length: float) -> ArrayLike:
     """
     Function to compute the longitudinal resistive-wall impedance from
     the single-layer, approximated formula for a cylindrical structure,
@@ -271,10 +277,8 @@ def _zlong_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
     omega = 2*pi*frequencies
     k = omega/(beta*c_light)
 
-    rho = layer.dc_resistivity
-    tau = layer.resistivity_relaxation_time
-    mu1 = 1.+layer.magnetic_susceptibility
-    eps1 = 1. - 1j/(eps0*rho*omega*(1.+1j*omega*tau))
+    mu1 = layer.mu1(frequencies)
+    eps1 = layer.eps1(frequencies)
     nu = k*sqrt(1.-beta**2*eps1*mu1)
 
     coef_long = 1j*omega*mu0*length/(2.*pi*beta**2*gamma**2)
@@ -289,7 +293,7 @@ def _zlong_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
 
 
 def _zdip_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
-                                    layer: Layer, radius: float, length: float) -> ArrayLike:
+                                    layer: IW2DLayer, radius: float, length: float) -> ArrayLike:
     """
     Function to compute the transverse dipolar resistive-wall impedance from
     the single-layer, approximated formula for a cylindrical structure,
@@ -310,10 +314,8 @@ def _zdip_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
     omega = 2*pi*frequencies
     k = omega/(beta*c_light)
 
-    rho = layer.dc_resistivity
-    tau = layer.resistivity_relaxation_time
-    mu1 = 1.+layer.magnetic_susceptibility
-    eps1 = 1. - 1j/(eps0*rho*omega*(1.+1j*omega*tau))
+    mu1 = layer.mu1(frequencies)
+    eps1 = layer.eps1(frequencies)
     nu = k*sqrt(1.-beta**2*eps1*mu1)
 
     coef_dip = 1j*k**2*Z0*length/(4.*pi*beta*gamma**4)
@@ -377,11 +379,11 @@ def create_resistive_wall_single_layer_approx_component(plane: str, exponents: T
         if len(input_data.layers) > 1:
             raise NotImplementedError("Input data can have only one layer")
         layer = input_data.layers[0]
-        yok_long = input_data.yokoya_factors[0]
-        yok_dipx = input_data.yokoya_factors[1]
-        yok_dipy = input_data.yokoya_factors[2]
-        yok_quax = input_data.yokoya_factors[3]
-        yok_quay = input_data.yokoya_factors[4]
+        yok_long = input_data.yokoya_zlong
+        yok_dipx = input_data.yokoya_zxdip
+        yok_dipy = input_data.yokoya_zydip
+        yok_quax = input_data.yokoya_zxquad
+        yok_quay = input_data.yokoya_zyquad
     else:
         raise NotImplementedError("Input of type neither FlatIW2DInput nor RoundIW2DInput cannot be handled")
 
