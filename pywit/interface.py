@@ -2,12 +2,13 @@ import os
 
 from pywit.component import Component
 from pywit.element import Element
+from IW2D import IW2DLayer, FlatIW2DInput, RoundIW2DInput, Eps1FromResistivity, Mu1FromSusceptibility, IW2DResult, InputFileWakeParams, InputFileFreqParams
+from numpy.typing import ArrayLike
 
 import subprocess
-from typing import Tuple, List, Optional, Dict, Any, Union
+from typing import Callable, Tuple, List, Optional, Dict, Any, Union
 from dataclasses import dataclass
 from pathlib import Path
-from hashlib import sha256
 
 import numpy as np
 from yaml import load, BaseLoader
@@ -143,234 +144,22 @@ def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[
                      test_exponents=exponents[2:], )
 
 
-@dataclass(frozen=True, eq=True)
-class Layer:
-    # The distance in mm of the inner surface of the layer from the reference orbit
-    thickness: float
-    dc_resistivity: float
-    resistivity_relaxation_time: float
-    re_dielectric_constant: float
-    magnetic_susceptibility: float
-    permeability_relaxation_frequency: float
+def standard_layer(thickness: float, dc_resistivity: float, resistivity_relaxation_time: float, re_dielectric_constant: float,
+                   magnetic_susceptibility: float, permeability_relaxation_frequency: float) -> IW2DLayer:
+    return IW2DLayer(
+        thickness=thickness,
+        eps1=Eps1FromResistivity(
+            dc_resistivity=dc_resistivity,
+            resistivity_relaxation_time=resistivity_relaxation_time,
+            re_dielectric_constant=re_dielectric_constant
+        ),
+        mu1=Mu1FromSusceptibility(
+            magnetic_susceptibility=magnetic_susceptibility,
+            permeability_relaxation_frequency=permeability_relaxation_frequency
+        )
+    )
 
-
-@dataclass(frozen=True, eq=True)
-class Sampling:
-    start: float
-    stop: float
-    # 0 = logarithmic, 1 = linear, 2 = both
-    scan_type: int
-    added: Tuple[float]
-    sampling_exponent: Optional[float] = None
-    points_per_decade: Optional[float] = None
-    min_refine: Optional[float] = None
-    max_refine: Optional[float] = None
-    n_refine: Optional[float] = None
-
-
-# Define several dataclasses for IW2D input elements. We must split mandatory
-# and optional arguments into private dataclasses to respect the resolution
-# order. The public classes RoundIW2DInput and FlatIW2D input inherit from
-# from the private classes.
-# https://stackoverflow.com/questions/51575931/class-inheritance-in-python-3-7-dataclasses
-
-@dataclass(frozen=True, eq=True)
-class _IW2DInputBase:
-    machine: str
-    length: float
-    relativistic_gamma: float
-    calculate_wake: bool
-    f_params: Sampling
-
-
-@dataclass(frozen=True, eq=True)
-class _IW2DInputOptional:
-    z_params: Optional[Sampling] = None
-    long_factor: Optional[float] = None
-    wake_tol: Optional[float] = None
-    freq_lin_bisect: Optional[float] = None
-    comment: Optional[str] = None
-
-
-@dataclass(frozen=True, eq=True)
-class IW2DInput(_IW2DInputOptional, _IW2DInputBase):
-    pass
-
-
-@dataclass(frozen=True, eq=True)
-class _RoundIW2DInputBase(_IW2DInputBase):
-    layers: Tuple[Layer]
-    inner_layer_radius: float
-    # (long, xdip, ydip, xquad, yquad)
-    yokoya_factors: Tuple[float, float, float, float, float]
-
-
-@dataclass(frozen=True, eq=True)
-class _RoundIW2DInputOptional(_IW2DInputOptional):
-    pass
-
-
-@dataclass(frozen=True, eq=True)
-class RoundIW2DInput(_RoundIW2DInputOptional, _RoundIW2DInputBase):
-    pass
-
-
-@dataclass(frozen=True, eq=True)
-class _FlatIW2DInputBase(_IW2DInputBase):
-    top_bottom_symmetry: bool
-    top_layers: Tuple[Layer]
-    top_half_gap: float
-
-
-@dataclass(frozen=True, eq=True)
-class _FlatIW2DInputOptional(_IW2DInputOptional):
-    bottom_layers: Optional[Tuple[Layer]] = None
-    bottom_half_gap: Optional[float] = None
-
-
-@dataclass(frozen=True, eq=True)
-class FlatIW2DInput(_FlatIW2DInputOptional, _FlatIW2DInputBase):
-    pass
-
-
-def _iw2d_format_layer(layer: Layer, n: int) -> str:
-    """
-    Formats the information describing a single layer into a string in accordance with IW2D standards.
-    Intended only as a helper-function for create_iw2d_input_file.
-    :param layer: A Layer object
-    :param n: The 1-indexed index of the layer
-    :return: A string on the correct format for IW2D
-    """
-    return (f"Layer {n} DC resistivity (Ohm.m):\t{layer.dc_resistivity}\n"
-            f"Layer {n} relaxation time for resistivity (ps):\t{layer.resistivity_relaxation_time * 1e12}\n"
-            f"Layer {n} real part of dielectric constant:\t{layer.re_dielectric_constant}\n"
-            f"Layer {n} magnetic susceptibility:\t{layer.magnetic_susceptibility}\n"
-            f"Layer {n} relaxation frequency of permeability (MHz):\t{layer.permeability_relaxation_frequency / 1e6}\n"
-            f"Layer {n} thickness in mm:\t{layer.thickness * 1e3}\n")
-
-
-def _iw2d_format_freq_params(params: Sampling) -> str:
-    """
-    Formats the frequency-parameters of an IW2DInput object to a string in accordance with IW2D standards.
-    Intended only as a helper-function for create_iw2d_input_file.
-    :param params: Parameters specifying a frequency-sampling
-    :return: A string on the correct format for IW2D
-    """
-    lines = [f"start frequency exponent (10^) in Hz:\t{np.log10(params.start)}",
-             f"stop frequency exponent (10^) in Hz:\t{np.log10(params.stop)}",
-             f"linear (1) or logarithmic (0) or both (2) frequency scan:\t{params.scan_type}"]
-
-    if params.sampling_exponent is not None:
-        lines.append(f"sampling frequency exponent (10^) in Hz (for linear):\t{np.log10(params.sampling_exponent)}")
-
-    if params.points_per_decade is not None:
-        lines.append(f"Number of points per decade (for log):\t{params.points_per_decade}")
-
-    if params.min_refine is not None:
-        lines.append(f"when both, fmin of the refinement (in THz):\t{params.min_refine / 1e12}")
-
-    if params.max_refine is not None:
-        lines.append(f"when both, fmax of the refinement (in THz):\t{params.max_refine / 1e12}")
-
-    if params.n_refine is not None:
-        lines.append(f"when both, number of points in the refinement:\t{params.n_refine}")
-
-    lines.append(f"added frequencies [Hz]:\t{' '.join(str(f) for f in params.added)}")
-
-    return "\n".join(lines) + "\n"
-
-
-def _iw2d_format_z_params(params: Sampling) -> str:
-    """
-    Formats the position-parameters of an IW2DInput object to a string in accordance with IW2D standards.
-    Intended only as a helper-function for create_iw2d_input_file.
-    :param params: Parameters specifying a position-sampling
-    :return: A string on the correct format for IW2D
-    """
-    lines = [f"linear (1) or logarithmic (0) or both (2) scan in z for the wake:\t{params.scan_type}"]
-
-    if params.sampling_exponent is not None:
-        lines.append(f"sampling distance in m for the linear sampling:\t{params.sampling_exponent}")
-
-    if params.min_refine is not None:
-        lines.append(f"zmin in m of the linear sampling:\t{params.min_refine}")
-
-    if params.max_refine is not None:
-        lines.append(f"zmax in m of the linear sampling:\t{params.max_refine}")
-
-    if params.points_per_decade is not None:
-        lines.append(f"Number of points per decade for the logarithmic sampling:\t{params.points_per_decade}")
-
-    lines.append(f"exponent (10^) of zmin (in m) of the logarithmic sampling:\t{np.log10(params.start)}")
-    lines.append(f"exponent (10^) of zmax (in m) of the logarithmic sampling:\t{np.log10(params.stop)}")
-    lines.append(f"added z [m]:\t{' '.join(str(z) for z in params.added)}")
-
-    return "\n".join(lines) + "\n"
-
-
-def create_iw2d_input_file(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], filename: Union[str, Path]) -> None:
-    """
-    Writes an IW2DInput object to the specified filename using the appropriate format for interfacing with the IW2D
-    software.
-    :param iw2d_input: An IW2DInput object to be written
-    :param filename: The filename (including path) of the file the IW2DInput object will be written to
-    :return: Nothing
-    """
-    # Creates the input-file at the location specified by filename
-    file = open(filename, 'w')
-
-    file.write(f"Machine:\t{iw2d_input.machine}\n"
-               f"Relativistic Gamma:\t{iw2d_input.relativistic_gamma}\n"
-               f"Impedance Length in m:\t{iw2d_input.length}\n")
-
-    # Just pre-defining layers to avoid potentially unbound variable later on
-    layers = []
-    if isinstance(iw2d_input, RoundIW2DInput):
-        file.write(f"Number of layers:\t{len(iw2d_input.layers)}\n"
-                   f"Layer 1 inner radius in mm:\t{iw2d_input.inner_layer_radius * 1e3}\n")
-        layers = iw2d_input.layers
-    elif isinstance(iw2d_input, FlatIW2DInput):
-        if iw2d_input.bottom_layers:
-            print("WARNING: bottom layers of IW2D input object are being ignored because the top_bottom_symmetry flag "
-                  "is enabled")
-        file.write(f"Number of upper layers in the chamber wall:\t{len(iw2d_input.top_layers)}\n")
-        if iw2d_input.top_layers:
-            file.write(f"Layer 1 inner half gap in mm:\t{iw2d_input.top_half_gap * 1e3}\n")
-        layers = iw2d_input.top_layers
-
-    for i, layer in enumerate(layers):
-        file.write(_iw2d_format_layer(layer, i + 1))
-
-    if isinstance(iw2d_input, FlatIW2DInput) and not iw2d_input.top_bottom_symmetry:
-        file.write(f"Number of lower layers in the chamber wall:\t{len(iw2d_input.bottom_layers)}\n")
-        if iw2d_input.bottom_layers:
-            file.write(f"Layer -1 inner half gap in mm:\t{iw2d_input.bottom_half_gap * 1e3}\n")
-            for i, layer in enumerate(iw2d_input.bottom_layers):
-                file.write(_iw2d_format_layer(layer, -(i + 1)))
-
-    if isinstance(iw2d_input, FlatIW2DInput):
-        file.write(f"Top bottom symmetry (yes or no):\t{'yes' if iw2d_input.top_bottom_symmetry else 'no'}\n")
-
-    file.write(_iw2d_format_freq_params(iw2d_input.f_params))
-    if iw2d_input.z_params is not None:
-        file.write(_iw2d_format_z_params(iw2d_input.z_params))
-
-    if isinstance(iw2d_input, RoundIW2DInput):
-        file.write(f"Yokoya factors long, xdip, ydip, xquad, yquad:\t"
-                   f"{' '.join(str(n) for n in iw2d_input.yokoya_factors)}\n")
-
-    for desc, val in zip(["factor weighting the longitudinal impedance error",
-                          "tolerance (in wake units) to achieve",
-                          "frequency above which the mesh bisecting is linear [Hz]",
-                          "Comments for the output files names"],
-                         [iw2d_input.long_factor, iw2d_input.wake_tol, iw2d_input.freq_lin_bisect, iw2d_input.comment]):
-        if val is not None:
-            file.write(f"{desc}:\t{val}\n")
-
-    file.close()
-
-
-def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
+def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], additional_iw2d_params: Union[InputFileFreqParams, InputFileWakeParams],
                            name: str) -> Tuple[bool, str, Union[str, Path]]:
     """
     Checks if a simulation with inputs iw2d_input is already present in the hash database.
@@ -384,15 +173,16 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     """
     projects_path = Path(get_iw2d_config_value('project_directory'))
 
-    # initialize read ready to all False for convenience
     # create the hash key
-    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+    input_hash = iw2d_input.input_file_hash(additional_iw2d_params)
 
     # we have three levels of directories: the first two are given by the first and second letters of the hash keys,
     # the third is given by the rest of the hash keys.
     directory_level_1 = projects_path.joinpath(input_hash[0:2])
     directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
     working_directory = directory_level_2.joinpath(input_hash[4:])
+
+    calculate_wake = isinstance(additional_iw2d_params, InputFileWakeParams)
 
     already_computed = True
 
@@ -410,7 +200,7 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
         os.mkdir(working_directory)
 
     components = []
-    if not iw2d_input.calculate_wake:
+    if not calculate_wake:
         for component in component_names.keys():
             # the ycst component is only given in the case of a flat chamber and the x component is never given
             if component.startswith('z') and 'cst' not in component:
@@ -481,7 +271,7 @@ def check_valid_working_directory(working_directory: Path):
             check_valid_hash_chunk(working_directory.name, 60))
 
 
-def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], input_hash: str,
+def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], additional_iw2d_params: Union[InputFileFreqParams, InputFileWakeParams], input_hash: str,
                                working_directory: Union[str, Path]):
     """
     Add the iw2d input to the repository containing the simulations
@@ -509,10 +299,14 @@ def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
     if not os.path.exists(working_directory):
         os.mkdir(working_directory)
 
-    create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"input.txt"))
+    save_path = working_directory.joinpath(f"input.txt")
+    if isinstance(additional_iw2d_params, InputFileWakeParams):
+        iw2d_input.to_wake_input_file(save_path, additional_iw2d_params)
+    else:
+        iw2d_input.to_impedance_input_file(save_path, additional_iw2d_params)
 
 
-def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], name: str, beta_x: float, beta_y: float,
+def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], additional_iw2d_params: Union[InputFileFreqParams, InputFileWakeParams], name: str, beta_x: float, beta_y: float,
                               tag: str = 'IW2D') -> Element:
     """
     Create and return an Element using IW2D object.
@@ -528,38 +322,30 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
-    # when looking for this IW2DInput in the database, the comment and the machine name don't necessarily need to be
-    # the same as the in the old simulation so we ignore it for creating the hash
-    iw2d_input_dict = iw2d_input.__dict__
-    comment = iw2d_input_dict['comment']
-    machine = iw2d_input_dict['machine']
-    iw2d_input_dict['comment'] = ''
-    iw2d_input_dict['machine'] = ''
-
     # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     # the path to the folder containing the database of already computed elements
 
+    # Check if wake should be calculated
+    calculate_wake = isinstance(additional_iw2d_params, InputFileWakeParams)
+
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
-    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
+    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, additional_iw2d_params, name)
 
     # if an element with the same inputs is not found inside the database, perform the computations and add the results
     # to the database
     if not already_computed:
         add_iw2d_input_to_database(iw2d_input, input_hash, working_directory)
-        bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
+        bin_string = ("wake_" if calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
         subprocess.run(f'{bin_path.joinpath(bin_string)} < input.txt', shell=True, cwd=working_directory)
 
     # When the wake is computed with IW2D, a second set of files is provided by IW2D. These correspond to a "converged"
     # simulation with double the number of mesh points for the wake. They files have the _precise suffix to their name.
     # If the wake is computed, we retrieve these file to create the pywit element.
-    common_string = "_precise" if iw2d_input.calculate_wake else ''
+    common_string = "_precise" if calculate_wake else ''
 
     component_recipes = import_data_iw2d(directory=working_directory, common_string=common_string)
-
-    iw2d_input_dict['comment'] = comment
-    iw2d_input_dict['machine'] = machine
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
@@ -679,8 +465,7 @@ def create_iw2d_input_from_yaml(name: str) -> Union[FlatIW2DInput, RoundIW2DInpu
 
     return _create_iw2d_input_from_dict(d)
 
-
-def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: List[str],
+def create_multiple_elements_using_iw2d(iw2d_inputs: List[Union[FlatIW2DInput, RoundIW2DInput]], names: List[str],
                                         beta_xs: List[float], beta_ys: List[float]) -> List[Element]:
     """
     Create and return a list of Element's using a list of IW2D objects.
@@ -709,7 +494,7 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     return elements
 
 
-def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: Union[str, Path]) -> None:
+def create_htcondor_input_file(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], name: str, directory: Union[str, Path]) -> None:
     exec_string = ""
     if iw2d_input.calculate_wake:
         exec_string += "wake_"
