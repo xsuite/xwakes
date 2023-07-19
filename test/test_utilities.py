@@ -3,7 +3,7 @@ from pywit.utilities import (create_resonator_component, create_resonator_elemen
                              create_resistive_wall_single_layer_approx_component)
 from test_common import relative_error
 from pywit.parameters import *
-from pywit.interface import Layer, FlatIW2DInput, RoundIW2DInput, Sampling, component_names
+from pywit.interface import FlatIW2DInput, RoundIW2DInput, component_names
 from pywit.materials import layer_from_json_material_library, copper_at_temperature
 
 from typing import Dict
@@ -225,9 +225,8 @@ def test_f_roi_resonator_component():
 
 @fixture
 def flat_symmetric_approx_rw_element():
-    flat_input = FlatIW2DInput(machine='LHC', length=1.,
-            relativistic_gamma=7460.5232328, calculate_wake=False,
-            f_params=Sampling(1e3,1e13,0,added=(1e4,1e9),points_per_decade=0),
+    flat_input = FlatIW2DInput(length=1.,
+            relativistic_gamma=7460.5232328,
             top_bottom_symmetry=True,
             top_layers=[layer_from_json_material_library(thickness=np.inf,
                                                         material_key='Mo')],
@@ -241,9 +240,8 @@ def flat_symmetric_approx_rw_element():
 
 @fixture
 def flat_single_plate_approx_rw_element():
-    flat_input = FlatIW2DInput(machine='LHC', length=1.,
-            relativistic_gamma=7460.5232328, calculate_wake=False,
-            f_params=Sampling(1e3,1e13,0,added=(1e5,1e9),points_per_decade=0),
+    flat_input = FlatIW2DInput(length=1.,
+            relativistic_gamma=7460.5232328,
             top_bottom_symmetry=False,
             top_layers=[layer_from_json_material_library(thickness=np.inf,
                                                         material_key='graphite')],
@@ -260,12 +258,15 @@ def flat_single_plate_approx_rw_element():
 
 @fixture
 def round_single_layer_approx_rw_element():
-    round_input = RoundIW2DInput(machine='LHC', length=0.03,
-            relativistic_gamma=479.6, calculate_wake=False,
-            f_params=Sampling(1e3,1e13,0,added=(1e8),points_per_decade=0),
+    round_input = RoundIW2DInput(length=0.03,
+            relativistic_gamma=479.6,
             layers=[copper_at_temperature(thickness=np.inf,T=293)],
             inner_layer_radius=0.02,
-            yokoya_factors=(1,1,1,0,0),
+            yokoya_zlong = 1,
+            yokoya_zxdip = 1,
+            yokoya_zydip = 1,
+            yokoya_zxquad = 0,
+            yokoya_zyquad = 0,
             )
 
     return create_resistive_wall_single_layer_approx_element(
@@ -300,9 +301,8 @@ def test_single_layer_RW_approx_flat_sym(freq, component_id, expected_Z, rtol,
 def test_single_plate_RW_approx_error(component_id):
 
     with raises(NotImplementedError):
-        flat_input = FlatIW2DInput(machine='LHC', length=1.,
-            relativistic_gamma=7460.5232328, calculate_wake=False,
-            f_params=Sampling(1e3,1e13,0,added=(1e4,1e9),points_per_decade=0),
+        flat_input = FlatIW2DInput(length=1.,
+            relativistic_gamma=7460.5232328,
             top_bottom_symmetry=False,
             top_layers=[layer_from_json_material_library(thickness=np.inf,
                                                         material_key='Mo')],
