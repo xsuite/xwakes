@@ -41,6 +41,7 @@ requirements = {
         "sortednp",
         "pyyaml",
         "joblib",
+        "IW2D",
     ],
     "test":[
         "pytest",
