@@ -2,7 +2,7 @@ import os
 
 from pywit.component import Component
 from pywit.element import Element
-from IW2D import IW2DLayer, FlatIW2DInput, RoundIW2DInput, Eps1FromResistivity, Mu1FromSusceptibility, IW2DResult, InputFileWakeParams, InputFileFreqParams
+from IW2D import IW2DLayer, FlatIW2DInput, RoundIW2DInput, Eps1FromResistivity, Mu1FromSusceptibility, IW2DResult, InputFileWakeParams, InputFileFreqParams, load_iw2d_result
 from numpy.typing import ArrayLike
 
 import subprocess
@@ -115,6 +115,39 @@ def import_data_legacy_iw2d(directory: Union[str, Path],
     assert component_recipes, f"No files in '{directory}' matched the common string '{common_string}'."
     return component_recipes
 
+
+def import_data_iw2dresult(directory: Union[str, Path]) -> List[Tuple[bool, str, Tuple[int, int, int, int], np.ndarray, np.ndarray]]:
+    """Load an IW2DResult from a directory and prepare the data for construction of PyWIT Component objects
+
+    :param directory: The directory where the IW2DResult is saved
+    :type directory: Union[str, Path]
+    :return: A list of Component recipes, each being a tuple containing the following: 
+    (is_impedance, plane, exponents, frequencies, impedance_values)
+    :rtype: List[Tuple[bool, str, Tuple[int, int, int, int], np.ndarray, np.ndarray]]
+    """
+    
+    iw2d_result: IW2DResult = load_iw2d_result(directory)
+    frequencies = iw2d_result.data.index
+    
+    component_recipes = []
+    
+    for component_name in iw2d_result.data.columns:
+        
+        # Make sure we are reading an impedance.
+        # At the time of writing, only impedances are implemented in the IW2D Python interface
+        # In the future, the wake could possibly be read as well, but the implementation has to be
+        # considered then.
+        assert component_name.lower().startswith("z")
+        
+        component_metadata = iw2d_result.metadata[component_name]
+        plane = component_metadata["Plane"]
+        exponents = component_metadata["Exponents"]
+        
+        component_recipes.append(
+            (True, plane, exponents, frequencies, iw2d_result.data[component_name])
+        )
+    
+    return component_recipes
 
 def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[int, int, int, int],
                                x: np.ndarray, y: np.ndarray, relativistic_gamma: float) -> Component:
