@@ -2,7 +2,7 @@ import os
 
 import pytest
 
-from pywit.interface import import_data_iw2d, create_component_from_data
+from pywit.interface import import_data_legacy_iw2d, create_component_from_data
 from pywit.interface import check_valid_working_directory, get_component_name
 from pywit.interface import check_already_computed, get_iw2d_config_value, RoundIW2DInput, FlatIW2DInput, add_iw2d_input_to_database
 from pywit.parameters import *
@@ -42,7 +42,7 @@ def test_get_component_name_raise(is_impedance, plane, exponents):
 
 def test_duplicate_component_iw2d_import():
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
+        import_data_legacy_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
     assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and "
@@ -56,7 +56,7 @@ def test_duplicate_component_iw2d_import():
 
 def test_no_matching_filename_iw2d_import():
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
+        import_data_legacy_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
                          common_string="this_string_matches_no_file")
 
     expected_error_message = f"No files in " \
@@ -70,13 +70,11 @@ def test_valid_iw2d_component_import():
     # Normally, the relativistic gamma would be an attribute of a required IW2DInput object, but here it has been
     # hard-coded instead
     relativstic_gamma = 479.605064966
-    recipes = import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
+    recipes = import_data_legacy_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
                                common_string="precise")
     for recipe in recipes:
         component = create_component_from_data(*recipe, relativistic_gamma=relativstic_gamma)
-        data = recipe[-1]
-        x = data[:, 0]
-        y_actual = data[:, 1] + (1j * data[:, 2] if data.shape[1] == 3 else 0)
+        x, y_actual = recipe[-2:]
         if recipe[0]:
             np.testing.assert_allclose(y_actual, component.impedance(x), rtol=REL_TOL, atol=ABS_TOL)
         else:
