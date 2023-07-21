@@ -1,7 +1,7 @@
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, List, Tuple, Union
+from typing import Any, List, Sequence, Tuple, Union
 
 import numpy as np
 from IW2D import (Eps1FromResistivity, FlatIW2DInput, InputFileFreqParams,
@@ -342,8 +342,8 @@ def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
         iw2d_input.to_impedance_input_file(save_path, additional_iw2d_params)
 
 
-def create_element_using_iw2d_legacy(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], additional_iw2d_params: Union[InputFileFreqParams, InputFileWakeParams], name: str, beta_x: float, beta_y: float,
-                              tag: str = 'IW2D') -> Element:
+def create_element_using_iw2d_legacy(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], additional_iw2d_params: Union[InputFileFreqParams, InputFileWakeParams],
+                                     name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
     """
     Create and return an Element using IW2D object.
     :param iw2d_input: the IW2DInput object
@@ -438,8 +438,9 @@ def verify_iw2d_config_file() -> bool:
     return True
 
 
-def create_multiple_elements_using_iw2d(iw2d_inputs: List[Union[FlatIW2DInput, RoundIW2DInput]], names: List[str],
-                                        beta_xs: List[float], beta_ys: List[float]) -> List[Element]:
+def create_multiple_elements_using_iw2d_legacy(iw2d_inputs: Sequence[Union[FlatIW2DInput, RoundIW2DInput]],
+                                               additional_iw2d_params: Sequence[Union[InputFileFreqParams, InputFileWakeParams]],
+                                               names: Sequence[str], beta_xs: Sequence[float], beta_ys: Sequence[float]) -> List[Element]:
     """
     Create and return a list of Element's using a list of IW2D objects.
     :param iw2d_inputs: the list of IW2DInput objects
@@ -459,6 +460,31 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[Union[FlatIW2DInput, R
 
     elements = Parallel(n_jobs=-1, prefer='threads')(delayed(create_element_using_iw2d_legacy)(
         iw2d_inputs[i],
+        additional_iw2d_params[i],
+        names[i],
+        beta_xs[i],
+        beta_ys[i]
+    ) for i in range(len(names)))
+
+    return elements
+
+
+def create_multiple_elements_using_iw2d_python_interface(iw2d_inputs: Sequence[Union[FlatIW2DInput, RoundIW2DInput]],
+                                                  frequencies: Sequence[ArrayLike], names: Sequence[str],
+                                                  beta_xs: Sequence[float], beta_ys: Sequence[float]) -> List[Element]:
+    
+    assert len(iw2d_inputs) == len(names) == len(beta_xs) == len(beta_ys), "All input lists need to have the same" \
+                                                                           "number of elements"
+
+    for name in names:
+        assert " " not in name, "Spaces are not allowed in element name"
+
+    assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
+                                      "do not exist or do not contain the required files and directories."
+
+    elements = Parallel(n_jobs=-1, prefer='threads')(delayed(create_element_using_iw2d_python_interface)(
+        iw2d_inputs[i],
+        frequencies[i],
         names[i],
         beta_xs[i],
         beta_ys[i]
