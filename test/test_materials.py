@@ -40,7 +40,7 @@ def test_layer_from_dict_two_missing_keys():
 def test_copper(T,B,rho):
     RRR = 70.
     copper_layer = materials.copper_at_temperature(1., T, RRR, B)
-    testing.assert_allclose(copper_layer.dc_resistivity, rho, atol=1e-11)
+    testing.assert_allclose(copper_layer.eps1.dc_resistivity, rho, atol=1e-11)
 
 
 @mark.parametrize("material_key, material_function, T, RRR",
@@ -48,11 +48,11 @@ def test_copper(T,B,rho):
                     ["W",  'tungsten_at_temperature', 300, 70],
                   ])
 @mark.parametrize("material_property, tolerance",
-                  [ ['dc_resistivity', 2e-9],
-                    ['resistivity_relaxation_time', 3e-15], 
-                    ['re_dielectric_constant', 0],
-                    ['magnetic_susceptibility', 0],
-                    ['permeability_relaxation_frequency', 0],
+                  [ ['eps1.dc_resistivity', 2e-9],
+                    ['eps1.resistivity_relaxation_time', 3e-15], 
+                    ['eps1.re_dielectric_constant', 0],
+                    ['mu1.magnetic_susceptibility', 0],
+                    ['mu1.permeability_relaxation_frequency', 0],
                   ])
 def test_materials_at_temperature(material_key, material_function, T,
                                   RRR, material_property, tolerance):
@@ -61,7 +61,15 @@ def test_materials_at_temperature(material_key, material_function, T,
     layer_from_library = materials.layer_from_json_material_library(1.,material_key)
     
     assert layer_at_temperature.thickness == layer_from_library.thickness == 1.
-    testing.assert_allclose(getattr(layer_at_temperature,material_property),
-                            getattr(layer_from_library,material_property),
-                            atol=tolerance)
+    
+    eps_or_mu, property_name = material_property.split(".")
+    if eps_or_mu == "eps1":
+        testing.assert_allclose(getattr(layer_at_temperature.eps1,property_name),
+                                getattr(layer_from_library.eps1,property_name),
+                                atol=tolerance)
+    else:
+      testing.assert_allclose(getattr(layer_at_temperature.mu1,property_name),
+                                getattr(layer_from_library.mu1,property_name),
+                                atol=tolerance)
+    
 
