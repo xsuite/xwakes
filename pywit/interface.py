@@ -149,6 +149,7 @@ def component_recipes_from_iw2dresult(iw2d_result: IW2DResult) -> List[Tuple[boo
     
     return component_recipes
 
+
 def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[int, int, int, int],
                                x: np.ndarray, y: np.ndarray, relativistic_gamma: float) -> Component:
     """
@@ -399,7 +400,7 @@ def create_element_using_iw2d_python_interface(iw2d_input: Union[FlatIW2DInput, 
     frequencies = np.asarray(frequencies)
     
     # Make hash to key database directory
-    input_hash = iw2d_input.output_identification_hash(frequencies)
+    input_hash = iw2d_input.output_identification_hash()
     iw2d_result_directory = Path(get_iw2d_config_value('project_directory')) / input_hash[0:2] / input_hash[2:4] / input_hash[4:]
     
     # If directory does not exist, make it and needed parent directories
@@ -408,12 +409,23 @@ def create_element_using_iw2d_python_interface(iw2d_input: Union[FlatIW2DInput, 
     
     # See if all files are present
     files_present = [file_name in os.listdir(iw2d_result_directory) for file_name in ["metadata.json", "input_object.pickle", "data.pickle"]]
-    if not all(files_present):
-        iw2d_result = iw2d_impedance(iw2d_input, frequencies)
+    if all(files_present):
+        # Load the existing result and see if all frequencies are present
+        existing_iw2d_result = load_iw2d_result(iw2d_result_directory)
+        missing_freqs = frequencies[~np.isin(frequencies, existing_iw2d_result.data.index)]
         
-        iw2d_result.save(iw2d_result_directory)
+        if len(missing_freqs) > 0:
+            # If not all freqs were present, calculate the missing impedances and save
+            # the result, merging with the existing data
+            # NOTE: With update_inplace set to True, iw2d_result.data.index might contain frequencies
+            # not present in `frequencies` given as input parameter above.
+            iw2d_result = iw2d_impedance(iw2d_input, missing_freqs)
+            iw2d_result.save(iw2d_result_directory, attempt_merge=True, update_inplace=True)
+        else:
+            iw2d_result = existing_iw2d_result
     else:
-        iw2d_result = load_iw2d_result(iw2d_result_directory)
+        iw2d_result = iw2d_impedance(iw2d_input, frequencies)
+        iw2d_result.save(iw2d_result_directory, attempt_merge=True, update_inplace=True)
         
     return Element(
         length=iw2d_result.input_object.length,
