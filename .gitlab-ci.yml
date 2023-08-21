@@ -1,7 +1,27 @@
+stages:
+  - test
+  - publish
+
+variables:
+  PY_IMAGE: python:3.9-slim-buster
+
 run_tests:
-  image: python:3.9-slim-buster
+  stage: test
+  image: $PY_IMAGE
   before_script:
     - pip install .
     - pip install pytest
   script:
     - pytest
+
+tagging:
+  stage: publish
+  script:
+    - git config --global user.name "${GITLAB_USER_NAME}"
+    - git config --global user.email "${GITLAB_USER_EMAIL}"
+    - tag=$(git log --format="%H" -n 1)
+    - git tag "v_$tag"
+    - git push --tags http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
+    - sleep 5
+    - git push --delete http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git "v_$tag"
+                      
