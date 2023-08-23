@@ -401,11 +401,11 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
         already_computed = False
         os.mkdir(directory_level_1)
 
-    elif not os.path.exists(directory_level_2):
+    if not os.path.exists(directory_level_2):
         already_computed = False
         os.mkdir(directory_level_2)
 
-    elif not os.path.exists(working_directory):
+    if not os.path.exists(working_directory):
         already_computed = False
         os.mkdir(working_directory)
 
@@ -418,15 +418,25 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
             if isinstance(iw2d_input, FlatIW2DInput):
                 components.append('zycst')
     else:
-        components = component_names.keys()
+        for component in component_names.keys():
+            # if the wake is computed, all keys from component_names dict are added, except the constant impedance/wake
+            # in first instance. If the simulation is a flat chamber, we add the vertical constant impedance/wake
+            if 'cst' not in component:
+                components.append(component)
+            if isinstance(iw2d_input, FlatIW2DInput):
+                components.append('wycst')
+                components.append('zycst')
 
-    # this list also includes the input file but it doesn't matter
-    computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
+    # The simulation seems to have been already computed, but we check if all the components of the impedance
+    # wake have been computed. If not, the computation will be relaunched
+    if already_computed:
+        # this list also includes the input file but it doesn't matter
+        computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
 
-    for component in components:
-        if component not in computed_components:
-            already_computed = False
-            break
+        for component in components:
+            if component not in computed_components:
+                already_computed = False
+                break
 
     if already_computed:
         print(f"The computation of '{name}' has already been performed with the exact given parameters. "
@@ -541,7 +551,12 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
         subprocess.run(f'{bin_path.joinpath(bin_string)} < input.txt', shell=True, cwd=working_directory)
 
-    component_recipes = import_data_iw2d(directory=working_directory, common_string='')
+    # When the wake is computed with IW2D, a second set of files is provided by IW2D. These correspond to a "converged"
+    # simulation with double the number of mesh points for the wake. They files have the _precise suffix to their name.
+    # If the wake is computed, we retrieve these file to create the pywit element.
+    common_string = "_precise" if iw2d_input.calculate_wake else ''
+
+    component_recipes = import_data_iw2d(directory=working_directory, common_string=common_string)
 
     iw2d_input_dict['comment'] = comment
     iw2d_input_dict['machine'] = machine
