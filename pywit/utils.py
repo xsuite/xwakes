@@ -26,7 +26,7 @@ def unique_sigfigs(arr: np.ndarray, sigfigs: int):
     are unique after rounding to a given number of significant digits.
     :param arr: An array of floats
     :param sigfigs: The number of significant digits (integer)
-    :return: the sorted arrays with unique elements
+    :return: the sorted array with unique elements
     """
     arr = np.unique(arr.flat)
     sorted_indices = np.argsort(arr.flat)
