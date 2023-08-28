@@ -7,7 +7,8 @@ from yaml import load, SafeLoader
 from typing import Tuple, Dict, List, Union, Sequence
 from collections import defaultdict
 
-from numpy import vectorize, sqrt, exp, pi, sin, cos, abs, sign, inf
+from numpy import (vectorize, sqrt, exp, pi, sin, cos, abs, sign,
+                   inf, floor, linspace, trapz, ones, isscalar, array)
 from numpy.typing import ArrayLike
 import scipy.constants
 from scipy import special as sp
@@ -405,7 +406,7 @@ def create_resistive_wall_single_layer_approx_component(plane: str, exponents: T
     else:
         impedance = lambda f: 0
 
-    return Component(impedance=vectorize(impedance), plane=plane, source_exponents=exponents[:2],
+    return Component(impedance=impedance, plane=plane, source_exponents=exponents[:2],
                      test_exponents=exponents[2:])
 
 
@@ -415,7 +416,7 @@ def create_resistive_wall_single_layer_approx_element(
             component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
             name: str = "", tag: str = "", description: str = "") -> Element:
     """
-    Creates a element object modeling a resistive wall impedance,
+    Creates an element object modeling a resistive wall impedance,
     based on the single-layer approximated formulas by E. Metral (see e.g.
     Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10, TUPD053,
     https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
@@ -438,7 +439,6 @@ def create_resistive_wall_single_layer_approx_element(
     :param tag: A string to tag the Element
     :param description: A description for the Element
     :return: An Element object representing the structure
-
     """
     components = []
     length = input_data.length
@@ -446,6 +446,248 @@ def create_resistive_wall_single_layer_approx_element(
         _, plane, exponents = component_names[component_id]
         components.append(create_resistive_wall_single_layer_approx_component(
                           plane, exponents, input_data))
+
+    return Element(length=length, beta_x=beta_x, beta_y=beta_y, components=components, name=name, tag=tag,
+                   description=description)
+
+
+def _zlong_round_taper_RW_approx(frequencies: ArrayLike, gamma: float,
+                                 layer: Layer, radius_small: float,
+                                 radius_large: float, length: float,
+                                 step_size: float = 1e-3) -> ArrayLike:
+    """
+    Function to compute the longitudinal resistive-wall impedance for a
+    round taper, integrating the radius-dependent approximated formula
+    for a cylindrical structure (see_zlong_round_single_layer_approx above),
+    over the length of the taper.
+    :param frequencies: the frequencies (array) (in Hz)
+    :param gamma: relativistic mass factor
+    :param layer: a layer with material properties (only resistivity,
+    relaxation time and magnetic susceptibility are taken into account
+    at this stage)
+    :param radius_small: the smallest radius of the taper (in m)
+    :param radius_large: the largest radius of the taper (in m)
+    :param length: the total length of the taper (in m)
+    :param step_size: the step size (in the radial direction) for the
+    integration (in m)
+    :return: the longitudinal impedance at these frequencies
+    """
+    if isscalar(frequencies):
+        frequencies = array(frequencies)
+    beta = sqrt(1.-1./gamma**2)
+    omega = 2*pi*frequencies.reshape((-1, 1))
+    k = omega/(beta*c_light)
+
+    rho = layer.dc_resistivity
+    tau = layer.resistivity_relaxation_time
+    mu1 = 1.+layer.magnetic_susceptibility
+    eps1 = 1. - 1j/(eps0*rho*omega*(1.+1j*omega*tau))
+    nu = k*sqrt(1.-beta**2*eps1*mu1)
+
+    coef_long = 1j*omega*mu0/(2.*pi*beta**2*gamma**2)
+
+    npts = int(floor(abs(radius_large-radius_small)/step_size)+1)
+    radii = linspace(radius_small, radius_large, npts).reshape((1, -1))
+    one_array = ones(radii.shape)
+
+    x1 = k.dot(radii)/gamma
+    x1sq = x1**2
+    x2 = nu.dot(radii)
+    zlong = (coef_long.dot(length / float(npts) * one_array) *
+             (sp.k0(x1) / sp.i0(x1) - 1. / (x1sq * (1. / 2. + eps1.dot(one_array) *
+                                            sp.kve(1, x2) / (x2 * sp.kve(0, x2)))))
+            )
+
+    return trapz(zlong, axis=1)
+
+
+def _zdip_round_taper_RW_approx(frequencies: ArrayLike, gamma: float,
+                                layer: Layer, radius_small: float,
+                                radius_large: float, length: float,
+                                step_size: float = 1e-3) -> ArrayLike:
+    """
+    Function to compute the transverse dip. resistive-wall impedance for a
+    round taper, integrating the radius-dependent approximated formula
+    for a cylindrical structure (see_zdip_round_single_layer_approx above),
+    over the length of the taper.
+    :param frequencies: the frequencies (array) (in Hz)
+    :param gamma: relativistic mass factor
+    :param layer: a layer with material properties (only resistivity,
+    relaxation time and magnetic susceptibility are taken into account
+    at this stage)
+    :param radius_small: the smallest radius of the taper (in m)
+    :param radius_large: the largest radius of the taper (in m)
+    :param length: the total length of the taper (in m)
+    :param step_size: the step size (in the radial direction) for the
+    integration (in m)
+    :return: the transverse dipolar impedance at these frequencies
+    """
+    if isscalar(frequencies):
+        frequencies = array(frequencies)
+    beta = sqrt(1.-1./gamma**2)
+    omega = 2*pi*frequencies.reshape((-1,1))
+    k = omega/(beta*c_light)
+
+    rho = layer.dc_resistivity
+    tau = layer.resistivity_relaxation_time
+    mu1 = 1.+layer.magnetic_susceptibility
+    eps1 = 1. - 1j/(eps0*rho*omega*(1.+1j*omega*tau))
+    nu = k*sqrt(1.-beta**2*eps1*mu1)
+
+    coef_dip = 1j*k**2*Z0/(4.*pi*beta*gamma**4)
+
+    npts = int(floor(abs(radius_large-radius_small)/step_size)+1)
+    radii = linspace(radius_small,radius_large,npts).reshape((1,-1))
+    one_array = ones(radii.shape)
+
+    x1 = k.dot(radii)/gamma
+    x1sq = x1**2
+    x2 = nu.dot(radii)
+    zdip = (
+            coef_dip.dot(length / float(npts) * one_array) *
+            (sp.k1(x1) / sp.i1(x1) + 4 * beta**2 * gamma**2 / (x1sq * (2 + x2 * sp.kve(0, x2) / (mu1 * sp.kve(1, x2)))))
+           )
+
+    return trapz(zdip, axis=1)
+
+
+def create_taper_RW_approx_component(plane: str, exponents: Tuple[int, int, int, int],
+                                     input_data: Union[FlatIW2DInput, RoundIW2DInput],
+                                     radius_small: float, radius_large: float,
+                                     step_size: float = 1e-3) -> Component:
+    """
+    Creates a single component object modeling a round or flat taper (flatness
+    along the horizontal direction, change of half-gap along the vertical one)
+    resistive-wall impedance, using the integration of the radius-dependent
+    approximated formula for a cylindrical structure (see
+    the above functions), over the length of the taper.
+    :param plane: the plane the component corresponds to
+    :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
+    :param input_data: an IW2D input object (flat or round). If the input
+    is of type FlatIW2DInput and symmetric, we apply to the round formula the
+    Yokoya factors for an infinitely flat structure (see e.g. K. Yokoya,
+    KEK Preprint 92-196 (1993), and Part. Accel. 41 (1993) pp.221-248,
+    https://cds.cern.ch/record/248630/files/p221.pdf),
+    while for a single plate we use those from A. Burov and V. Danilov,
+    PRL 82,11 (1999), https://doi.org/10.1103/PhysRevLett.82.2286. Other
+    kinds of asymmetric structure will raise an error.
+    If the input is of type RoundIW2DInput, the structure is in principle
+    round but the Yokoya factors put in the input will be used.
+    Note that the radius or half-gaps in input_data are not used (replaced
+    by the scan from radius_small to radius_large, for the integration).
+    :param radius_small: the smallest radius of the taper (in m)
+    :param radius_large: the largest radius of the taper (in m)
+    :param step_size: the step size (in the radial or vertical direction)
+    for the integration (in m)
+    :return: A component object
+    """
+    gamma = input_data.relativistic_gamma
+    length = input_data.length
+
+    if isinstance(input_data, FlatIW2DInput):
+        if len(input_data.top_layers) > 1:
+            raise NotImplementedError("Input data can have only one layer")
+        yok_long = 1.
+        layer = input_data.top_layers[0]
+        radius = input_data.top_half_gap
+        if input_data.top_bottom_symmetry:
+            yok_dipx = pi**2/24.
+            yok_dipy = pi**2/12.
+            yok_quax = -pi**2/24.
+            yok_quay = pi**2/24.
+        elif input_data.bottom_half_gap == inf:
+            yok_dipx = 0.25
+            yok_dipy = 0.25
+            yok_quax = -0.25
+            yok_quay = 0.25
+        else:
+            raise NotImplementedError("For asymmetric structures, only the case of a single plate is implemented; "
+                                      "hence the bottom half gap must be infinite")
+    elif isinstance(input_data, RoundIW2DInput):
+        radius = input_data.inner_layer_radius
+        if len(input_data.layers) > 1:
+            raise NotImplementedError("Input data can have only one layer")
+        layer = input_data.layers[0]
+        yok_long = input_data.yokoya_factors[0]
+        yok_dipx = input_data.yokoya_factors[1]
+        yok_dipy = input_data.yokoya_factors[2]
+        yok_quax = input_data.yokoya_factors[3]
+        yok_quay = input_data.yokoya_factors[4]
+    else:
+        raise NotImplementedError("Input of type neither FlatIW2DInput nor RoundIW2DInput cannot be handled")
+
+    # Longitudinal impedance
+    if plane == 'z' and exponents == (0, 0, 0, 0):
+        impedance = lambda f: yok_long*_zlong_round_taper_RW_approx(
+                        f, gamma, layer, radius_small, radius_large,
+                        length, step_size=step_size)
+    # Transverse impedances
+    elif plane == 'x' and exponents == (1, 0, 0, 0):
+        impedance = lambda f: yok_dipx*_zdip_round_taper_RW_approx(
+                        f, gamma, layer, radius_small, radius_large,
+                        length, step_size=step_size)
+    elif plane == 'y' and exponents == (0, 1, 0, 0):
+        impedance = lambda f: yok_dipy*_zdip_round_taper_RW_approx(
+                        f, gamma, layer, radius_small, radius_large,
+                        length, step_size=step_size)
+    elif plane == 'x' and exponents == (0, 0, 1, 0):
+        impedance = lambda f: yok_quax*_zdip_round_taper_RW_approx(
+                        f, gamma, layer, radius_small, radius_large,
+                        length, step_size=step_size)
+    elif plane == 'y' and exponents == (0, 0, 0, 1):
+        impedance = lambda f: yok_quay*_zdip_round_taper_RW_approx(
+                        f, gamma, layer, radius_small, radius_large,
+                        length, step_size=step_size)
+    else:
+        impedance = lambda f: 0
+
+    return Component(impedance=impedance, plane=plane, source_exponents=exponents[:2],
+                     test_exponents=exponents[2:])
+
+
+def create_taper_RW_approx_element(
+            input_data: Union[FlatIW2DInput, RoundIW2DInput],
+            beta_x: float, beta_y: float,
+            radius_small: float, radius_large: float, step_size: float=1e-3,
+            component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
+            name: str = "", tag: str = "", description: str = "") -> Element:
+    """
+    Creates an element object modeling a round or flat taper (flatness
+    along the horizontal direction, change of half-gap along the vertical one)
+    resistive-wall impedance, using the integration of the radius-dependent
+    approximated formula for a cylindrical structure (see
+    the above functions), over the length of the taper.
+    :param input_data: an IW2D input object (flat or round). If the input
+    is of type FlatIW2DInput and symmetric, we apply to the round formula the
+    Yokoya factors for an infinitely flat structure (see e.g. K. Yokoya,
+    KEK Preprint 92-196 (1993), and Part. Accel. 41 (1993) pp.221-248,
+    https://cds.cern.ch/record/248630/files/p221.pdf),
+    while for a single plate we use those from A. Burov and V. Danilov,
+    PRL 82,11 (1999), https://doi.org/10.1103/PhysRevLett.82.2286. Other
+    kinds of asymmetric structure will raise an error.
+    If the input is of type RoundIW2DInput, the structure is in principle round
+    but the Yokoya factors put in the input will be used.
+    Note that the radius or half-gaps in input_data are not used (replaced
+    by the scan from radius_small to radius_large, for the integration).
+    :param beta_x: The beta function in the x-plane at the position of the element
+    :param beta_y: The beta function in the y-plane at the position of the element
+    :param radius_small: the smallest radius of the taper (in m)
+    :param radius_large: the largest radius of the taper (in m)
+    :param step_size: the step size (in the radial or vertical direction)
+    for the integration (in m)
+    :param component_ids: a list of components to be computed
+    :param name: A user-specified name for the Element
+    :param tag: A string to tag the Element
+    :param description: A description for the Element
+    :return: An Element object representing the structure
+    """
+    components = []
+    length = input_data.length
+    for component_id in component_ids:
+        _, plane, exponents = component_names[component_id]
+        components.append(create_taper_RW_approx_component(plane=plane, exponents=exponents, input_data=input_data,
+                                                           radius_small=radius_small, radius_large=radius_large,
+                                                           step_size=step_size))
 
     return Element(length=length, beta_x=beta_x, beta_y=beta_y, components=components, name=name, tag=tag,
                    description=description)
