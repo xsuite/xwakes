@@ -1,53 +1,27 @@
 import pytest
 import numpy as np
 
-from pywit.landau_damping import dispersion_integral_2d, find_octupole_threshold
-from pywit.landau_damping import find_octupole_threshold_many_tune_shifts
-
-@pytest.fixture
-def tune_shift():
-    return -7.3622423693e-05-3.0188372754e-06j
+from pywit.landau_damping import dispersion_integral_2d, find_detuning_coeffs_threshold
+from pywit.landau_damping import find_detuning_coeffs_threshold_many_tune_shifts
 
 
-@pytest.fixture
-def b_direct_expected():
-    return 7.888357197059519e-05
-
-
-@pytest.fixture
-def b_cross_expected():
-    return -5.632222163778799e-05
-
-
-@pytest.fixture
-def i_expected():
-    return 550
-
-
-@pytest.fixture
-def q_s():
-    return 2e-3
-
-
-@pytest.fixture
-def polarity():
-    return 1
-
-
-def test_dispersion_integral_2d(tune_shift, b_direct_expected, b_cross_expected):
+def test_dispersion_integral_2d():
 
     distribution = 'gaussian'
+    tune_shift = -7.3622423693e-05-3.0188372754e-06j
+    b_direct = 7.888357197059519e-05
+    b_cross = -5.632222163778799e-05
 
     # reference value obtained with DELPHI
     expected_value = 7153.859519171599-2722.966574677259j
 
     assert np.isclose(np.real(expected_value), np.real(dispersion_integral_2d(tune_shift=tune_shift,
-                                                                              b_direct=b_direct_expected,
-                                                                              b_cross=b_cross_expected,
+                                                                              b_direct=b_direct,
+                                                                              b_cross=b_cross,
                                                                               distribution=distribution)))
     assert np.isclose(np.imag(expected_value), np.imag(dispersion_integral_2d(tune_shift=tune_shift,
-                                                                              b_direct=b_direct_expected,
-                                                                              b_cross=b_cross_expected,
+                                                                              b_direct=b_direct,
+                                                                              b_cross=b_cross,
                                                                               distribution=distribution)))
 
     distribution = 'parabolic'
@@ -56,60 +30,57 @@ def test_dispersion_integral_2d(tune_shift, b_direct_expected, b_cross_expected)
     expected_value = 6649.001778623455-3168.4257879737443j
 
     assert np.isclose(np.real(expected_value), np.real(dispersion_integral_2d(tune_shift=tune_shift,
-                                                                              b_direct=b_direct_expected,
-                                                                              b_cross=b_cross_expected,
+                                                                              b_direct=b_direct,
+                                                                              b_cross=b_cross,
                                                                               distribution=distribution)))
     assert np.isclose(np.imag(expected_value), np.imag(dispersion_integral_2d(tune_shift=tune_shift,
-                                                                              b_direct=b_direct_expected,
-                                                                              b_cross=b_cross_expected,
+                                                                              b_direct=b_direct,
+                                                                              b_cross=b_cross,
                                                                               distribution=distribution)))
 
 
-def test_find_octupole_threshold(tune_shift, q_s):
+def test_find_detuning_coeffs_threshold():
     # reference values obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
     # test positive octupole polarity
-    b_direct_expected = 1.980315192200037e-05
-    b_cross_expected = -1.4139287608495406e-05
-    assert np.isclose(b_direct_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                 b_direct_ref=b_direct_expected,
-                                                                 b_cross_ref=b_cross_expected)[0])
-    assert np.isclose(b_cross_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                b_direct_ref=b_direct_expected,
-                                                                b_cross_ref=b_cross_expected)[1])
+    tune_shift = -7.3622423693e-05 - 3.0188372754e-06j
+    q_s = 2e-3
+    b_direct = 1.980315192200037e-05
+    b_cross = -1.4139287608495406e-05
+    assert np.isclose(b_direct, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
+                                                               b_cross_ref=b_cross)[0])
+    assert np.isclose(b_cross, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
+                                                              b_cross_ref=b_cross)[1])
     # test negative octupole polarity
-    b_direct_expected = -1.2718161244917965e-05
-    b_cross_expected = 9.08066253298482e-06
-    print(find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                 b_direct_ref=b_direct_expected,
-                                                                 b_cross_ref=b_cross_expected)[0])
-    assert np.isclose(b_direct_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                 b_direct_ref=b_direct_expected,
-                                                                 b_cross_ref=b_cross_expected)[0])
-    assert np.isclose(b_cross_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                b_direct_ref=b_direct_expected,
-                                                                b_cross_ref=b_cross_expected)[1])
+    b_direct = -1.2718161244917965e-05
+    b_cross = 9.08066253298482e-06
+
+    assert np.isclose(b_direct, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
+                                                               b_cross_ref=b_cross)[0])
+    assert np.isclose(b_cross, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
+                                                              b_cross_ref=b_cross)[1])
 
 
-def test_find_octupole_threshold_many_tune_shifts(tune_shift, q_s):
+def test_find_detuning_coeffs_threshold_many_tune_shifts():
     # reference values obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
-    # test positive octupole polarity
-    b_direct_expected = 3.960630384598084e-05
-    b_cross_expected = -2.8278575218404585e-05
-
+    tune_shift = -7.3622423693e-05 - 3.0188372754e-06j
+    q_s = 2e-3
     tune_shifts = [np.nan, tune_shift, 2*tune_shift]
 
-    assert np.isclose(b_direct_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                                  b_direct_ref=b_direct_expected,
-                                                                                  b_cross_ref=b_cross_expected)[0])
-    assert np.isclose(b_cross_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                                 b_direct_ref=b_direct_expected,
-                                                                                 b_cross_ref=b_cross_expected)[1])
+    # test positive octupole polarity
+    b_direct = 3.960630384598084e-05
+    b_cross = -2.8278575218404585e-05
+    assert np.isclose(b_direct, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
+                                                                                b_direct_ref=b_direct,
+                                                                                b_cross_ref=b_cross)[0])
+    assert np.isclose(b_cross, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
+                                                                               b_direct_ref=b_direct,
+                                                                               b_cross_ref=b_cross)[1])
     # test negative octupole polarity
-    b_direct_expected = -2.5436322491034757e-05
-    b_cross_expected = 1.816132506682559e-05
-    assert np.isclose(b_direct_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                                  b_direct_ref=-b_direct_expected,
-                                                                                  b_cross_ref=-b_cross_expected)[0])
-    assert np.isclose(b_cross_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                                 b_direct_ref=-b_direct_expected,
-                                                                                 b_cross_ref=-b_cross_expected)[1])
+    b_direct = -2.5436322491034757e-05
+    b_cross = 1.816132506682559e-05
+    assert np.isclose(b_direct, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
+                                                                                b_direct_ref=b_direct,
+                                                                                b_cross_ref=b_cross)[0])
+    assert np.isclose(b_cross, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
+                                                                               b_direct_ref=b_direct,
+                                                                               b_cross_ref=b_cross)[1])

@@ -5,7 +5,8 @@ from scipy.optimize import newton
 from typing import Sequence
 
 
-def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: float, distribution: str = 'gaussian'):
+def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: float,
+                           distribution: str = 'gaussian'):
     """
     Compute the dispersion integral in 2D from q complex tune shift, given the detuning coefficients (multiplied by
     sigma). This is the integral vs Jx and Jy of Jx*dphi/dJx/(Q-bx*Jx-bxy*Jy-i0) (with phi the distribution function)
@@ -58,9 +59,9 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
     return -i
 
 
-def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, b_cross_ref: float,
-                            fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                            distribution: str = 'gaussian', relative_tolerance=1e-10):
+def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref: float, b_cross_ref: float,
+                                   fraction_of_qs_allowed_on_positive_side: float = 0.05,
+                                   distribution: str = 'gaussian', relative_tolerance=1e-10):
     """
     Find the octupole threshold from a complex tune shift, given the detuning coefficients (multiplied by sigma).
     Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
@@ -113,10 +114,10 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
     return b_direct_new, b_ratio*b_direct_new
 
 
-def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float,
-                                             b_cross_ref: float, distribution: str = 'gaussian',
-                                             fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                                             relative_tolerance=1e-10):
+def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[complex], q_s: float, b_direct_ref: float,
+                                                    b_cross_ref: float, distribution: str = 'gaussian',
+                                                    fraction_of_qs_allowed_on_positive_side: float = 0.05,
+                                                    relative_tolerance=1e-10):
     """
     Compute the maximum octupole threshold for a sequence of complex tune shifts. It assumes that the focusing and
     defocusing octupole currents have the same absolute value.
@@ -132,14 +133,13 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     :param relative_tolerance: relative tolerance for Newton's root finding
     """
     # find max octupole current required from a list of modes, given their tuneshifts
-    b_coefficients = np.array([find_octupole_threshold(
-        tune_shift=tune_shifts, q_s=q_s, b_direct_ref=b_direct_ref,
+    print([tune_shift for tune_shift in tune_shifts if tune_shift is not np.nan])
+    b_coefficients = np.array([find_detuning_coeffs_threshold(
+        tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
         b_cross_ref=b_cross_ref, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
-        relative_tolerance=relative_tolerance
-                                             )])
+        relative_tolerance=relative_tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
 
-    inds_b_direct_not_nan = np.array([b_direct != np.nan for b_direct, _ in b_coefficients])
-    ind_b_direct_max = np.argmax(abs(b_coefficients[inds_b_direct_not_nan]))
+    ind_b_direct_max = np.argmax([abs(b_direct) for b_direct, _ in b_coefficients])
 
-    return b_coefficients[inds_b_direct_not_nan][ind_b_direct_max]
+    return b_coefficients[ind_b_direct_max]
