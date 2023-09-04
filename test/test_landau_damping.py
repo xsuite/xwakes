@@ -65,8 +65,9 @@ def test_dispersion_integral_2d(tune_shift, b_direct_expected, b_cross_expected)
                                                                               distribution=distribution)))
 
 
-def test_find_octupole_threshold(tune_shift, b_direct_expected, b_cross_expected, i_expected, q_s):
-    # reference value obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
+def test_find_octupole_threshold(tune_shift, q_s):
+    # reference values obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
+    # test positive octupole polarity
     b_direct_expected = 1.980315192200037e-05
     b_cross_expected = -1.4139287608495406e-05
     assert np.isclose(b_direct_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
@@ -75,24 +76,27 @@ def test_find_octupole_threshold(tune_shift, b_direct_expected, b_cross_expected
     assert np.isclose(b_cross_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
                                                                 b_direct_ref=b_direct_expected,
                                                                 b_cross_ref=b_cross_expected)[1])
-    # reference value obtained with the old impedance wake model
+    # test negative octupole polarity
     b_direct_expected = -1.2718161244917965e-05
     b_cross_expected = 9.08066253298482e-06
-
+    print(find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                 b_direct_ref=b_direct_expected,
+                                                                 b_cross_ref=b_cross_expected)[0])
     assert np.isclose(b_direct_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                 b_direct_ref=-b_direct_expected,
-                                                                 b_cross_ref=-b_cross_expected)[0])
+                                                                 b_direct_ref=b_direct_expected,
+                                                                 b_cross_ref=b_cross_expected)[0])
     assert np.isclose(b_cross_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                b_direct_ref=-b_direct_expected,
-                                                                b_cross_ref=-b_cross_expected)[1])
+                                                                b_direct_ref=b_direct_expected,
+                                                                b_cross_ref=b_cross_expected)[1])
 
 
-def test_find_octupole_threshold_many_tune_shifts(tune_shift, b_direct_expected, b_cross_expected, i_expected, q_s):
-    # reference value obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
+def test_find_octupole_threshold_many_tune_shifts(tune_shift, q_s):
+    # reference values obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
+    # test positive octupole polarity
     b_direct_expected = 3.960630384598084e-05
     b_cross_expected = -2.8278575218404585e-05
 
-    tune_shifts = [tune_shift, 2*tune_shift, np.nan]
+    tune_shifts = [np.nan, tune_shift, 2*tune_shift]
 
     assert np.isclose(b_direct_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
                                                                                   b_direct_ref=b_direct_expected,
@@ -100,7 +104,7 @@ def test_find_octupole_threshold_many_tune_shifts(tune_shift, b_direct_expected,
     assert np.isclose(b_cross_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
                                                                                  b_direct_ref=b_direct_expected,
                                                                                  b_cross_ref=b_cross_expected)[1])
-    # reference value obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
+    # test negative octupole polarity
     b_direct_expected = -2.5436322491034757e-05
     b_cross_expected = 1.816132506682559e-05
     assert np.isclose(b_direct_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
