@@ -63,7 +63,9 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
                                    fraction_of_qs_allowed_on_positive_side: float = 0.05,
                                    distribution: str = 'gaussian', relative_tolerance=1e-10):
     """
-    Find the octupole threshold from a complex tune shift, given the detuning coefficients (multiplied by sigma).
+    Compute the detuning coefficients (multiplied by sigma) corresponding to stability diagram threshold for a complex
+    tune shift.
+    It keeps fixed the ratio between b_direct_ref and b_cross_ref.
     Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
     It assumes that the focusing and defocusing octupole currents have the same absolute value.
     :param tune_shift: the tune shift for which the octupole threshold is computed
@@ -76,8 +78,9 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
     :param relative_tolerance: relative tolerance for Newton's root finding
-    :return: the octupole threshold if the corresponding mode is unstable, 0 if the corresponding mode is stable or
-     'not found' if the threshold cannot be found (failure of Newton's algorithm).
+    :return: the detuning coeffecients corresponding to the stability diagram  threshold if the corresponding mode is
+    unstable, 0 if the corresponding mode is stable or 'not found' if the threshold cannot be found (failure of Newton's
+    algorithm).
     """
     # evaluate azimuthal mode number
     l_mode = int(np.ceil(np.real(tune_shift) / q_s))
@@ -119,8 +122,8 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
                                                     fraction_of_qs_allowed_on_positive_side: float = 0.05,
                                                     relative_tolerance=1e-10):
     """
-    Compute the maximum octupole threshold for a sequence of complex tune shifts. It assumes that the focusing and
-    defocusing octupole currents have the same absolute value.
+    Compute the detuning coefficients corresponding to the most stringent stability diagram threshold for a sequence of
+    complex tune shifts. It keeps fixed the ratio between b_direct_ref and b_cross_ref.
     :param tune_shifts: the sequence of complex tune shifts
     :param q_s: the synchrotron tune
     :param b_direct_ref: the direct detuning coefficient multiplied by sigma (i.e. $\alpha_x \sigma_x$ if working in
@@ -131,15 +134,17 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
     :param relative_tolerance: relative tolerance for Newton's root finding
+    :return: the detuning coefficients corresponding to the most stringent stability diagram threshold for all the
+    given tune shifts if the corresponding mode is unstable, 0 if the corresponding mode is stable or 'not found' if the
+    threshold cannot be found (failure of Newton's algorithm).
     """
     # find max octupole current required from a list of modes, given their tuneshifts
-    print([tune_shift for tune_shift in tune_shifts if tune_shift is not np.nan])
     b_coefficients = np.array([find_detuning_coeffs_threshold(
         tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
         b_cross_ref=b_cross_ref, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
         relative_tolerance=relative_tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
 
-    ind_b_direct_max = np.argmax([abs(b_direct) for b_direct, _ in b_coefficients])
+    i_max = np.argmax([abs(b_direct) for b_direct, _ in b_coefficients if b_direct is not None])
 
-    return b_coefficients[ind_b_direct_max]
+    return b_coefficients[i_max]
