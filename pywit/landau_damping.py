@@ -132,12 +132,14 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     :param relative_tolerance: relative tolerance for Newton's root finding
     """
     # find max octupole current required from a list of modes, given their tuneshifts
-    b_coefficients = [find_octupole_threshold(
-        tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
+    b_coefficients = np.array([find_octupole_threshold(
+        tune_shift=tune_shifts, q_s=q_s, b_direct_ref=b_direct_ref,
         b_cross_ref=b_cross_ref, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
         relative_tolerance=relative_tolerance
-                                             )
-                      for tune_shift in tune_shifts if not np.isnan(tune_shift)]
+                                             )])
 
-    return np.max([abs(b_direct) for b_direct, _ in b_coefficients if b_direct != np.nan])
+    inds_b_direct_not_nan = np.array([b_direct != np.nan for b_direct, _ in b_coefficients])
+    ind_b_direct_max = np.argmax(abs(b_coefficients[inds_b_direct_not_nan]))
+
+    return b_coefficients[inds_b_direct_not_nan][ind_b_direct_max]
