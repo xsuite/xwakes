@@ -60,7 +60,7 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
 
 def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, b_cross_ref: float,
                             fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                            distribution: str = 'gaussian'):
+                            distribution: str = 'gaussian', relative_tolerance=1e-10):
     """
     Find the octupole threshold from a complex tune shift, given the detuning coefficients (multiplied by sigma).
     Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
@@ -74,6 +74,7 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
+    :param relative_tolerance: relative tolerance for Newton's root finding
     :return: the octupole threshold if the corresponding mode is unstable, 0 if the corresponding mode is stable or
      'not found' if the threshold cannot be found (failure of Newton's algorithm).
     """
@@ -104,7 +105,7 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
         except RuntimeError:
             b_direct_new = np.nan
         else:
-            if np.abs(f(b_direct_new)) > 1e-10:
+            if np.abs(f(b_direct_new)) > relative_tolerance:
                 b_direct_new = np.nan
     else:
         b_direct_new = 0.
