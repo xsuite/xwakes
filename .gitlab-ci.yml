@@ -21,9 +21,9 @@ tagging:
     - git config --global user.email "${GITLAB_USER_EMAIL}"
     - tag=$(date +%'Y')$(date +'%m')$(date +'%d')$(date +'%H')$(date +'%M')$(date +'%S')$(date +'%N')
     - git tag "v_$tag"
-    - git push --tags http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
+    - git push --tags https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git
     - sleep 5
-    - git push --delete http://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git "v_$tag"
+    - git push --delete https://root:$ACCESS_TOKEN@$CI_SERVER_HOST/$CI_PROJECT_PATH.git "v_$tag"
   rules:
     - if: $CI_COMMIT_TAG
       when: never
