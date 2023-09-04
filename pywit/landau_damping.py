@@ -67,7 +67,6 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     tune shift.
     It keeps fixed the ratio between b_direct_ref and b_cross_ref.
     Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
-    It assumes that the focusing and defocusing octupole currents have the same absolute value.
     :param tune_shift: the tune shift for which the octupole threshold is computed
     :param q_s: the synchrotron tune
     :param b_direct_ref: the direct detuning coefficient multiplied by sigma (i.e. $\alpha_x \sigma_x$ if working in
@@ -79,7 +78,7 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
     :param relative_tolerance: relative tolerance for Newton's root finding
     :return: the detuning coeffecients corresponding to the stability diagram  threshold if the corresponding mode is
-    unstable, 0 if the corresponding mode is stable or 'not found' if the threshold cannot be found (failure of Newton's
+    unstable, 0 if the corresponding mode is stable or np.nan if the threshold cannot be found (failure of Newton's
     algorithm).
     """
     # evaluate azimuthal mode number
@@ -142,8 +141,8 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
     :param relative_tolerance: relative tolerance for Newton's root finding
     :return: the detuning coefficients corresponding to the most stringent stability diagram threshold for all the
-    given tune shifts if the corresponding mode is unstable, 0 if the corresponding mode is stable or 'not found' if the
-    threshold cannot be found (failure of Newton's algorithm).
+    given tune shifts if the corresponding mode is unstable, 0 if all modes are stable or np.nan if the
+    no threshold can be found (failure of Newton's algorithm).
     """
     # find max octupole current required from a list of modes, given their tuneshifts
     b_coefficients = np.array([find_detuning_coeffs_threshold(
