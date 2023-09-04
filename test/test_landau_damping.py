@@ -62,7 +62,7 @@ def test_dispersion_integral_2d(tune_shift, b_direct_ref, b_cross_ref):
 
 
 def test_find_octupole_threshold(tune_shift, b_direct_ref, b_cross_ref, i_ref, q_s):
-    # reference value obtained with the old impedance wake model
+    # reference value obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
     b_direct_expected = 1.980315192200037e-05
     b_cross_expected = -1.4139287608495406e-05
     assert np.isclose(b_direct_expected, find_octupole_threshold(tune_shift=tune_shift, q_s=q_s,
@@ -84,7 +84,7 @@ def test_find_octupole_threshold(tune_shift, b_direct_ref, b_cross_ref, i_ref, q
 
 
 def test_find_octupole_threshold_many_tune_shifts(tune_shift, b_direct_ref, b_cross_ref, i_ref, q_s):
-    # reference value obtained with the old impedance wake model
+    # reference value obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
     b_direct_expected = 3.960630384598084e-05
     b_cross_expected = -2.8278575218404585e-05
 
@@ -96,7 +96,7 @@ def test_find_octupole_threshold_many_tune_shifts(tune_shift, b_direct_ref, b_cr
     assert np.isclose(b_cross_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
                                                                                  b_direct_ref=b_direct_ref,
                                                                                  b_cross_ref=b_cross_ref)[1])
-    # reference value obtained with the old impedance wake model
+    # reference value obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
     b_direct_expected = -2.5436322491034757e-05
     b_cross_expected = 1.816132506682559e-05
     assert np.isclose(b_direct_expected, find_octupole_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
