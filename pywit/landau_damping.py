@@ -136,6 +136,4 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
                                              )
                       for tune_shift in tune_shifts if not np.isnan(tune_shift)]
 
-    ind_b_direct_max = np.argmax([abs(b_direct) for b_direct, _ in b_coefficients if b_direct != np.nan])
-
-    return b_coefficients[ind_b_direct_max]
+    return np.max([abs(b_direct) for b_direct, _ in b_coefficients if b_direct != np.nan])
