@@ -66,7 +66,6 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     Compute the detuning coefficients (multiplied by sigma) corresponding to stability diagram threshold for a complex
     tune shift.
     It keeps fixed the ratio between b_direct_ref and b_cross_ref.
-    Returns 0 if the mode is stable, and 'not found' if the threshold cannot be found (failure of Newton's algorithm).
     :param tune_shift: the tune shift for which the octupole threshold is computed
     :param q_s: the synchrotron tune
     :param b_direct_ref: the direct detuning coefficient multiplied by sigma (i.e. $\alpha_x \sigma_x$ if working in
