@@ -2,7 +2,7 @@ import numpy as np
 from scipy.special import exp1
 from scipy.optimize import newton
 
-from typing import Sequence
+from typing import Sequence, Tuple
 
 
 def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: float,
@@ -117,6 +117,13 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     return b_direct_new, b_ratio*b_direct_new
 
 
+def abs_first_item_or_nan(tup: Tuple):
+    if tup is not np.nan:
+        return abs(tup[0])
+    else:
+        return np.nan
+
+
 def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[complex], q_s: float, b_direct_ref: float,
                                                     b_cross_ref: float, distribution: str = 'gaussian',
                                                     fraction_of_qs_allowed_on_positive_side: float = 0.05,
@@ -145,6 +152,4 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
         relative_tolerance=relative_tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
 
-    i_max = np.argmax([abs(b_direct) for b_direct, _ in b_coefficients if b_direct is not None])
-
-    return b_coefficients[i_max]
+    return max(b_coefficients, key=abs_first_item_or_nan)
