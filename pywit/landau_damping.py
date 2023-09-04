@@ -61,7 +61,7 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
 
 def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref: float, b_cross_ref: float,
                                    fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                                   distribution: str = 'gaussian', relative_tolerance=1e-10):
+                                   distribution: str = 'gaussian', tolerance=1e-10):
     """
     Compute the detuning coefficients (multiplied by sigma) corresponding to stability diagram threshold for a complex
     tune shift.
@@ -75,8 +75,9 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
-    :param relative_tolerance: relative tolerance for Newton's root finding
-    :return: the detuning coeffecients corresponding to the stability diagram  threshold if the corresponding mode is
+    :param tolerance: tolerance on difference w.r.t stability diagram, for Newton's root finding
+    and for the final check that the roots are actually proper roots.
+    :return: the detuning coefficients corresponding to the stability diagram threshold if the corresponding mode is
     unstable, 0 if the corresponding mode is stable or np.nan if the threshold cannot be found (failure of Newton's
     algorithm).
     """
@@ -103,11 +104,11 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
 
         # Newton root finding
         try:
-            b_direct_new = newton(f, b_direct_ref, tol=1e-10)
+            b_direct_new = newton(f, b_direct_ref, tol=tolerance)
         except RuntimeError:
             b_direct_new = np.nan
         else:
-            if np.abs(f(b_direct_new)) > relative_tolerance:
+            if np.abs(f(b_direct_new)) > tolerance:
                 b_direct_new = np.nan
     else:
         b_direct_new = 0.
@@ -125,7 +126,7 @@ def abs_first_item_or_nan(tup: Tuple):
 def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[complex], q_s: float, b_direct_ref: float,
                                                     b_cross_ref: float, distribution: str = 'gaussian',
                                                     fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                                                    relative_tolerance=1e-10):
+                                                    tolerance=1e-10):
     """
     Compute the detuning coefficients corresponding to the most stringent stability diagram threshold for a sequence of
     complex tune shifts. It keeps fixed the ratio between b_direct_ref and b_cross_ref.
@@ -138,7 +139,8 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
-    :param relative_tolerance: relative tolerance for Newton's root finding
+    :param tolerance: tolerance on difference w.r.t stability diagram, for Newton's root finding
+    and for the final check that the roots are actually proper roots.
     :return: the detuning coefficients corresponding to the most stringent stability diagram threshold for all the
     given tune shifts if the corresponding mode is unstable, 0 if all modes are stable or np.nan if the
     no threshold can be found (failure of Newton's algorithm).
@@ -148,6 +150,6 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
         tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
         b_cross_ref=b_cross_ref, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
-        relative_tolerance=relative_tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
+        tolerance=tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
 
     return max(b_coefficients, key=abs_first_item_or_nan)
