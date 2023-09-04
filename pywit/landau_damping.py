@@ -113,8 +113,7 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
 
 
 def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float,
-                                             b_cross_ref: float, use_newton: bool = True,
-                                             distribution: str = 'gaussian',
+                                             b_cross_ref: float, distribution: str = 'gaussian',
                                              fraction_of_qs_allowed_on_positive_side: float = 0.05):
     """
     Compute the maximum octupole threshold for a sequence of complex tune shifts. It assumes that the focusing and
@@ -125,8 +124,6 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
-    :param use_newton: if True, solve for the octupole current using Newton's algorithm (default), if False, do a simple
-    estimate
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
@@ -134,7 +131,7 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     # find max octupole current required from a list of modes, given their tuneshifts
     b_coefficients = [find_octupole_threshold(
         tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
-        b_cross_ref=b_cross_ref, use_newton=use_newton, distribution=distribution,
+        b_cross_ref=b_cross_ref, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side
                                              )
                       for tune_shift in tune_shifts if not np.isnan(tune_shift)]
