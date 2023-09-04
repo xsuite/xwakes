@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pywit.parameters import *
-from pywit.utils import round_sigfigs
+from pywit.utils import unique_sigfigs
 
 from typing import Optional, Callable, Tuple, Union, List
 
@@ -24,20 +24,20 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
                  of each region of interest.
     :return: An array with the sampling obtained.
     """
-    intervals = [np.linspace(max(i,start), min(f,stop), fine_points)
+    intervals = [np.linspace(max(i, start), min(f, stop), fine_points)
                  for i, f in rois
                  if (start <= i <= stop or start <= f <= stop)]
     fine_sampling_rois = np.hstack(intervals) if intervals else np.array([])
     rough_sampling = np.geomspace(start, stop, rough_points)
 
-    return np.sort(list(set(round_sigfigs(
-            snp.merge(fine_sampling_rois,rough_sampling),7))))
+    return unique_sigfigs(snp.merge(fine_sampling_rois, rough_sampling), 7)
 
 
 class Component:
     """
     A data structure representing the impedance- and wake functions of some Component in a specified plane.
     """
+
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None, plane: str = '',
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
@@ -281,8 +281,8 @@ class Component:
         # for all of these components are sufficiently close. If they are, True is returned, otherwise, False is
         # returned.
         xs = np.linspace(1, 10000, 50)
-        return np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and \
-               np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL)
+        return (np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and
+                np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL))
 
     def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ,
                            stop: float = MAX_FREQ,
@@ -308,15 +308,15 @@ class Component:
         if len(self.f_rois) == 0:
             xs = np.geomspace(start, stop, rough_points)
             return xs, self.impedance(xs)
-        
+
         # eliminate duplicates
         f_rois_no_dup = set(self.f_rois)
 
-        fine_points_per_roi = int(round(rough_points*precision_factor))
+        fine_points_per_roi = int(round(rough_points * precision_factor))
 
         xs = mix_fine_and_rough_sampling(start, stop, rough_points,
                                          fine_points_per_roi,
-                                         f_rois_no_dup)
+                                         list(f_rois_no_dup))
 
         return xs, self.impedance(xs)
 
@@ -348,17 +348,19 @@ class Component:
         # eliminate duplicates
         t_rois_no_dup = set(self.t_rois)
 
-        fine_points_per_roi = int(round(rough_points*precision_factor))
+        fine_points_per_roi = int(round(rough_points * precision_factor))
 
         xs = mix_fine_and_rough_sampling(start, stop, rough_points,
                                          fine_points_per_roi,
-                                         t_rois_no_dup)
+                                         list(t_rois_no_dup))
 
         return xs, self.wake(xs)
 
     def discretize(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
-                   time_start: float = MIN_TIME, time_stop: float = MAX_TIME, freq_precision_factor: float = FREQ_P_FACTOR,
-                   time_precision_factor: float = TIME_P_FACTOR) -> Tuple[Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
+                   time_start: float = MIN_TIME, time_stop: float = MAX_TIME,
+                   freq_precision_factor: float = FREQ_P_FACTOR,
+                   time_precision_factor: float = TIME_P_FACTOR) -> Tuple[
+        Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         """
         Combines the two discretization-functions in order to fully discretize the wake and impedance of the object
         as specified by a number of parameters.

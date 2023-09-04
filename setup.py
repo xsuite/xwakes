@@ -61,4 +61,5 @@ setup(
     python_requires=">=3.7",
     install_requires=requirements["core"],
     extras_require=requirements,
+    package_data={'pywit': ['materials.json']},
 )

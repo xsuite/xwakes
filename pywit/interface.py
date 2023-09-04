@@ -1,16 +1,16 @@
+import os
+
 from pywit.component import Component
 from pywit.element import Element
 
-import pickle
 import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union
-from os import listdir, makedirs
 from dataclasses import dataclass
 from pathlib import Path
 from hashlib import sha256
 
 import numpy as np
-from yaml import load, BaseLoader, dump
+from yaml import load, BaseLoader
 from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 
@@ -34,6 +34,24 @@ component_names = {'wlong': (False, 'z', (0, 0, 0, 0)),
 
 # The parent directory of this file
 IW2D_SETTINGS_PATH = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_settings.yaml')
+
+
+def get_component_name(is_impedance, plane, exponents):
+    """
+    Get the component name from is_impedance, plane and exponents (doing the
+    reverse operation of the dictionary in component_names)
+    :param is_impedance: True for impedance component, False for wake
+    :param plane: plane ('x', 'y' or 'z')
+    :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
+    :return: str with component name (e.g. 'zydip' or 'wxqua')
+    """
+    comp_list = [comp_name for comp_name, v in component_names.items()
+                 if v == (is_impedance, plane, exponents)]
+    if len(comp_list) != 1:
+        raise ValueError(f"({is_impedance},{plane},{exponents}) cannot be found in"
+                         " the values of component_names dictionary")
+
+    return comp_list[0]
 
 
 def get_iw2d_config_value(key: str) -> Any:
@@ -61,7 +79,7 @@ def import_data_iw2d(directory: Union[str, Path],
     seen_configs = []
 
     # A list of all of the filenames in the user-specified directory
-    filenames = listdir(directory)
+    filenames = os.listdir(directory)
     for i, filename in enumerate(filenames):
         # If the string preceding ".dat" in the filename does not match common_string, or if the first 5 letters
         # of the filename are not recognized as a type of impedance/wake, the file is skipped
@@ -122,7 +140,7 @@ def create_component_from_data(is_impedance: bool, plane: str, exponents: Tuple[
                      wake=(None if is_impedance else func),
                      plane=plane,
                      source_exponents=exponents[:2],
-                     test_exponents=exponents[2:],)
+                     test_exponents=exponents[2:], )
 
 
 @dataclass(frozen=True, eq=True)
@@ -164,6 +182,7 @@ class _IW2DInputBase:
     calculate_wake: bool
     f_params: Sampling
 
+
 @dataclass(frozen=True, eq=True)
 class _IW2DInputOptional:
     z_params: Optional[Sampling] = None
@@ -172,9 +191,11 @@ class _IW2DInputOptional:
     freq_lin_bisect: Optional[float] = None
     comment: Optional[str] = None
 
+
 @dataclass(frozen=True, eq=True)
 class IW2DInput(_IW2DInputOptional, _IW2DInputBase):
     pass
+
 
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputBase(_IW2DInputBase):
@@ -183,9 +204,11 @@ class _RoundIW2DInputBase(_IW2DInputBase):
     # (long, xdip, ydip, xquad, yquad)
     yokoya_factors: Tuple[float, float, float, float, float]
 
+
 @dataclass(frozen=True, eq=True)
 class _RoundIW2DInputOptional(_IW2DInputOptional):
     pass
+
 
 @dataclass(frozen=True, eq=True)
 class RoundIW2DInput(_RoundIW2DInputOptional, _RoundIW2DInputBase):
@@ -198,10 +221,12 @@ class _FlatIW2DInputBase(_IW2DInputBase):
     top_layers: Tuple[Layer]
     top_half_gap: float
 
+
 @dataclass(frozen=True, eq=True)
 class _FlatIW2DInputOptional(_IW2DInputOptional):
     bottom_layers: Optional[Tuple[Layer]] = None
     bottom_half_gap: Optional[float] = None
+
 
 @dataclass(frozen=True, eq=True)
 class FlatIW2DInput(_FlatIW2DInputOptional, _FlatIW2DInputBase):
@@ -214,7 +239,6 @@ def _iw2d_format_layer(layer: Layer, n: int) -> str:
     Intended only as a helper-function for create_iw2d_input_file.
     :param layer: A Layer object
     :param n: The 1-indexed index of the layer
-    :param thickness: The thickness of the given layer
     :return: A string on the correct format for IW2D
     """
     return (f"Layer {n} DC resistivity (Ohm.m):\t{layer.dc_resistivity}\n"
@@ -284,7 +308,7 @@ def _iw2d_format_z_params(params: Sampling) -> str:
     return "\n".join(lines) + "\n"
 
 
-def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) -> None:
+def create_iw2d_input_file(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], filename: Union[str, Path]) -> None:
     """
     Writes an IW2DInput object to the specified filename using the appropriate format for interfacing with the IW2D
     software.
@@ -346,52 +370,196 @@ def create_iw2d_input_file(iw2d_input: IW2DInput, filename: Union[str, Path]) ->
     file.close()
 
 
-def create_element_using_iw2d(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, tag: str = 'IW2D') -> Element:
+def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
+                           name: str) -> Tuple[bool, str, Union[str, Path]]:
+    """
+    Checks if a simulation with inputs iw2d_input is already present in the hash database.
+    :param iw2d_input: an iw2d input object
+    :param name: the name of the object
+    :return already_computed: boolean indicating if the iw2d_inputs have been already
+    computed
+    :return input_hash: string with the hash key corresponding to the inputs
+    :return working_directory: the path to the directory where the files were put, which is built as
+    `<first_two_characters_of_the_hash>/<next_two_characters>/<rest of the hash>
+    """
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+
+    # initialize read ready to all False for convenience
+    # create the hash key
+    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
+
+    # we have three levels of directories: the first two are given by the first and second letters of the hash keys,
+    # the third is given by the rest of the hash keys.
+    directory_level_1 = projects_path.joinpath(input_hash[0:2])
+    directory_level_2 = directory_level_1.joinpath(input_hash[2:4])
+    working_directory = directory_level_2.joinpath(input_hash[4:])
+
+    already_computed = True
+
+    # check if the directories exist. If they do not exist we create
+    if not os.path.exists(directory_level_1):
+        already_computed = False
+        os.mkdir(directory_level_1)
+
+    if not os.path.exists(directory_level_2):
+        already_computed = False
+        os.mkdir(directory_level_2)
+
+    if not os.path.exists(working_directory):
+        already_computed = False
+        os.mkdir(working_directory)
+
+    components = []
+    if not iw2d_input.calculate_wake:
+        for component in component_names.keys():
+            # the ycst component is only given in the case of a flat chamber and the x component is never given
+            if component.startswith('z') and 'cst' not in component:
+                components.append(component)
+            if isinstance(iw2d_input, FlatIW2DInput):
+                components.append('zycst')
+    else:
+        for component in component_names.keys():
+            # if the wake is computed, all keys from component_names dict are added, except the constant impedance/wake
+            # in first instance. If the simulation is a flat chamber, we add the vertical constant impedance/wake
+            if 'cst' not in component:
+                components.append(component)
+            if isinstance(iw2d_input, FlatIW2DInput):
+                components.append('wycst')
+                components.append('zycst')
+
+    # The simulation seems to have been already computed, but we check if all the components of the impedance
+    # wake have been computed. If not, the computation will be relaunched
+    if already_computed:
+        # this list also includes the input file but it doesn't matter
+        computed_components = [name[0:5].lower() for name in os.listdir(working_directory)]
+
+        for component in components:
+            if component not in computed_components:
+                already_computed = False
+                break
+
+    if already_computed:
+        print(f"The computation of '{name}' has already been performed with the exact given parameters. "
+              f"These results will be used to generate the element.")
+
+    return already_computed, input_hash, working_directory
+
+
+def check_valid_hash_chunk(hash_chunk: str, length: int):
+    """
+    Checks that the hash_chunk string can be the part of an hash key of given length. This means that hash_chunk must
+    have the right length and it must be a hexadecimal string
+    :param hash_chunk: the string to be checked
+    :param length: the length which the hash chunk should have
+    :return: True if hash_chunk is valid, False otherwise
+    """
+    if len(hash_chunk) != length:
+        return False
+
+    # check if the hash is an hexadecimal string
+    try:
+        int(hash_chunk, 16)
+        return True
+    except ValueError:
+        return False
+
+
+def check_valid_working_directory(working_directory: Path):
+    """
+    Checks if working_directory is valid. To be valid working directory must be of the form
+    `<project_directory>/hash[0:2]/hash[2:4]/hash[4:]`
+    :param working_directory: the path to the directory to be checked
+    :return: True if the working_directory is valid, False otherwise
+    """
+    projects_path = Path(get_iw2d_config_value('project_directory'))
+
+    if working_directory.parent.parent.parent != projects_path:
+        raise ValueError(f"The working directory must be located inside {projects_path}")
+
+    return (check_valid_hash_chunk(working_directory.parent.parent.name, 2) and
+            check_valid_hash_chunk(working_directory.parent.name, 2) and
+            check_valid_hash_chunk(working_directory.name, 60))
+
+
+def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], input_hash: str,
+                               working_directory: Union[str, Path]):
+    """
+    Add the iw2d input to the repository containing the simulations
+    :param iw2d_input: the input object of the IW2D simulation
+    :param input_hash: the hash key corresponding to the input
+    :param working_directory: the directory where to put the iw2d input file
+    """
+    if type(working_directory) == str:
+        working_directory = Path(working_directory)
+
+    if not check_valid_working_directory(working_directory):
+        raise ValueError("working directory is not in the right format. The right format is "
+                         "`<project_directory>/hash[0:2]/hash[2:4]/hash[4:]`")
+
+    directory_level_1 = working_directory.parent.parent
+    directory_level_2 = working_directory.parent
+
+    if not os.path.exists(directory_level_1):
+        os.mkdir(directory_level_1)
+    if not os.path.exists(directory_level_2):
+        os.mkdir(directory_level_2)
+
+    working_directory = directory_level_2.joinpath(input_hash[4:])
+
+    if not os.path.exists(working_directory):
+        os.mkdir(working_directory)
+
+    create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"input.txt"))
+
+
+def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], name: str, beta_x: float, beta_y: float,
+                              tag: str = 'IW2D') -> Element:
+    """
+    Create and return an Element using IW2D object.
+    :param iw2d_input: the IW2DInput object
+    :param name: the name of the Element
+    :param beta_x: the beta function value in the x-plane at the position of the Element
+    :param beta_y: the beta function value in the x-plane at the position of the Element
+    :param tag: a tag string for the Element
+    :return: The newly computed Element
+    """
     assert " " not in name, "Spaces are not allowed in element name"
 
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
+    # when looking for this IW2DInput in the database, the comment and the machine name don't necessarily need to be
+    # the same as the in the old simulation so we ignore it for creating the hash
+    iw2d_input_dict = iw2d_input.__dict__
+    comment = iw2d_input_dict['comment']
+    machine = iw2d_input_dict['machine']
+    iw2d_input_dict['comment'] = ''
+    iw2d_input_dict['machine'] = ''
+
+    # the path to the folder containing the IW2D executables
     bin_path = Path(get_iw2d_config_value('binary_directory'))
-    projects_path = Path(get_iw2d_config_value('project_directory'))
+    # the path to the folder containing the database of already computed elements
 
-    input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
-    delete_removed_projects()
+    # check if the element is already present in the database and create the hash key corresponding to the IW2D input
+    already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-
-    read_ready = False
-
-    if input_hash in hashmap:
-        if hashmap[input_hash] == name:
-            print(f"The computation of '{name}' has already been performed with the exact given parameters. "
-                  f"These results will be used to generate the element.")
-            read_ready = True
-        else:
-            print(f"Another element, '{hashmap[input_hash]}', has previously been computed with the exact same "
-                  f"parameters as '{name}'. Do you wish to re-perform the computation, or construct an element from "
-                  f"the already computed values?")
-            choice = input("1: Re-do computation\n"
-                           "2: Use old values (recommended)\n"
-                           "Your choice: ")
-            if choice == '2':
-                name = hashmap[input_hash]
-                read_ready = True
-
-    if not read_ready:
+    # if an element with the same inputs is not found inside the database, perform the computations and add the results
+    # to the database
+    if not already_computed:
+        add_iw2d_input_to_database(iw2d_input, input_hash, working_directory)
         bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
                      ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
-        subprocess.run(['mkdir', name], cwd=projects_path)
-        working_directory = projects_path.joinpath(name)
-        create_iw2d_input_file(iw2d_input, working_directory.joinpath(f"{name}_input.txt"))
-        subprocess.run(f'{bin_path.joinpath(bin_string)} < {name}_input.txt',
-                       shell=True, cwd=working_directory)
-        hashmap[input_hash] = name
-        with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-            pickle.dump(hashmap, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        subprocess.run(f'{bin_path.joinpath(bin_string)} < input.txt', shell=True, cwd=working_directory)
 
-    component_recipes = import_data_iw2d(projects_path.joinpath(name), iw2d_input.comment)
+    # When the wake is computed with IW2D, a second set of files is provided by IW2D. These correspond to a "converged"
+    # simulation with double the number of mesh points for the wake. They files have the _precise suffix to their name.
+    # If the wake is computed, we retrieve these file to create the pywit element.
+    common_string = "_precise" if iw2d_input.calculate_wake else ''
+
+    component_recipes = import_data_iw2d(directory=working_directory, common_string=common_string)
+
+    iw2d_input_dict['comment'] = comment
+    iw2d_input_dict['machine'] = machine
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
@@ -406,32 +574,12 @@ def verify_iw2d_config_file() -> bool:
     if not bin_path.exists() or not projects_path.exists():
         return False
 
-    contents = listdir(bin_path)
+    contents = os.listdir(bin_path)
     for filename in ('flatchamber.x', 'roundchamber.x', 'wake_flatchamber.x', 'wake_roundchamber.x'):
         if filename not in contents:
             return False
 
-    if 'hashmap.pickle' not in listdir(projects_path):
-        return False
-
     return True
-
-
-def delete_removed_projects() -> None:
-    """
-    Updates the dictionary in hashmap.pickle by deleting any references to project folders which have been deleted by
-    the user.
-    :return: Nothing
-    """
-    projects_path = Path(get_iw2d_config_value('project_directory'))
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-
-    projects = listdir(projects_path)
-    new_dict = {k: v for k, v in hashmap.items() if v in projects}
-
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(new_dict, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def _typecast_sampling_dict(d: Dict[str, str]) -> Dict[str, Any]:
@@ -446,7 +594,7 @@ def _typecast_sampling_dict(d: Dict[str, str]) -> Dict[str, Any]:
     return new_dict
 
 
-def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
+def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> Union[FlatIW2DInput, RoundIW2DInput]:
     is_round = d['is_round'].lower() in ['true', 'yes', 'y', '1']
     d.pop('is_round')
     layers, inner_layer_radius, yokoya_factors = list(), float(), tuple()
@@ -511,14 +659,19 @@ def _create_iw2d_input_from_dict(d: Dict[str, Any]) -> IW2DInput:
             z_params=z_params,
             top_bottom_symmetry=d['top_bottom_symmetry'].lower() in ['true', 'yes', 'y', '1'],
             top_layers=tuple(top_layers),
-            top_half_gap = top_half_gap,
+            top_half_gap=top_half_gap,
             bottom_layers=bottom_layers,
             bottom_half_gap=bottom_half_gap,
             **new_dict
         )
 
 
-def create_iw2d_input_from_yaml(name: str) -> IW2DInput:
+def create_iw2d_input_from_yaml(name: str) -> Union[FlatIW2DInput, RoundIW2DInput]:
+    """
+    Create a IW2DInput object from one of the inputs specified in the `pywit/config/iw2d_inputs.yaml` database
+    :param name: the name of the input which is read from the yaml database
+    :return: the newly initialized IW2DInput object
+    """
     path = Path.home().joinpath('pywit').joinpath('config').joinpath('iw2d_inputs.yaml')
     with open(path) as file:
         inputs = load(file, Loader=BaseLoader)
@@ -529,6 +682,14 @@ def create_iw2d_input_from_yaml(name: str) -> IW2DInput:
 
 def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: List[str],
                                         beta_xs: List[float], beta_ys: List[float]) -> List[Element]:
+    """
+    Create and return a list of Element's using a list of IW2D objects.
+    :param iw2d_inputs: the list of IW2DInput objects
+    :param names: the list of names of the Element's
+    :param beta_xs: the list of beta function values in the x-plane at the position of each Element
+    :param beta_ys: the list of beta function values in the x-plane at the position of each Element
+    :return: the list of newly computed Element's
+    """
     assert len(iw2d_inputs) == len(names) == len(beta_xs) == len(beta_ys), "All input lists need to have the same" \
                                                                            "number of elements"
 
@@ -538,71 +699,14 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
-    bin_path = Path(get_iw2d_config_value('binary_directory'))
-    projects_path = Path(get_iw2d_config_value('project_directory'))
-    delete_removed_projects()
-    read_ready = [False for _ in iw2d_inputs]
-    input_hashes = [sha256(iw2d_input.__str__().encode()).hexdigest() for iw2d_input in iw2d_inputs]
-
-    with open(projects_path.joinpath('hashmap.pickle'), 'rb') as pickle_file:
-        hashmap: Dict[str, str] = pickle.load(pickle_file)
-        for i, ih in enumerate(input_hashes):
-
-            if ih in hashmap:
-                if hashmap[ih] == names[i]:
-                    print(f"The computation of '{names[i]}' has already been performed with the exact given parameters."
-                          f" These results will be used to generate the element.")
-                    read_ready[i] = True
-                else:
-                    print(f"Another element, '{hashmap[ih]}', has previously been computed with the exact same "
-                          f"parameters as '{names[i]}'. These computed values will be re-used to construct the new "
-                          f"element.")
-                    names[i] = hashmap[ih]
-                    read_ready[i] = True
-
-    elements = Parallel(n_jobs=-1, prefer='threads')(delayed(_generate_iw2d_element_async)(
-        iw2d_input=iw2d_inputs[i],
-        name=names[i],
-        beta_x=beta_xs[i],
-        beta_y=beta_ys[i],
-        read_ready=read_ready[i],
-        projects_path=projects_path,
-        bin_path=bin_path
+    elements = Parallel(n_jobs=-1, prefer='threads')(delayed(create_element_using_iw2d)(
+        iw2d_inputs[i],
+        names[i],
+        beta_xs[i],
+        beta_ys[i]
     ) for i in range(len(names)))
 
-    with open(projects_path.joinpath('hashmap.pickle'), 'wb') as pickle_file:
-        for ih, name in zip(input_hashes, names):
-            hashmap[ih] = name
-
-        pickle.dump(hashmap, pickle_file, protocol=pickle.HIGHEST_PROTOCOL)
-
     return elements
-
-
-def _generate_iw2d_element_async(iw2d_input: IW2DInput, name: str, beta_x: float, beta_y: float, read_ready: bool,
-                                 projects_path: Union[str, Path], bin_path: Union[str, Path]) -> Element:
-    if not read_ready:
-        print(f'Running IW2D computation for {name}')
-        bin_string = ("wake_" if iw2d_input.calculate_wake else "") + \
-                     ("round" if isinstance(iw2d_input, RoundIW2DInput) else "flat") + "chamber.x"
-
-        subprocess.run(['mkdir', name], cwd=projects_path)
-        working_directory = Path(projects_path).joinpath(name)
-        create_iw2d_input_file(iw2d_input, working_directory.joinpath(f'{name}_input.txt'))
-        proc = subprocess.run(f'{Path(bin_path).joinpath(bin_string)} < {name}_input.txt',
-                              shell=True, cwd=working_directory, stdout=subprocess.PIPE)
-        with open(working_directory.joinpath(f'IW2D_terminal_output{iw2d_input.comment}.txt'), 'w') as file:
-            file.write(proc.stdout.decode())
-
-    component_recipes = import_data_iw2d(Path(projects_path).joinpath(name), iw2d_input.comment)
-    components = [create_component_from_data(*recipe, relativistic_gamma=iw2d_input.relativistic_gamma)
-                  for recipe in component_recipes]
-
-    print(f'Element {name} completed')
-    return Element(length=iw2d_input.length,
-                   beta_x=beta_x, beta_y=beta_y,
-                   components=components,
-                   name=name, tag='IW2D', description='A resistive wall element created using IW2D')
 
 
 def create_htcondor_input_file(iw2d_input: IW2DInput, name: str, directory: Union[str, Path]) -> None:
@@ -631,7 +735,7 @@ def _verify_iw2d_binary_directory(ignore_missing_files: bool = False) -> None:
     bin_path = Path(get_iw2d_config_value('binary_directory'))
     if not ignore_missing_files:
         filenames = ('flatchamber.x', 'roundchamber.x', 'wake_flatchamber.x', 'wake_roundchamber.x')
-        assert all(filename in listdir(bin_path) for filename in filenames), \
+        assert all(filename in os.listdir(bin_path) for filename in filenames), \
             "In order to utilize IW2D with PyWIT, the four binary files 'flatchamber.x', 'roundchamber.x', " \
             f"'wake_flatchamber.x' and 'wake_roundchamber.x' (as generated by IW2D) must be placed in the directory " \
             f"'{bin_path}'."
@@ -641,9 +745,9 @@ def _read_cst_data(filename: Union[str, Path]) -> np.ndarray:
     with open(filename, 'r') as f:
         lines = f.readlines()
     data = []
-    for l in lines:
+    for line in lines:
         try:
-            data.append([float(e) for e in l.strip().split()])
+            data.append([float(e) for e in line.strip().split()])
         except ValueError:
             pass
 
@@ -697,12 +801,3 @@ def load_transverse_wake_datafile(path: Union[str, Path]) -> Tuple[Component, Co
 
     return components
 
-
-def clear_iw2d_hashmap():
-    print("WARNING: This will delete all of PyWIT's information about performed IW2D computations. The impedance/wake"
-          "data itself will not be touched.")
-    answer = input("Clear PyWIT's IW2D cache? (y / N): ")
-    if answer in ('y', 'Y', 'yes'):
-        with open(Path.home().joinpath('pywit').joinpath('IW2D').joinpath('projects').joinpath('hashmap.pickle'),
-                  'wb') as handle:
-            pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
