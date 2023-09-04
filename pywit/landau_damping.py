@@ -115,7 +115,8 @@ def find_octupole_threshold(tune_shift: float, q_s: float, b_direct_ref: float, 
 
 def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: float, b_direct_ref: float,
                                              b_cross_ref: float, distribution: str = 'gaussian',
-                                             fraction_of_qs_allowed_on_positive_side: float = 0.05):
+                                             fraction_of_qs_allowed_on_positive_side: float = 0.05,
+                                             relative_tolerance=1e-10):
     """
     Compute the maximum octupole threshold for a sequence of complex tune shifts. It assumes that the focusing and
     defocusing octupole currents have the same absolute value.
@@ -128,12 +129,14 @@ def find_octupole_threshold_many_tune_shifts(tune_shifts: Sequence[float], q_s: 
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
+    :param relative_tolerance: relative tolerance for Newton's root finding
     """
     # find max octupole current required from a list of modes, given their tuneshifts
     b_coefficients = [find_octupole_threshold(
         tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
         b_cross_ref=b_cross_ref, distribution=distribution,
-        fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side
+        fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
+        relative_tolerance=relative_tolerance
                                              )
                       for tune_shift in tune_shifts if not np.isnan(tune_shift)]
 
