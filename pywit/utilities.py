@@ -4,7 +4,7 @@ from pywit.interface import Layer, FlatIW2DInput, RoundIW2DInput
 from pywit.interface import component_names
 
 from yaml import load, SafeLoader
-from typing import Tuple, Dict, List, Union, Sequence
+from typing import Tuple, Dict, List, Union, Sequence, Optional, Callable
 from collections import defaultdict
 
 from numpy import (vectorize, sqrt, exp, pi, sin, cos, abs, sign,
@@ -691,3 +691,37 @@ def create_taper_RW_approx_element(
 
     return Element(length=length, beta_x=beta_x, beta_y=beta_y, components=components, name=name, tag=tag,
                    description=description)
+
+
+def create_interpolated_impedance_component(interpolation_frequencies: ArrayLike,
+                                            impedance: Optional[Callable] = None,
+                                            wake: Optional[Callable] = None, plane: str = '',
+                                            source_exponents: Tuple[int, int] = (-1, -1),
+                                            test_exponents: Tuple[int, int] = (-1, -1),
+                                            name: str = "Unnamed Component",
+                                            f_rois: Optional[List[Tuple[float, float]]] = None,
+                                            t_rois: Optional[List[Tuple[float, float]]] = None):
+    """
+    Creates a component in which the impedance function is evaluated directly only on few points and it is interpolated
+    everywhere else. This helps when the impedance function is very slow to evaluate.
+    :param interpolation_frequencies: the frequency
+    :param impedance: A callable function representing the impedance function of the Component. Can be undefined if
+    the wake function is defined.
+    :param wake: A callable function representing the wake function of the Component. Can be undefined if
+    the impedance function is defined.
+    :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be specified for valid initialization
+    :param source_exponents: The exponents in the x and y planes experienced by the source particle. Also
+    referred to as 'a' and 'b'. Must be specified for valid initialization
+    :param test_exponents: The exponents in the x and y planes experienced by the source particle. Also
+    referred to as 'a' and 'b'. Must be specified for valid initialization
+    :param name: An optional user-specified name of the component
+    :param f_rois: a list of frequency regions of interest
+    :param t_rois: a list of time regions of interest
+    """
+    def interpolated_impedance(x):
+        return np.interp(x, interpolation_frequencies, impedance(interpolation_frequencies))
+
+    return Component(impedance=interpolated_impedance, wake=wake, plane=plane,
+                     source_exponents=source_exponents, test_exponents=test_exponents,
+                     name=name, f_rois=f_rois,
+                     t_rois=t_rois)
