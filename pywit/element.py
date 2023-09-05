@@ -7,7 +7,7 @@ from collections import defaultdict
 
 from scipy.special import comb
 import numpy as np
-
+import copy
 
 class Element:
     def __init__(self, length: float = 0, beta_x: float = 0, beta_y: float = 0,
@@ -153,10 +153,13 @@ class Element:
                         len(self.components) == len(other.components)])
 
     def changed_betas(self, new_beta_x: float, new_beta_y: float) -> Element:
+        element_copy = copy.deepcopy(self)
         x_ratio = self.beta_x / new_beta_x
         y_ratio = self.beta_y / new_beta_y
-        new_components = [((x_ratio ** c.power_x) * (y_ratio ** c.power_y)) * c for c in self.components]
-        return Element(self.length, new_beta_x, new_beta_y, new_components, self.name, self.tag, self.description)
+        element_copy.components = [((x_ratio ** c.power_x) * (y_ratio ** c.power_y)) * c for c in self.components]
+        element_copy.beta_x = new_beta_x
+        element_copy.beta_y = new_beta_y
+        return element_copy
 
     def __add__(self, other: Element) -> Element:
         """
