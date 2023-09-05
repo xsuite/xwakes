@@ -704,7 +704,7 @@ def create_interpolated_impedance_component(interpolation_frequencies: ArrayLike
     """
     Creates a component in which the impedance function is evaluated directly only on few points and it is interpolated
     everywhere else. This helps when the impedance function is very slow to evaluate.
-    :param interpolation_frequencies: the frequency
+    :param interpolation_frequencies: the frequencies where the function is evaluated for the interpolation
     :param impedance: A callable function representing the impedance function of the Component. Can be undefined if
     the wake function is defined.
     :param wake: A callable function representing the wake function of the Component. Can be undefined if
