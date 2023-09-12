@@ -438,10 +438,6 @@ def check_already_computed(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
                 already_computed = False
                 break
 
-    if already_computed:
-        print(f"The computation of '{name}' has already been performed with the exact given parameters. "
-              f"These results will be used to generate the element.")
-
     return already_computed, input_hash, working_directory
 
 
@@ -542,6 +538,10 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
 
     # check if the element is already present in the database and create the hash key corresponding to the IW2D input
     already_computed, input_hash, working_directory = check_already_computed(iw2d_input, name)
+
+    if already_computed:
+        print(f"The computation of '{name}' has already been performed with the exact given parameters. "
+              f"These results will be used to generate the element.")
 
     # if an element with the same inputs is not found inside the database, perform the computations and add the results
     # to the database
