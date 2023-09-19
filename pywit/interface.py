@@ -515,7 +515,7 @@ def add_iw2d_input_to_database(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput],
 
 
 def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], name: str, beta_x: float, beta_y: float,
-                              tag: str = 'IW2D') -> Element:
+                              tag: str = 'IW2D', extrapolate_to_zero: bool = False) -> Element:
     """
     Create and return an Element using IW2D object.
     :param iw2d_input: the IW2DInput object
@@ -523,6 +523,8 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
     :param beta_x: the beta function value in the x-plane at the position of the Element
     :param beta_y: the beta function value in the x-plane at the position of the Element
     :param tag: a tag string for the Element
+    :param extrapolate_to_zero: a flag specifying if the data should be extrapolated to zero. If it is False (default
+    value), the data are extrapolated using the first and last value of the data.
     :return: The newly computed Element
     """
     assert " " not in name, "Spaces are not allowed in element name"
@@ -569,7 +571,8 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
 
     return Element(length=iw2d_input.length,
                    beta_x=beta_x, beta_y=beta_y,
-                   components=[create_component_from_data(*recipe, relativistic_gamma=iw2d_input.relativistic_gamma)
+                   components=[create_component_from_data(*recipe, relativistic_gamma=iw2d_input.relativistic_gamma,
+                                                          extrapolate_to_zero=extrapolate_to_zero)
                                for recipe in component_recipes],
                    name=name, tag=tag, description='A resistive wall element created using IW2D')
 
