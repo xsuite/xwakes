@@ -60,6 +60,48 @@ def test_find_detuning_coeffs_threshold():
                                                               b_cross_ref=b_cross)[1])
 
 
+def test_find_detuning_coeffs_threshold_w_added_term():
+    # reference values obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
+    # test positive octupole polarity
+    tune_shift = -7.3622423693e-05 - 3.0188372754e-06j
+    q_s = 2e-3
+    b_direct = 1.980315192200037e-05
+    b_cross = -1.4139287608495406e-05
+
+    frac_add = 1/3
+
+    b_direct_add = b_direct * frac_add
+    b_cross_add = b_cross * frac_add
+
+    assert np.isclose(b_direct * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                              b_direct_ref=b_direct,
+                                                                              b_cross_ref=b_cross,
+                                                                              b_direct_add=b_direct_add,
+                                                                              b_cross_add=b_cross_add)[0])
+    assert np.isclose(b_cross * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                             b_direct_ref=b_direct,
+                                                                             b_cross_ref=b_cross,
+                                                                             b_direct_add=b_direct_add,
+                                                                             b_cross_add=b_cross_add)[1])
+    # test negative octupole polarity
+    b_direct = -1.2718161244917965e-05
+    b_cross = 9.08066253298482e-06
+
+    b_direct_add = b_direct * frac_add
+    b_cross_add = b_cross * frac_add
+
+    assert np.isclose(b_direct * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                              b_direct_ref=b_direct,
+                                                                              b_cross_ref=b_cross,
+                                                                              b_direct_add=b_direct_add,
+                                                                              b_cross_add=b_cross_add)[0])
+    assert np.isclose(b_cross * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                             b_direct_ref=b_direct,
+                                                                             b_cross_ref=b_cross,
+                                                                             b_direct_add=b_direct_add,
+                                                                             b_cross_add=b_cross_add)[1])
+
+
 def test_find_detuning_coeffs_threshold_many_tune_shifts():
     # reference values obtained with the old impedance wake model https://gitlab.cern.ch/IRIS/HLLHC_IW_model
     tune_shift = -7.3622423693e-05 - 3.0188372754e-06j
