@@ -60,6 +60,7 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
 
 
 def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref: float, b_cross_ref: float,
+                                   b_direct_add: float = 0, b_cross_add: float = 0,
                                    fraction_of_qs_allowed_on_positive_side: float = 0.05,
                                    distribution: str = 'gaussian', tolerance=1e-10):
     """
@@ -72,6 +73,10 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
+    :param b_direct_add: an additional contribution to the direct detuning coefficient which is kept fixed in the
+    procedure to find the stability threshold
+    :param b_cross_add: an additional contribution to the cross detuning coefficient which is kept fixed in the
+    procedure to find the stability threshold
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
@@ -93,8 +98,8 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
 
         # function to solve (distance in imag. part w.r.t stab. diagram, as a function of oct. current)
         def f(b_direct):
-            b_direct_i = b_direct
-            b_cross_i = b_ratio * b_direct
+            b_direct_i = b_direct + b_direct_add
+            b_cross_i = b_ratio * b_direct + b_cross_add
             stab = [-1. / dispersion_integral_2d(t_s, b_direct_i, b_cross_i, distribution=distribution) for e in (-1, 1)
                     for t_s in b_direct_i * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
             # note: one has to reverse the table to get the interpolation right, for negative polarity (np.interp always
@@ -124,7 +129,8 @@ def abs_first_item_or_nan(tup: Tuple):
 
 
 def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[complex], q_s: float, b_direct_ref: float,
-                                                    b_cross_ref: float, distribution: str = 'gaussian',
+                                                    b_cross_ref: float, b_direct_add: float = 0, b_cross_add: float = 0,
+                                                    distribution: str = 'gaussian',
                                                     fraction_of_qs_allowed_on_positive_side: float = 0.05,
                                                     tolerance=1e-10):
     """
@@ -136,6 +142,10 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
     the x plane or $\alpha_y \sigma_y$ if working in the y plane)
     :param b_cross_ref: the cross detuning coefficient multiplied by sigma (i.e. $\alpha_{xy} \sigma_y$ if working in
     the x plane or $\alpha_{yx} \sigma_x$ if working in the y plane)
+    :param b_direct_add: an additional contribution to the direct detuning coefficient which is kept fixed in the
+    procedure to find the stability threshold
+    :param b_cross_add: an additional contribution to the cross detuning coefficient which is kept fixed in the
+    procedure to find the stability threshold
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
@@ -148,7 +158,7 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
     # find max octupole current required from a list of modes, given their tuneshifts
     b_coefficients = np.array([find_detuning_coeffs_threshold(
         tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct_ref,
-        b_cross_ref=b_cross_ref, distribution=distribution,
+        b_cross_ref=b_cross_ref, b_direct_add=b_direct_add, b_cross_add=b_cross_add, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
         tolerance=tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
 
