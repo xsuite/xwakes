@@ -111,9 +111,10 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, reference_b_
         try:
             # we use 1e-15 as a bound instead of 0 because 0 would cause a divsion by 0 in dispersion_integral_2d
             if reference_b_direct > 0:
-                b_direct_new = bisect(f, 1e-15, 10 * reference_b_direct)
+                b_direct_new = bisect(f, 1e-15, 100 * reference_b_direct)
             else:
-                b_direct_new = bisect(f, 100 * reference_b_direct, 1e-15)
+                b_direct_new = bisect(f, 100 * reference_b_direct, -1e-15)
+
         except RuntimeError:
             b_direct_new = np.nan
         else:
