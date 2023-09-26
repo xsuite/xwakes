@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import exp1
-from scipy.optimize import newton
+from scipy.optimize import bisect
 
 from typing import Sequence, Tuple
 
@@ -109,7 +109,11 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
 
         # Newton root finding
         try:
-            b_direct_new = newton(f, b_direct_ref, tol=tolerance)
+            # we use 1e-15 as a bound instead of 0 because 0 would cause a divsion by 0 in dispersion_integral_2d
+            if b_direct_ref > 0:
+                b_direct_new = bisect(f, 1e-15, 10 * b_direct_ref)
+            else:
+                b_direct_new = bisect(f, 100 * b_direct_ref, 1e-15)
         except RuntimeError:
             b_direct_new = np.nan
         else:
