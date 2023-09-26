@@ -46,18 +46,18 @@ def test_find_detuning_coeffs_threshold():
     q_s = 2e-3
     b_direct = 1.980315192200037e-05
     b_cross = -1.4139287608495406e-05
-    assert np.isclose(b_direct, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
-                                                               b_cross_ref=b_cross)[0])
-    assert np.isclose(b_cross, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
-                                                              b_cross_ref=b_cross)[1])
+    assert np.isclose(b_direct, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, reference_b_direct=b_direct,
+                                                               reference_b_cross=b_cross)[0])
+    assert np.isclose(b_cross, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, reference_b_direct=b_direct,
+                                                              reference_b_cross=b_cross)[1])
     # test negative octupole polarity
     b_direct = -1.2718161244917965e-05
     b_cross = 9.08066253298482e-06
 
-    assert np.isclose(b_direct, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
-                                                               b_cross_ref=b_cross)[0])
-    assert np.isclose(b_cross, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, b_direct_ref=b_direct,
-                                                              b_cross_ref=b_cross)[1])
+    assert np.isclose(b_direct, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, reference_b_direct=b_direct,
+                                                               reference_b_cross=b_cross)[0])
+    assert np.isclose(b_cross, find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s, reference_b_direct=b_direct,
+                                                              reference_b_cross=b_cross)[1])
 
 
 def test_find_detuning_coeffs_threshold_w_added_term():
@@ -68,38 +68,38 @@ def test_find_detuning_coeffs_threshold_w_added_term():
     b_direct = 1.980315192200037e-05
     b_cross = -1.4139287608495406e-05
 
-    frac_add = 1/3
+    added_fraction = 1/3
 
-    b_direct_add = b_direct * frac_add
-    b_cross_add = b_cross * frac_add
+    added_b_direct = b_direct * added_fraction
+    added_b_cross = b_cross * added_fraction
 
-    assert np.isclose(b_direct * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                              b_direct_ref=b_direct,
-                                                                              b_cross_ref=b_cross,
-                                                                              b_direct_add=b_direct_add,
-                                                                              b_cross_add=b_cross_add)[0])
-    assert np.isclose(b_cross * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                             b_direct_ref=b_direct,
-                                                                             b_cross_ref=b_cross,
-                                                                             b_direct_add=b_direct_add,
-                                                                             b_cross_add=b_cross_add)[1])
+    assert np.isclose(b_direct * (1-added_fraction), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                              reference_b_direct=b_direct,
+                                                                              reference_b_cross=b_cross,
+                                                                              added_b_direct=added_b_direct,
+                                                                              added_b_cross=added_b_cross)[0])
+    assert np.isclose(b_cross * (1-added_fraction), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                             reference_b_direct=b_direct,
+                                                                             reference_b_cross=b_cross,
+                                                                             added_b_direct=added_b_direct,
+                                                                             added_b_cross=added_b_cross)[1])
     # test negative octupole polarity
     b_direct = -1.2718161244917965e-05
     b_cross = 9.08066253298482e-06
 
-    b_direct_add = b_direct * frac_add
-    b_cross_add = b_cross * frac_add
+    added_b_direct = b_direct * added_fraction
+    added_b_cross = b_cross * added_fraction
 
-    assert np.isclose(b_direct * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                              b_direct_ref=b_direct,
-                                                                              b_cross_ref=b_cross,
-                                                                              b_direct_add=b_direct_add,
-                                                                              b_cross_add=b_cross_add)[0])
-    assert np.isclose(b_cross * (1-frac_add), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
-                                                                             b_direct_ref=b_direct,
-                                                                             b_cross_ref=b_cross,
-                                                                             b_direct_add=b_direct_add,
-                                                                             b_cross_add=b_cross_add)[1])
+    assert np.isclose(b_direct * (1-added_fraction), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                              reference_b_direct=b_direct,
+                                                                              reference_b_cross=b_cross,
+                                                                              added_b_direct=added_b_direct,
+                                                                              added_b_cross=added_b_cross)[0])
+    assert np.isclose(b_cross * (1-added_fraction), find_detuning_coeffs_threshold(tune_shift=tune_shift, q_s=q_s,
+                                                                             reference_b_direct=b_direct,
+                                                                             reference_b_cross=b_cross,
+                                                                             added_b_direct=added_b_direct,
+                                                                             added_b_cross=added_b_cross)[1])
 
 
 def test_find_detuning_coeffs_threshold_many_tune_shifts():
@@ -112,17 +112,17 @@ def test_find_detuning_coeffs_threshold_many_tune_shifts():
     b_direct = 3.960630384598084e-05
     b_cross = -2.8278575218404585e-05
     assert np.isclose(b_direct, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                                b_direct_ref=b_direct,
-                                                                                b_cross_ref=b_cross)[0])
+                                                                                reference_b_direct=b_direct,
+                                                                                reference_b_cross=b_cross)[0])
     assert np.isclose(b_cross, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                               b_direct_ref=b_direct,
-                                                                               b_cross_ref=b_cross)[1])
+                                                                               reference_b_direct=b_direct,
+                                                                               reference_b_cross=b_cross)[1])
     # test negative octupole polarity
     b_direct = -2.5436322491034757e-05
     b_cross = 1.816132506682559e-05
     assert np.isclose(b_direct, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                                b_direct_ref=b_direct,
-                                                                                b_cross_ref=b_cross)[0])
+                                                                                reference_b_direct=b_direct,
+                                                                                reference_b_cross=b_cross)[0])
     assert np.isclose(b_cross, find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts=tune_shifts, q_s=q_s,
-                                                                               b_direct_ref=b_direct,
-                                                                               b_cross_ref=b_cross)[1])
+                                                                               reference_b_direct=b_direct,
+                                                                               reference_b_cross=b_cross)[1])
