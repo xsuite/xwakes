@@ -104,8 +104,8 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
                     for t_s in b_direct_i * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
             # note: one has to reverse the table to get the interpolation right, for negative polarity (np.interp always
             # wants monotonically increasing abscissae)
-            return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::int(np.sign(b_direct_ref))],
-                                               np.imag(stab)[::int(np.sign(b_direct_ref))])
+            return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::int(np.sign(b_direct_i))],
+                                               np.imag(stab)[::int(np.sign(b_direct_i))])
 
         # Newton root finding
         try:
