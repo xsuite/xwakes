@@ -111,8 +111,9 @@ def create_resonator_component(plane: str, exponents: Tuple[int, int, int, int],
                           (q * root_term)).real
 
     if q > 1:
-        d = compute_resonator_f_roi_half_width(q=q, f_r=f_r, f_roi_level=f_roi_level)
-        f_rois = [(f_r - d, f_r + d)]
+        #d = compute_resonator_f_roi_half_width(q=q, f_r=f_r, f_roi_level=f_roi_level)
+        #f_rois = [(f_r - d, f_r + d)]
+        f_rois = [(f_r-f_r/(q*2.**n), f_r+f_r/(q*2.**n)) for n in np.arange(-10, 1)]
     else:
         f_rois = []
     # TODO: add ROI(s) for wake
@@ -197,6 +198,11 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
             all_components.append(create_resonator_component(plane, exponents, component_params['r'],
                                                              component_params['q'], component_params['f'],
                                                              f_roi_level=f_roi_level))
+
+            f = component_params['f']
+            q = component_params['q']
+            if q > 1:
+                all_components[-1].f_rois = [(f-f/(q*2.**n), f+f/(q*2.**n)) for n in np.arange(-4, 1)]
 
     comp_dict = defaultdict(lambda: 0)
     for c in all_components:

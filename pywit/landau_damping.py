@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import exp1
-from scipy.optimize import newton
+from scipy.optimize import bisect
 
 from typing import Sequence, Tuple
 
@@ -96,20 +96,24 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, b_direct_ref
     b_ratio = b_cross_ref/b_direct_ref
     if tune_shift.imag < 0.:
 
+        import matplotlib.pyplot as plt
         # function to solve (distance in imag. part w.r.t stab. diagram, as a function of oct. current)
         def f(b_direct):
             b_direct_i = b_direct + b_direct_add
             b_cross_i = b_ratio * b_direct + b_cross_add
             stab = [-1. / dispersion_integral_2d(t_s, b_direct_i, b_cross_i, distribution=distribution) for e in (-1, 1)
-                    for t_s in b_direct_i * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
+            for t_s in b_direct_i * e * 10. ** np.arange(-3, 2, 0.01)[::e]]
             # note: one has to reverse the table to get the interpolation right, for negative polarity (np.interp always
             # wants monotonically increasing abscissae)
-            return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::int(np.sign(b_direct_ref))],
-                                               np.imag(stab)[::int(np.sign(b_direct_ref))])
-
+            return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::int(np.sign(b_direct_i))],
+                                               np.imag(stab)[::int(np.sign(b_direct_i))])
         # Newton root finding
         try:
-            b_direct_new = newton(f, b_direct_ref, tol=tolerance)
+            if b_direct_ref > 0:
+                b_direct_new = bisect(f, 1e-15, 100*b_direct_ref)
+            else:
+                b_direct_new = bisect(f, 100*b_direct_ref, -1e-15)
+            b_cross_new = b_ratio*b_direct_new
         except RuntimeError:
             b_direct_new = np.nan
         else:
