@@ -6,7 +6,6 @@ from .parameters import *
 from typing import List, Dict, Union, Optional, Set
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
 import numpy as np
 
 
@@ -26,6 +25,7 @@ def plot_component(component: Component, plot_impedance: bool = True, plot_wake:
     :param plot_imag: A flag indicating if the imaginary values should be plotted
     :return: Nothing
     """
+    import matplotlib.pyplot as plt
     assert (plot_wake or plot_impedance) and (plot_real or plot_imag), "There is nothing to plot"
     assert stop - start > 0, "stop must be greater than start"
     if step_size:
@@ -84,6 +84,7 @@ def plot_element_in_plane(element: Element, plane: str, plot_impedance: bool = T
 
 def plot_component_impedance(component: Component, logscale_x: bool = True, logscale_y: bool = True,
                              points: int = 1000, start=MIN_FREQ, stop=MAX_FREQ, title: Optional[str] = None) -> None:
+    import matplotlib.pyplot as plt
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
     fs = np.geomspace(start, stop, points)
@@ -110,6 +111,7 @@ def plot_component_impedance(component: Component, logscale_x: bool = True, logs
 
 def plot_component_wake(component: Component, logscale_x: bool = True, logscale_y: bool = True,
                         points: int = 1000, start=MIN_TIME, stop=MAX_TIME, title: Optional[str] = None) -> None:
+    import matplotlib.pyplot as plt
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
     ts = np.geomspace(start, stop, points)
@@ -134,6 +136,9 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
 def generate_contribution_plots(model: Model, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
                                 start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 1000,
                                 freq_scale: str = 'log', time_scale: str = 'log', absolute: bool = False) -> None:
+
+    import matplotlib.pyplot as plt
+
     # TODO: use roi's to generate grid
     fs = np.geomspace(start_freq, stop_freq, points)
     ts = np.geomspace(start_time, stop_time, points)
