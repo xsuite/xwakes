@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import numpy as np
 
-from pywit.element import Element
-from pywit.component import Component, Union
+from .element import Element
+from .component import Component, Union
 
 from typing import List
 

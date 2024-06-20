@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from pywit.parameters import *
-from pywit.utils import unique_sigfigs
+from .parameters import *
+from .utils import unique_sigfigs
 
 from typing import Optional, Callable, Tuple, Union, List
 

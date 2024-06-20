@@ -1,7 +1,7 @@
-from pywit.component import Component
-from pywit.element import Element
-from pywit.model import Model
-from pywit.parameters import *
+from .component import Component
+from .element import Element
+from .model import Model
+from .parameters import *
 
 from typing import List, Dict, Union, Optional, Set
 from collections import defaultdict

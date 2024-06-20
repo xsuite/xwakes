@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from pywit.component import Component, Union
+from .component import Component, Union
 
 from typing import List
 from collections import defaultdict

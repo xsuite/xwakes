@@ -1,7 +1,7 @@
 import os
 
-from pywit.component import Component
-from pywit.element import Element
+from .component import Component
+from .element import Element
 
 import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union
@@ -560,7 +560,7 @@ def create_element_using_iw2d(iw2d_input: Union[FlatIW2DInput, RoundIW2DInput], 
 
     # When the wake is computed with IW2D, a second set of files is provided by IW2D. These correspond to a "converged"
     # simulation with double the number of mesh points for the wake. They files have the _precise suffix to their name.
-    # If the wake is computed, we retrieve these file to create the pywit element.
+    # If the wake is computed, we retrieve these file to create the wit element.
     common_string = "_precise" if iw2d_input.calculate_wake else ''
 
     component_recipes = import_data_iw2d(directory=working_directory, common_string=common_string)

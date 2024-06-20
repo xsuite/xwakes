@@ -1,8 +1,8 @@
 from typing import Tuple,Sequence
-from pywit.component import Component
-from pywit.element import Element
-from pywit.utilities import create_resonator_component
-from pywit.interface import component_names, get_component_name
+from .component import Component
+from .element import Element
+from .utilities import create_resonator_component
+from .interface import component_names, get_component_name
 
 import numpy as np
 from scipy import integrate

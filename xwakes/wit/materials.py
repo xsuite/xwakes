@@ -1,5 +1,5 @@
-from pywit.interface import Layer
-from pywit.utils import round_sigfigs
+from .interface import Layer
+from .utils import round_sigfigs
 
 from pathlib import Path
 import numpy as np
@@ -48,7 +48,7 @@ def layer_from_json_material_library(thickness: float, material_key: str,
     :type thickness: float
     :param material_key: material key in the materials.json file
     :type material_key: str
-    :param library_path: material library path, defaults to materials.json present in pywit
+    :param library_path: material library path, defaults to materials.json present in wit
     :type library_path: Path, optional
     :return: Layer of the selected material
     :rtype: Layer

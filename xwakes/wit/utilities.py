@@ -1,7 +1,7 @@
-from pywit.component import Component
-from pywit.element import Element
-from pywit.interface import Layer, FlatIW2DInput, RoundIW2DInput
-from pywit.interface import component_names
+from .component import Component
+from .element import Element
+from .interface import Layer, FlatIW2DInput, RoundIW2DInput
+from .interface import component_names
 
 from yaml import load, SafeLoader
 from typing import Tuple, Dict, List, Union, Sequence, Optional, Callable
@@ -217,7 +217,7 @@ def create_classic_thick_wall_component(plane: str, exponents: Tuple[int, int, i
     Only longitudinal and transverse dipolar impedances are supported here.
     :param plane: the plane the component corresponds to
     :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
-    :param layer: the chamber material, as a pywit Layer object
+    :param layer: the chamber material, as a wit Layer object
     :param radius: the chamber radius in m
     :return: A component object
     """
