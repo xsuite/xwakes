@@ -134,6 +134,8 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
 
             k = k + k_max
 
+        summ1_inner = np.squeeze(sum1_inner) # return a scalar if only one element
+
         return sum1_inner
 
     if impedance_function is not None and impedance_table is not None:
@@ -182,6 +184,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             sum1 = hmm_weighted_sum(m, nx)
 
             # effective impedance
+            import pdb; pdb.set_trace()
             sum2 = hmm_weighted_sum(m, nx, weight_function=impedance_function)
 
             effective_impedance[inx, im] = sum2 / sum1
