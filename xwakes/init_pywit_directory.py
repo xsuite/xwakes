@@ -2,7 +2,7 @@ import pathlib
 import pickle
 import os
 
-def _initialize_pywit_directory() -> None:
+def initialize_pywit_directory() -> None:
     home_path = pathlib.Path.home()
     paths = [home_path.joinpath('pywit').joinpath(ext) for ext in ('config', 'IW2D/bin', 'IW2D/projects')]
     for path in paths:
