@@ -6,7 +6,6 @@ from pywit.utils import unique_sigfigs
 from typing import Optional, Callable, Tuple, Union, List
 
 import numpy as np
-import sortednp as snp
 
 
 def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
@@ -30,7 +29,8 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
     fine_sampling_rois = np.hstack(intervals) if intervals else np.array([])
     rough_sampling = np.geomspace(start, stop, rough_points)
 
-    return unique_sigfigs(snp.merge(fine_sampling_rois, rough_sampling), 7)
+    return unique_sigfigs(
+        np.sort(np.concatenate((fine_sampling_rois, rough_sampling))), 7)
 
 
 class Component:
