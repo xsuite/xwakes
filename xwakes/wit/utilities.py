@@ -8,11 +8,16 @@ from typing import Tuple, Dict, List, Union, Sequence, Optional, Callable
 from collections import defaultdict
 
 from numpy import (vectorize, sqrt, exp, pi, sin, cos, abs, sign,
-                   inf, floor, linspace, trapz, ones, isscalar, array)
+                   inf, floor, linspace, ones, isscalar, array)
 from numpy.typing import ArrayLike
 import scipy.constants
 from scipy import special as sp
 import numpy as np
+
+if hasattr(np, 'trapezoid'):
+    trapz = np.trapezoid # numpy 2.0
+else:
+    trapz = np.trapz
 
 c_light = scipy.constants.speed_of_light  # m s-1
 mu0 = scipy.constants.mu_0
