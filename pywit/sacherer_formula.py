@@ -11,7 +11,8 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
                      impedance_table: np.array = None, freq_impedance_table: np.array = None,
                      impedance_function: Callable[[float], float] = None, m0: float = m_p, charge: float = q_p,
                      mode_type: str = 'sinusoidal') -> Tuple[np.array, float, np.array]:
-    """
+
+    r"""
     Computes frequency shift and effective impedance from Sacherer formula, in transverse, in the case of low
     intensity perturbations (no mode coupling), for modes of kind 'mode_type'.
 
@@ -134,7 +135,7 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
 
             k = k + k_max
 
-        summ1_inner = np.squeeze(sum1_inner) # return a scalar if only one element
+        sum1_inner = np.squeeze(sum1_inner) # return a scalar if only one element
 
         return sum1_inner
 
@@ -184,7 +185,6 @@ def sacherer_formula(qp: float, nx_array: np.array, bunch_intensity: float, omeg
             sum1 = hmm_weighted_sum(m, nx)
 
             # effective impedance
-            import pdb; pdb.set_trace()
             sum2 = hmm_weighted_sum(m, nx, weight_function=impedance_function)
 
             effective_impedance[inx, im] = sum2 / sum1
