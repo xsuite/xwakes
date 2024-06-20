@@ -15,6 +15,8 @@ from pytest import raises, mark
 
 import numpy as np
 
+CURR_DIR = Path(__file__).resolve().parent
+
 
 @mark.parametrize('is_impedance, plane, exponents, expected_comp_name',
                   [[True, 'z', (0, 0, 0, 0), 'zlong'],
@@ -47,7 +49,7 @@ def test_duplicate_component_iw2d_import():
         pytest.skip("IW2D is not installed")
 
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
+        import_data_iw2d(directory=CURR_DIR / "test_data/iw2d/duplicate_components",
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
     assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and "
@@ -66,12 +68,14 @@ def test_no_matching_filename_iw2d_import():
     except ImportError:
         pytest.skip("IW2D is not installed")
 
+    test_dir = CURR_DIR / "test_data/iw2d/valid_directory"
+
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
+        import_data_iw2d(directory=test_dir,
                          common_string="this_string_matches_no_file")
 
     expected_error_message = f"No files in " \
-                             f"'{Path('test/test_data/iw2d/valid_directory').resolve()}'" \
+                             f"'{test_dir.resolve()}'" \
                              f" matched the common string 'this_string_matches_no_file'."
 
     assert error_message.value.args[0] == expected_error_message
@@ -87,7 +91,7 @@ def test_valid_iw2d_component_import():
     # Normally, the relativistic gamma would be an attribute of a required IW2DInput object, but here it has been
     # hard-coded instead
     relativstic_gamma = 479.605064966
-    recipes = import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
+    recipes = import_data_iw2d(directory=CURR_DIR / "test_data/iw2d/valid_directory",
                                common_string="precise")
     for recipe in recipes:
         component = create_component_from_data(*recipe, relativistic_gamma=relativstic_gamma)
@@ -110,7 +114,7 @@ def iw2d_input(request):
         return RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
                               calculate_wake=request.param['wake_computation'], f_params=f_params, comment='test',
                               layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1), z_params=z_params)
-    
+
     if request.param['chamber_type'] == 'flat':
         return FlatIW2DInput(machine='test', length=1, relativistic_gamma=7000,
                              calculate_wake=request.param['wake_computation'], f_params=f_params, comment='test',

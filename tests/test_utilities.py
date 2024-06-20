@@ -3,13 +3,14 @@ from pywit.utilities import (create_resonator_component, create_resonator_elemen
                              create_resistive_wall_single_layer_approx_component,
                              create_resistive_wall_single_layer_approx_element,
                              create_taper_RW_approx_component,
-                             create_taper_RW_approx_element,
-                             _zlong_round_single_layer_approx,
-                             _zdip_round_single_layer_approx)
+                             create_taper_RW_approx_element)
+from xwakes.wit.utilities import (_zlong_round_single_layer_approx,
+                                  _zdip_round_single_layer_approx)
 from test_common import relative_error
 from pywit.parameters import *
-from pywit.interface import (Layer, _IW2DInputBase, FlatIW2DInput,
-                             RoundIW2DInput, Sampling, component_names)
+from pywit.interface import (FlatIW2DInput, RoundIW2DInput, Sampling,
+                             component_names)
+from xwakes.wit.interface import _IW2DInputBase
 from pywit.materials import layer_from_json_material_library, copper_at_temperature
 
 from typing import Dict
