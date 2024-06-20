@@ -15,6 +15,8 @@ from pytest import raises, mark
 
 import numpy as np
 
+CURR_DIR = Path(__file__).resolve().parent
+
 
 @mark.parametrize('is_impedance, plane, exponents, expected_comp_name',
                   [[True, 'z', (0, 0, 0, 0), 'zlong'],
@@ -47,7 +49,7 @@ def test_duplicate_component_iw2d_import():
         pytest.skip("IW2D is not installed")
 
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
+        import_data_iw2d(directory=CURR_DIR / "test_data/iw2d/duplicate_components",
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
     assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and "
