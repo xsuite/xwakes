@@ -11,7 +11,6 @@ from hashlib import sha256
 
 import numpy as np
 from yaml import load, BaseLoader
-from joblib import Parallel, delayed
 from scipy.interpolate import interp1d
 
 # A dictionary mapping the datafile-prefixes (as used in IW2D) to (is_impedance, plane, (a, b, c, d))
@@ -708,6 +707,8 @@ def create_multiple_elements_using_iw2d(iw2d_inputs: List[IW2DInput], names: Lis
     assert verify_iw2d_config_file(), "The binary and/or project directories specified in config/iw2d_settings.yaml " \
                                       "do not exist or do not contain the required files and directories."
 
+
+    from joblib import Parallel, delayed
     elements = Parallel(n_jobs=-1, prefer='threads')(delayed(create_element_using_iw2d)(
         iw2d_inputs[i],
         names[i],

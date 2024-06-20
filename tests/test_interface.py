@@ -40,6 +40,12 @@ def test_get_component_name_raise(is_impedance, plane, exponents):
 
 
 def test_duplicate_component_iw2d_import():
+
+    try:
+        import IW2D
+    except ImportError:
+        pytest.skip("IW2D is not installed")
+
     with raises(AssertionError) as error_message:
         import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
                          common_string="WLHC_2layersup_0layersdown6.50mm")
@@ -54,6 +60,12 @@ def test_duplicate_component_iw2d_import():
 
 
 def test_no_matching_filename_iw2d_import():
+
+    try:
+        import IW2D
+    except ImportError:
+        pytest.skip("IW2D is not installed")
+
     with raises(AssertionError) as error_message:
         import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
                          common_string="this_string_matches_no_file")
@@ -66,6 +78,12 @@ def test_no_matching_filename_iw2d_import():
 
 
 def test_valid_iw2d_component_import():
+
+    try:
+        import IW2D
+    except ImportError:
+        pytest.skip("IW2D is not installed")
+
     # Normally, the relativistic gamma would be an attribute of a required IW2DInput object, but here it has been
     # hard-coded instead
     relativstic_gamma = 479.605064966
@@ -116,6 +134,12 @@ list_of_inputs_to_test = [({'chamber_type': 'round', 'wake_computation': False},
                           ({'chamber_type': 'flat', 'wake_computation': True}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad', 'Zycst', 'Wlong', 'Wxdip', 'Wydip', 'Wxquad', 'Wyquad', 'Wycst'])]
 @pytest.mark.parametrize("iw2d_input, components_to_test", list_of_inputs_to_test, indirect=["iw2d_input"])
 def test_check_already_computed(iw2d_input, components_to_test):
+
+    try:
+        import IW2D
+    except ImportError:
+        pytest.skip("IW2D is not installed")
+
     name = 'test_hash'
 
     # create the expected directories for the dummy input
@@ -164,6 +188,12 @@ def test_check_already_computed(iw2d_input, components_to_test):
 
 @pytest.mark.parametrize("iw2d_input", [{'chamber_type': 'round', 'wake_computation': False}], indirect=["iw2d_input"])
 def test_add_iw2d_input_to_database(iw2d_input):
+
+    try:
+        import IW2D
+    except ImportError:
+        pytest.skip("IW2D is not installed")
+
     projects_path = Path(get_iw2d_config_value('project_directory'))
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     directory_level_1 = projects_path.joinpath(input_hash[0:2])
@@ -185,6 +215,12 @@ def test_add_iw2d_input_to_database(iw2d_input):
 
 
 def test_check_valid_working_directory():
+
+    try:
+        import IW2D
+    except ImportError:
+        pytest.skip("IW2D is not installed")
+
     projects_path = Path(get_iw2d_config_value('project_directory'))
     working_directory = projects_path.joinpath(Path("a/wrong/working_directory"))
 
