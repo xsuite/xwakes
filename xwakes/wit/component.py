@@ -26,11 +26,10 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
     intervals = [np.linspace(max(i, start), min(f, stop), fine_points)
                  for i, f in rois
                  if (start <= i <= stop or start <= f <= stop)]
-    fine_sampling_rois = np.hstack(intervals) if intervals else np.array([])
     rough_sampling = np.geomspace(start, stop, rough_points)
 
     return unique_sigfigs(
-        np.sort(np.concatenate((fine_sampling_rois, rough_sampling))), 7)
+        np.sort(np.hstack((*intervals, rough_sampling)),kind='stable'), 7)
 
 
 class Component:
