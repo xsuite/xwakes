@@ -1,4 +1,5 @@
-from pywit.component import Component
+from pywit.component import (Component,
+                             mix_fine_and_rough_sampling)
 from test_common import functions
 from pywit.parameters import *
 
@@ -9,6 +10,61 @@ from pytest import raises,mark
 from numpy import linspace, testing
 import numpy as np
 
+
+def test_mix_fine_and_rough_sampling_no_rois():
+    start = 1
+    stop = 10
+    rough_points = 10
+    assert np.allclose(
+        np.geomspace(start, stop, rough_points),
+        mix_fine_and_rough_sampling(start=start,
+                                    stop=stop,
+                                    rough_points=rough_points,
+                                    fine_points=0,
+                                    rois=[]))
+
+def test_mix_fine_and_rough_sampling_with_rois_no_overlap():
+    start = 1
+    stop = 10
+    rough_points = 10
+    fine_points = 100
+    # here there is no overlap between the rois and the rough points
+    # so all the values in the rois should be included in the total array
+    rois = [(5.1, 5.9), (6.1, 6.9)]
+    target_val = np.sort(
+        np.concatenate((np.geomspace(start, stop, rough_points),
+                        np.linspace(rois[0][0], rois[0][1], fine_points),
+                        np.linspace(rois[1][0], rois[1][1], fine_points))))
+    assert np.allclose(
+        target_val,
+        mix_fine_and_rough_sampling(start=start,
+                                    stop=stop,
+                                    rough_points=rough_points,
+                                    fine_points=fine_points,
+                                    rois=rois))
+
+def test_mix_fine_and_rough_sampling_with_rois_with_overlap():
+    start = 1
+    stop = 10
+    rough_points = 10
+    fine_points = 100
+    rough_points_arr = np.geomspace(start, stop, rough_points)
+    # in the first ROI the extrema overlap with two vales in the rough_points
+    # up to the 7th significant digit so they should not appear in the total array
+    rois = [(rough_points_arr[4] + 1e-7,
+             rough_points_arr[5] + 1e-7),
+             (6.1, 6.9)]
+    target_val = np.sort(
+        np.concatenate((rough_points_arr,
+                        np.linspace(rois[0][0], rois[0][1], fine_points)[1:-1],
+                        np.linspace(rois[1][0], rois[1][1], fine_points))))
+    assert np.allclose(
+        target_val,
+        mix_fine_and_rough_sampling(start=start,
+                                    stop=stop,
+                                    rough_points=rough_points,
+                                    fine_points=fine_points,
+                                    rois=rois))
 
 def simple_component_from_rois(f_rois=None, t_rois=None):
     return Component(impedance=lambda f: f+1j*f, wake=lambda z: z,
