@@ -1,3 +1,7 @@
+'''
+generate files to mirror in pywit the modules from xwakes.wit
+'''
+
 import os
 
 fff = os.listdir('../xwakes/wit')
