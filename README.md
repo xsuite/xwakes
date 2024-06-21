@@ -11,7 +11,7 @@ Under a conda environment with Python 3.8+ it is simply installed via PyPI by do
 This section describes how to couple Xwakes to IW2D using the executables obtained compiling the C++ code.
 When the Python interface of IW2D will be completed this will not be needed anymore.
 
-To begin with, a some folders need to be created in the user's home directory.
+To begin with, some folders need to be created in the user's home directory.
 This can be automatically done by running the following command after Xwakes is installed:
 ```
 python -c 'import xwakes; xwakes.initialize_pywit_directory()'
