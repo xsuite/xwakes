@@ -27,7 +27,9 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
                  for i, f in rois
                  if (start <= i <= stop or start <= f <= stop)]
     rough_sampling = np.geomspace(start, stop, rough_points)
-
+    # the following concatenates adds the rough points to the fine sampling and sorts
+    # the result. Then duplicates are removed, where two points are considered
+    # equal if they are within 7 significant figures of each other.
     return unique_sigfigs(
         np.sort(np.hstack((*intervals, rough_sampling)),kind='stable'), 7)
 
