@@ -25,14 +25,16 @@ __version__ = dd['__version__']
 setup(
     name='xwakes',
     version=__version__,
-    description='Wakefield and impedance toolbox for Xsuite',
-    long_description='Wakefield and impedance toolbox for Xsuite',
+    description='Wake and impedance toolbox',
+    long_description='Toolbox to build and manipulate impedance and wake'
+        ' function models, usable in Xsuite, DELPHI and others',
     url='https://xsuite.web.cern.ch/',
-    author='G. Iadarola et al.',
+    author='M. Rognlien, L. Giacomel, D. Amorim, E. Vik, G. Iadarola '
+        'and N. Mounet',
     license='Apache 2.0',
     download_url="https://pypi.python.org/pypi/xwakes",
     project_urls={
-            "Bug Tracker": "https://github.com/xsuite/xsuite/issues",
+            "Bug Tracker": "https://github.com/xsuite/xwakes/issues",
             "Source Code": "https://github.com/xsuite/xwakes/",
         },
     packages=find_packages(),
@@ -40,6 +42,7 @@ setup(
     include_package_data=True,
     install_requires=[
         'numpy>=1.0',
+        'scipy',
         'pyyaml',
         ],
     extras_require={

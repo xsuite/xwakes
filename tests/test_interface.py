@@ -15,6 +15,13 @@ from pytest import raises, mark
 
 import numpy as np
 
+CURR_DIR = Path(__file__).resolve().parent
+
+try:
+    import IW2D
+    iw2d_installed = True
+except ImportError:
+    iw2d_installed = False
 
 @mark.parametrize('is_impedance, plane, exponents, expected_comp_name',
                   [[True, 'z', (0, 0, 0, 0), 'zlong'],
@@ -39,15 +46,10 @@ def test_get_component_name_raise(is_impedance, plane, exponents):
                                           " the values of component_names dictionary"
 
 
+@pytest.mark.skipif(not iw2d_installed, reason="IW2D is not installed")
 def test_duplicate_component_iw2d_import():
-
-    try:
-        import IW2D
-    except ImportError:
-        pytest.skip("IW2D is not installed")
-
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/duplicate_components").resolve(),
+        import_data_iw2d(directory=CURR_DIR / "test_data/iw2d/duplicate_components",
                          common_string="WLHC_2layersup_0layersdown6.50mm")
 
     assert error_message.value.args[0] in ["The wake files 'WlongWLHC_2layersup_0layersdown6.50mm.dat' and "
@@ -59,35 +61,27 @@ def test_duplicate_component_iw2d_import():
                                            ]
 
 
+@pytest.mark.skipif(not iw2d_installed, reason="IW2D is not installed")
 def test_no_matching_filename_iw2d_import():
-
-    try:
-        import IW2D
-    except ImportError:
-        pytest.skip("IW2D is not installed")
+    test_dir = CURR_DIR / "test_data/iw2d/valid_directory"
 
     with raises(AssertionError) as error_message:
-        import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
+        import_data_iw2d(directory=test_dir,
                          common_string="this_string_matches_no_file")
 
     expected_error_message = f"No files in " \
-                             f"'{Path('test/test_data/iw2d/valid_directory').resolve()}'" \
+                             f"'{test_dir.resolve()}'" \
                              f" matched the common string 'this_string_matches_no_file'."
 
     assert error_message.value.args[0] == expected_error_message
 
 
+@pytest.mark.skipif(not iw2d_installed, reason="IW2D is not installed")
 def test_valid_iw2d_component_import():
-
-    try:
-        import IW2D
-    except ImportError:
-        pytest.skip("IW2D is not installed")
-
     # Normally, the relativistic gamma would be an attribute of a required IW2DInput object, but here it has been
     # hard-coded instead
     relativstic_gamma = 479.605064966
-    recipes = import_data_iw2d(directory=Path("test/test_data/iw2d/valid_directory").resolve(),
+    recipes = import_data_iw2d(directory=CURR_DIR / "test_data/iw2d/valid_directory",
                                common_string="precise")
     for recipe in recipes:
         component = create_component_from_data(*recipe, relativistic_gamma=relativstic_gamma)
@@ -110,7 +104,7 @@ def iw2d_input(request):
         return RoundIW2DInput(machine='test', length=1, relativistic_gamma=7000,
                               calculate_wake=request.param['wake_computation'], f_params=f_params, comment='test',
                               layers=layers_tung, inner_layer_radius=5e-2, yokoya_factors=(1, 1, 1, 1, 1), z_params=z_params)
-    
+
     if request.param['chamber_type'] == 'flat':
         return FlatIW2DInput(machine='test', length=1, relativistic_gamma=7000,
                              calculate_wake=request.param['wake_computation'], f_params=f_params, comment='test',
@@ -133,13 +127,8 @@ list_of_inputs_to_test = [({'chamber_type': 'round', 'wake_computation': False},
                           ({'chamber_type': 'round', 'wake_computation': True}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad', 'Wlong', 'Wxdip', 'Wydip', 'Wxquad', 'Wyquad']),
                           ({'chamber_type': 'flat', 'wake_computation': True}, ['Zlong', 'Zxdip', 'Zydip', 'Zxquad', 'Zyquad', 'Zycst', 'Wlong', 'Wxdip', 'Wydip', 'Wxquad', 'Wyquad', 'Wycst'])]
 @pytest.mark.parametrize("iw2d_input, components_to_test", list_of_inputs_to_test, indirect=["iw2d_input"])
+@pytest.mark.skipif(not iw2d_installed, reason="IW2D is not installed")
 def test_check_already_computed(iw2d_input, components_to_test):
-
-    try:
-        import IW2D
-    except ImportError:
-        pytest.skip("IW2D is not installed")
-
     name = 'test_hash'
 
     # create the expected directories for the dummy input
@@ -187,13 +176,8 @@ def test_check_already_computed(iw2d_input, components_to_test):
 
 
 @pytest.mark.parametrize("iw2d_input", [{'chamber_type': 'round', 'wake_computation': False}], indirect=["iw2d_input"])
+@pytest.mark.skipif(not iw2d_installed, reason="IW2D is not installed")
 def test_add_iw2d_input_to_database(iw2d_input):
-
-    try:
-        import IW2D
-    except ImportError:
-        pytest.skip("IW2D is not installed")
-
     projects_path = Path(get_iw2d_config_value('project_directory'))
     input_hash = sha256(iw2d_input.__str__().encode()).hexdigest()
     directory_level_1 = projects_path.joinpath(input_hash[0:2])
@@ -214,13 +198,8 @@ def test_add_iw2d_input_to_database(iw2d_input):
         os.rmdir(directory_level_1)
 
 
+@pytest.mark.skipif(not iw2d_installed, reason="IW2D is not installed")
 def test_check_valid_working_directory():
-
-    try:
-        import IW2D
-    except ImportError:
-        pytest.skip("IW2D is not installed")
-
     projects_path = Path(get_iw2d_config_value('project_directory'))
     working_directory = projects_path.joinpath(Path("a/wrong/working_directory"))
 
