@@ -503,24 +503,6 @@ class ComponentResonator(Component):
 
         return (aux + np.sqrt(aux**2 + 4*q**2))*f_r/(2*q) - f_r
 
-def _handle_exponents_input(exponents, source_exponents, test_exponents):
-
-    if exponents is not None:
-        assert source_exponents is None and test_exponents is None, (
-            "If exponents is specified, source_exponents and test_exponents "
-            "should not be specified.")
-        source_exponents = exponents[0:2]
-        test_exponents = exponents[2:4]
-    elif source_exponents is not None or test_exponents is not None:
-        assert source_exponents is not None and test_exponents is not None, (
-            "If source_exponents or test_exponents is specified, both should "
-            "be specified.")
-        assert exponents is None, (
-            "If source_exponents or test_exponents is specified, exponents "
-            "should not be specified.")
-
-    return source_exponents, test_exponents
-
 
 class ComponentClassicThickWall(Component):
     def __init__(self, plane: str,
@@ -1087,3 +1069,22 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
             )
 
         return trapz(zdip, axis=1)
+
+
+def _handle_exponents_input(exponents, source_exponents, test_exponents):
+
+    if exponents is not None:
+        assert source_exponents is None and test_exponents is None, (
+            "If exponents is specified, source_exponents and test_exponents "
+            "should not be specified.")
+        source_exponents = exponents[0:2]
+        test_exponents = exponents[2:4]
+    elif source_exponents is not None or test_exponents is not None:
+        assert source_exponents is not None and test_exponents is not None, (
+            "If source_exponents or test_exponents is specified, both should "
+            "be specified.")
+        assert exponents is None, (
+            "If source_exponents or test_exponents is specified, exponents "
+            "should not be specified.")
+
+    return source_exponents, test_exponents
