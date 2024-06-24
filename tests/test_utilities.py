@@ -4,13 +4,12 @@ from pywit.utilities import (create_resonator_component, create_resonator_elemen
                              create_resistive_wall_single_layer_approx_element,
                              create_taper_RW_approx_component,
                              create_taper_RW_approx_element)
-from xwakes.wit.utilities import (_zlong_round_single_layer_approx,
-                                  _zdip_round_single_layer_approx)
+from xwakes.wit.component import ComponentSingleLayerResistiveWall
 from test_common import relative_error
 from pywit.parameters import *
 from pywit.interface import (FlatIW2DInput, RoundIW2DInput, Sampling,
                              component_names)
-from xwakes.wit.interface import _IW2DInputBase
+from xwakes.wit.materials import _IW2DInputBase
 from pywit.materials import layer_from_json_material_library, copper_at_temperature
 
 from typing import Dict
@@ -450,15 +449,14 @@ def test_taper_RW_algorithm(freq, component_id, round_single_layer_input):
 
     for radius in radii:
         if component_id == 'zlong':
-            z_steps += _zlong_round_single_layer_approx(freq,
+            z_steps += ComponentSingleLayerResistiveWall._zlong_round_single_layer_approx(freq,
                             round_single_layer_input.relativistic_gamma,
                             round_single_layer_input.layers[0], radius,
                             round_single_layer_input.length/float(npts))
         else:
-            z_steps += _zdip_round_single_layer_approx(freq,
+            z_steps += ComponentSingleLayerResistiveWall._zdip_round_single_layer_approx(freq,
                             round_single_layer_input.relativistic_gamma,
                             round_single_layer_input.layers[0], radius,
                             round_single_layer_input.length/float(npts))
 
     npt.assert_allclose(comp_taper_trapz.impedance(freq), z_steps, rtol=1e-3)
-
