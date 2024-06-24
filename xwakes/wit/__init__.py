@@ -11,3 +11,8 @@ from . import plot
 from . import sacherer_formula
 from . import utilities
 from . import utils
+
+from .component import (Component, ComponentClassicThickWall, ComponentResonator,
+                        ComponentTaperSingleLayerRestsistiveWall,
+                        ComponentSingleLayerResistiveWall)
+from .element import Element
