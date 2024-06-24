@@ -1,12 +1,22 @@
 from __future__ import annotations
 
+from .materials import Layer, FlatIW2DInput, RoundIW2DInput
 from .parameters import *
 from .utils import unique_sigfigs
 
 from typing import Optional, Callable, Tuple, Union, List
 
 import numpy as np
+from scipy.constants import c as c_light, mu_0 as mu0, epsilon_0 as eps0
+from numpy.typing import ArrayLike
+from scipy import special as sp
 
+if hasattr(np, 'trapezoid'):
+    trapz = np.trapezoid # numpy 2.0
+else:
+    trapz = np.trapz
+
+Z0 = mu0 * c_light
 
 def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
                                 fine_points: int, rois: List[Tuple[float, float]]):
@@ -59,8 +69,8 @@ class Component:
         # Enforces that either impedance or wake is defined.
         assert impedance or wake, "The impedance- and wake functions cannot both be undefined."
         # The impedance- and wake functions as callable objects, e.g lambda functions
-        self.impedance = impedance
-        self.wake = wake
+        self._impedance = impedance
+        self._wake = wake
         self.name = name
 
         # The plane of the Component, either 'x', 'y' or 'z'
@@ -76,8 +86,24 @@ class Component:
         self.test_exponents = test_exponents
         self.power_x = (source_exponents[0] + test_exponents[0] + (plane == 'x')) / 2
         self.power_y = (source_exponents[1] + test_exponents[1] + (plane == 'y')) / 2
-        self.f_rois = f_rois if f_rois else []
-        self.t_rois = t_rois if t_rois else []
+        self._f_rois = f_rois if f_rois else []
+        self._t_rois = t_rois if t_rois else []
+
+    @property
+    def impedance(self) -> Optional[Callable]:
+        return self._impedance
+
+    @property
+    def wake(self) -> Optional[Callable]:
+        return self._wake
+
+    @property
+    def f_rois(self) -> List[Tuple[float, float]]:
+        return self._f_rois
+
+    @property
+    def t_rois(self) -> List[Tuple[float, float]]:
+        return self._t_rois
 
     def generate_wake_from_impedance(self) -> None:
         """
@@ -385,3 +411,631 @@ class Component:
         :return: A 5-character string indicating the plane as well as source- and test exponents of the component
         """
         return self.plane + "".join(str(x) for x in (self.source_exponents + self.test_exponents))
+
+
+class ComponentResonator(Component):
+    def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
+                r: float, q: float, f_r: float,
+                f_roi_level: float = 0.5) -> ComponentResonator:
+        """
+        Creates a resonator component with the given parameters
+        :param plane: the plane the component corresponds to
+        :param exponents: four integers corresponding to (source_x, source_y,
+        test_x, test_y) aka (a, b, c, d)
+        :param r: the shunt impedance of the given component of the resonator
+        :param q: the quality factor of the given component of the resonator
+        :param f_r: the resonance frequency of the given component of the
+        resonator
+        :param f_roi_level: fraction of the peak ok the resonator which is
+        covered by the ROI. I.e. the roi will cover
+        the frequencies for which the resonator impedance is larger than
+        f_roi_level*r
+        :return: A component object of a resonator, specified by the input
+        arguments
+        """
+        self.r = r
+        self.q = q
+        self.f_r = f_r
+        self.f_roi_level = f_roi_level
+
+        # we set impedance and wake to a dummy callable because they will be
+        # overridden by methods
+        super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+                         source_exponents=(exponents[0], exponents[1]),
+                         test_exponents=(exponents[2], exponents[3]),
+                         name="Resonator")
+
+    def impedance(self, f):
+        f_r = self.f_r
+        q = self.q
+        r = self.r
+        plane = self.plane
+        if plane == 'z':
+            out = r / (1 - 1j * q * (f_r / f - f / f_r))
+        else:
+            out = (f_r * r) / (f * (1 - 1j * q * (f_r / f - f / f_r)))
+
+        return out
+
+
+    def wake(self, t):
+        f_r = self.f_r
+        q = self.q
+        r = self.r
+        plane = self.plane
+        omega_r = 2 * np.pi * f_r
+        root_term = np.sqrt(1 - 1 / (4 * q ** 2) + 0J)
+        if plane == 'z':
+            omega_bar = omega_r * root_term
+            alpha = omega_r / (2 * q)
+            out = (omega_r * r * np.exp(-alpha * t) * (
+                   np.cos(omega_bar * t) -
+                   alpha * np.sin(omega_bar * t) / omega_bar) / q).real
+        else:
+            omega_bar = omega_r * root_term
+            out = (omega_r * r * np.exp(-omega_r * t / (2 * q)) *
+                   np.sin(omega_r * root_term * t) /
+                   (q * root_term)).real
+        return out
+
+    @property
+    def f_rois(self):
+        if self.q > 1:
+            d = self._compute_resonator_f_roi_half_width(
+                q=self.q, f_r=self.f_r, f_roi_level=self.f_roi_level)
+            return [(self.f_r - d, self.f_r + d)]
+        else:
+            return []
+
+    @property
+    def t_rois(self):
+        return []
+
+    @staticmethod
+    def _compute_resonator_f_roi_half_width(q: float, f_r: float,
+                                            f_roi_level: float = 0.5):
+        aux = np.sqrt((1 - f_roi_level) / f_roi_level)
+
+        return (aux + np.sqrt(aux**2 + 4*q**2))*f_r/(2*q) - f_r
+
+
+class ComponentClassicThickWall(Component):
+    def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
+                 layer: Layer, radius: float) -> ComponentClassicThickWall:
+        """
+        Creates a single component object modeling a resistive wall
+        impedance/wake, based on the "classic thick wall formula" (see e.g.
+        A. W. Chao, chap. 2 in "Physics of Collective Beams Instabilities in
+        High Energy Accelerators", John Wiley and Sons, 1993).
+        Only longitudinal and transverse dipolar impedances are supported here.
+        :param plane: the plane the component corresponds to
+        :param exponents: four integers corresponding to (source_x, source_y,
+        test_x, test_y) aka (a, b, c, d)
+        :param layer: the chamber material, as a wit Layer object
+        :param radius: the chamber radius in m
+        :return: A component object
+        """
+        self.layer = layer
+        self.radius = radius
+        self.exponents = exponents
+        self.plane = plane
+
+        # we set impedance and wake to a dummy callable because they will be
+        # overridden by methods
+        super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+                         source_exponents=(exponents[0], exponents[1]),
+                         test_exponents=(exponents[2], exponents[3]),
+                         name="Classic Thick Wall")
+
+    def impedance(self, f):
+        layer = self.layer
+        material_resistivity = layer.dc_resistivity
+        material_relative_permeability = 1. + layer.magnetic_susceptibility
+        material_permeability = material_relative_permeability * mu0
+        radius = self.radius
+        plane = self.plane
+        exponents = self.exponents
+
+        if plane == 'z' and exponents == (0, 0, 0, 0):
+            out = ((1/2) *
+                    (1 + np.sign(f)*1j) *
+                    material_resistivity / (np.pi * radius) *
+                    (1 / self.delta_skin(f, material_resistivity,
+                                            material_permeability)))
+        # Transverse dipolar impedance
+        elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
+                (plane == 'y' and exponents == (0, 1, 0, 0))):
+            out = ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
+                    material_resistivity / (np.pi * radius**3) *
+                    (1 / self.delta_skin(f, material_resistivity,
+                                         material_permeability)))
+        else:
+            print("Warning: resistive wall impedance not implemented for "
+                  "component {}{}. Set to zero".format(plane, exponents))
+            out = np.zeros_like(f)
+
+        return out
+
+    def wake(self, t):
+        layer = self.layer
+        material_resistivity = layer.dc_resistivity
+        radius = self.radius
+        plane = self.plane
+        exponents = self.exponents
+
+        # Longitudinal impedance
+        if plane == 'z' and exponents == (0, 0, 0, 0):
+            out = (-c_light / (2*np.pi*radius) *
+                    (Z0 * material_resistivity/np.pi)**(1/2) *
+                    1/(t**(1/2)))
+        # Transverse dipolar impedance
+        elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
+                (plane == 'y' and exponents == (0, 1, 0, 0))):
+            out = (-c_light / (2*np.pi*radius**3) *
+                    (Z0 * material_resistivity/np.pi)**(1/2) *
+                    1/(t**(3/2)))
+        else:
+            print("Warning: resistive wall wake not implemented for "
+                  "component {}{}. Set to zero".format(plane, exponents))
+            out = np.zeros_like(t)
+
+        return out
+
+    @staticmethod
+    def delta_skin(f, material_resistivity, material_permeability):
+        return (material_resistivity / (2*np.pi*abs(f) *
+                                        material_permeability)) ** (1/2)
+
+    @property
+    def f_rois(self):
+        return []
+
+    @property
+    def t_rois(self):
+        return []
+
+
+class ComponentSingleLayerResistiveWall(Component):
+    def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
+                 input_data: Union[FlatIW2DInput, RoundIW2DInput]):
+        """
+        Creates a single component object modeling a resistive wall impedance,
+        based on the single-layer approximated formulas by E. Metral (see e.g.
+        Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10, TUPD053,
+        https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
+        Eq. 21 in F. Roncarolo et al, Phys. Rev. ST Accel. Beams 12, 084401,
+        2009, https://doi.org/10.1103/PhysRevSTAB.12.084401)
+        :param plane: the plane the component corresponds to
+        :param exponents: four integers corresponding to (source_x, source_y,
+        test_x, test_y) aka (a, b, c, d)
+        :param input_data: an IW2D input object (flat or round). If the input
+        is of type FlatIW2DInput and symmetric, we apply to the round formula
+        the Yokoya factors for an infinitely flat structure (see e.g. K. Yokoya,
+        KEK Preprint 92-196 (1993), and Part. Accel. 41 (1993) pp.221-248,
+        https://cds.cern.ch/record/248630/files/p221.pdf),
+        while for a single plate we use those from A. Burov and V. Danilov,
+        PRL 82,11 (1999), https://doi.org/10.1103/PhysRevLett.82.2286. Other
+        kinds of asymmetric structure will raise an error.
+        If the input is of type RoundIW2DInput, the structure is in principle
+        round but the Yokoya factors put in the input will be used.
+        :return: A component object
+        """
+        self.input_data = input_data
+        self.exponents = exponents
+        self.plane = plane
+
+        if isinstance(input_data, FlatIW2DInput):
+            if len(input_data.top_layers) > 1:
+                raise NotImplementedError("Input data can have only one layer")
+            self.yok_long = 1.
+            self.layer = input_data.top_layers[0]
+            self.radius = input_data.top_half_gap
+            if input_data.top_bottom_symmetry:
+                self.yok_dipx = np.pi**2/24.
+                self.yok_dipy = np.pi**2/12.
+                self.yok_quax = -np.pi**2/24.
+                self.yok_quay = np.pi**2/24.
+            elif input_data.bottom_half_gap == np.inf:
+                self.yok_dipx = 0.25
+                self.yok_dipy = 0.25
+                self.yok_quax = -0.25
+                self.yok_quay = 0.25
+            else:
+                raise NotImplementedError("For asymmetric structures, only the "
+                                          "case of a single plate is "
+                                          "implemented; hence the bottom "
+                                          "half-gap must be infinite")
+        elif isinstance(input_data, RoundIW2DInput):
+            self.radius = input_data.inner_layer_radius
+            if len(input_data.layers) > 1:
+                raise NotImplementedError("Input data can have only one layer")
+            self.layer = input_data.layers[0]
+            self.yok_long = input_data.yokoya_factors[0]
+            self.yok_dipx = input_data.yokoya_factors[1]
+            self.yok_dipy = input_data.yokoya_factors[2]
+            self.yok_quax = input_data.yokoya_factors[3]
+            self.yok_quay = input_data.yokoya_factors[4]
+        else:
+            raise NotImplementedError("Input of type neither FlatIW2DInput nor "
+                                       "RoundIW2DInput cannot be handled")
+
+
+        # we set impedance and wake to a dummy callable because they will be
+        # overridden by methods
+        super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+                         source_exponents=(exponents[0], exponents[1]),
+                         test_exponents=(exponents[2], exponents[3]),
+                         name="Single layer resistive wall")
+
+    def impedance(self, f):
+        # Longitudinal impedance
+        if self.plane == 'z' and self.exponents == (0, 0, 0, 0):
+            out = self.yok_long*self._zlong_round_single_layer_approx(
+                                    frequencies=f,
+                                    gamma=self.input_data.relativistic_gamma,
+                                    layer=self.layer,
+                                    radius=self.radius,
+                                    length=self.input_data.length)
+        # Transverse impedances
+        elif self.plane == 'x' and self.exponents == (1, 0, 0, 0):
+            out = self.yok_dipx * self._zdip_round_single_layer_approx(
+                frequencies=f,
+                gamma=self.input_data.relativistic_gamma,
+                layer=self.layer,
+                radius=self.radius,
+                length=self.input_data.length)
+        elif self.plane == 'y' and self.exponents == (0, 1, 0, 0):
+            out = self.yok_dipy * self._zdip_round_single_layer_approx(
+                frequencies=f,
+                gamma=self.input_data.relativistic_gamma,
+                layer=self.layer,
+                radius=self.radius,
+                length=self.input_data.length)
+        elif self.plane == 'x' and self.exponents == (0, 0, 1, 0):
+            out = self.yok_quax * self._zdip_round_single_layer_approx(
+                frequencies=f,
+                gamma=self.input_data.relativistic_gamma,
+                layer=self.layer,
+                radius=self.radius,
+                length=self.input_data.length)
+        elif self.plane == 'y' and self.exponents == (0, 0, 0, 1):
+            out = self.yok_quay * self._zdip_round_single_layer_approx(
+                frequencies=f,
+                gamma=self.input_data.relativistic_gamma,
+                layer=self.layer,
+                radius=self.radius,
+                length=self.input_data.length)
+        else:
+            out = np.zeros_like(f)
+
+        return out
+
+    def wake(self, t):
+        raise NotImplementedError("Wake not implemented for single-layer "
+                                  "resistive wall impedance")
+
+    @staticmethod
+    def _zlong_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
+                                         layer: Layer, radius: float,
+                                         length: float) -> ArrayLike:
+        """
+        Function to compute the longitudinal resistive-wall impedance from
+        the single-layer, approximated formula for a cylindrical structure,
+        by E. Metral (see e.g. Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10,
+        TUPD053, https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
+        Eq. 21 in F. Roncarolo et al, Phys. Rev. ST Accel. Beams 12, 084401,
+        2009, https://doi.org/10.1103/PhysRevSTAB.12.084401)
+        :param frequencies: the frequencies (array) (in Hz)
+        :param gamma: relativistic mass factor
+        :param layer: a layer with material properties (only resistivity,
+        relaxation time and magnetic susceptibility are taken into account
+        at this stage)
+        :param radius: the radius of the structure (in m)
+        :param length: the total length of the resistive object (in m)
+        :return: Zlong, the longitudinal impedance at these frequencies
+        """
+        beta = np.sqrt(1 - 1 / gamma**2)
+        omega = 2 * np.pi * frequencies
+        k = omega / (beta * c_light)
+
+        rho = layer.dc_resistivity
+        tau = layer.resistivity_relaxation_time
+        mu1 = 1 + layer.magnetic_susceptibility
+        eps1 = 1 - 1j / (eps0 * rho * omega * (1 + 1j * omega * tau))
+        nu = k * np.sqrt(1 - beta**2 * eps1 * mu1)
+
+        coef_long = 1j * omega * mu0 * length / (2 * np.pi * beta**2 * gamma**2)
+
+        x1 = k * radius / gamma
+        x1sq = x1**2
+        x2 = nu * radius
+
+        zlong = coef_long * (sp.k0(x1) / sp.i0(x1) -
+                             1 / (x1sq * (1/2 + eps1 * sp.kve(1, x2)/
+                                          (x2 * sp.kve(0, x2)))))
+
+        return zlong
+
+    @staticmethod
+    def _zdip_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
+                                        layer: Layer, radius: float,
+                                        length: float) -> ArrayLike:
+        """
+        Function to compute the transverse dipolar resistive-wall impedance from
+        the single-layer, approximated formula for a cylindrical structure,
+        Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10, TUPD053,
+        https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
+        Eq. 21 in F. Roncarolo et al, Phys. Rev. ST Accel. Beams 12, 084401,
+        2009, https://doi.org/10.1103/PhysRevSTAB.12.084401)
+        :param frequencies: the frequencies (array) (in Hz)
+        :param gamma: relativistic mass factor
+        :param layer: a layer with material properties (only resistivity,
+        relaxation time and magnetic susceptibility are taken into account
+        at this stage)
+        :param radius: the radius of the structure (in m)
+        :param length: the total length of the resistive object (in m)
+        :return: Zdip, the transverse dipolar impedance at these frequencies
+        """
+        beta = np.sqrt(1 - 1 / gamma**2)
+        omega = 2 * np.pi * frequencies
+        k = omega / (beta * c_light)
+
+        rho = layer.dc_resistivity
+        tau = layer.resistivity_relaxation_time
+        mu1 = 1 + layer.magnetic_susceptibility
+        eps1 = 1 - 1j/(eps0 * rho * omega*(1 + 1j * omega * tau))
+        nu = k * np.sqrt(1 - beta**2 * eps1 * mu1)
+
+        coef_dip = 1j * k**2 * Z0 * length/(4. * np.pi * beta * gamma**4)
+
+        x1 = k * radius / gamma
+        x1sq = x1**2
+        x2 = nu * radius
+
+        zdip = coef_dip * (sp.k1(x1) / sp.i1(x1) +
+                           4 * beta**2 * gamma**2 /
+                           (x1sq*(2 + x2 * sp.kve(0, x2) /
+                                  (mu1 * sp.kve(1, x2)))))
+
+        return zdip
+
+
+class ComponentTaperSingleLayerRestsistiveWall(Component):
+    def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
+                 input_data: Union[FlatIW2DInput, RoundIW2DInput],
+                 radius_small: float, radius_large: float,
+                 step_size: float = 1e-3):
+        """
+        Creates a single component object modeling a round or flat taper (flatness
+        along the horizontal direction, change of half-gap along the vertical one)
+        resistive-wall impedance, using the integration of the radius-dependent
+        approximated formula for a cylindrical structure (see
+        the above functions), over the length of the taper.
+        :param plane: the plane the component corresponds to
+        :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
+        :param input_data: an IW2D input object (flat or round). If the input
+        is of type FlatIW2DInput and symmetric, we apply to the round formula the
+        Yokoya factors for an infinitely flat structure (see e.g. K. Yokoya,
+        KEK Preprint 92-196 (1993), and Part. Accel. 41 (1993) pp.221-248,
+        https://cds.cern.ch/record/248630/files/p221.pdf),
+        while for a single plate we use those from A. Burov and V. Danilov,
+        PRL 82,11 (1999), https://doi.org/10.1103/PhysRevLett.82.2286. Other
+        kinds of asymmetric structure will raise an error.
+        If the input is of type RoundIW2DInput, the structure is in principle
+        round but the Yokoya factors put in the input will be used.
+        Note that the radius or half-gaps in input_data are not used (replaced
+        by the scan from radius_small to radius_large, for the integration).
+        :param radius_small: the smallest radius of the taper (in m)
+        :param radius_large: the largest radius of the taper (in m)
+        :param step_size: the step size (in the radial or vertical direction)
+        for the integration (in m)
+        :return: A component object
+        """
+        self.input_data = input_data
+        self.radius_large = radius_large
+        self.radius_small = radius_small
+        self.step_size = step_size
+        self.exponents = exponents
+        self.plane = plane
+
+        if isinstance(input_data, FlatIW2DInput):
+            if len(input_data.top_layers) > 1:
+                raise NotImplementedError("Input data can have only one layer")
+            self.yok_long = 1.
+            self.layer = input_data.top_layers[0]
+            self.radius = input_data.top_half_gap
+            if input_data.top_bottom_symmetry:
+                self.yok_dipx = np.pi**2/24.
+                self.yok_dipy = np.pi**2/12.
+                self.yok_quax = -np.pi**2/24.
+                self.yok_quay = np.pi**2/24.
+            elif input_data.bottom_half_gap == np.inf:
+                self.yok_dipx = 0.25
+                self.yok_dipy = 0.25
+                self.yok_quax = -0.25
+                self.yok_quay = 0.25
+            else:
+                raise NotImplementedError("For asymmetric structures, only the case of a single plate is implemented; "
+                                        "hence the bottom half gap must be infinite")
+        elif isinstance(input_data, RoundIW2DInput):
+            self.radius = input_data.inner_layer_radius
+            if len(input_data.layers) > 1:
+                raise NotImplementedError("Input data can have only one layer")
+            self.layer = input_data.layers[0]
+            self.yok_long = input_data.yokoya_factors[0]
+            self.yok_dipx = input_data.yokoya_factors[1]
+            self.yok_dipy = input_data.yokoya_factors[2]
+            self.yok_quax = input_data.yokoya_factors[3]
+            self.yok_quay = input_data.yokoya_factors[4]
+        else:
+            raise NotImplementedError("Input of type neither FlatIW2DInput nor RoundIW2DInput cannot be handled")
+
+        # we set impedance and wake to a dummy callable because they will be
+        # overridden by methods
+        super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+                         source_exponents=(exponents[0], exponents[1]),
+                         test_exponents=(exponents[2], exponents[3]),
+                         name="Taper single layer resistive wall")
+
+    def impedance(self, f):
+        # Longitudinal impedance
+        if self.plane == 'z' and self.exponents == (0, 0, 0, 0):
+            out = self.yok_long*self._zlong_round_taper_RW_approx(
+                            frequencies=f,
+                            gamma=self.input_data.relativistic_gamma,
+                            layer=self.layer,
+                            radius_small=self.radius_small,
+                            radius_large=self.radius_large,
+                            length=self.input_data.length,
+                            step_size=self.step_size)
+        # Transverse impedances
+        elif self.plane == 'x' and self.exponents == (1, 0, 0, 0):
+            out = self.yok_dipx*self._zdip_round_taper_RW_approx(
+                            frequencies=f,
+                            gamma=self.input_data.relativistic_gamma,
+                            layer=self.layer,
+                            radius_small=self.radius_small,
+                            radius_large=self.radius_large,
+                            length=self.input_data.length,
+                            step_size=self.step_size)
+        elif self.plane == 'y' and self.exponents == (0, 1, 0, 0):
+            out = self.yok_dipy*self._zdip_round_taper_RW_approx(
+                            frequencies=f,
+                            gamma=self.input_data.relativistic_gamma,
+                            layer=self.layer,
+                            radius_small=self.radius_small,
+                            radius_large=self.radius_large,
+                            length=self.input_data.length,
+                            step_size=self.step_size)
+        elif self.plane == 'x' and self.exponents == (0, 0, 1, 0):
+            out = self.yok_quax*self._zdip_round_taper_RW_approx(
+                            frequencies=f,
+                            gamma=self.input_data.relativistic_gamma,
+                            layer=self.layer,
+                            radius_small=self.radius_small,
+                            radius_large=self.radius_large,
+                            length=self.input_data.length,
+                            step_size=self.step_size)
+        elif self.plane == 'y' and self.exponents == (0, 0, 0, 1):
+            out = self.yok_quay*self._zdip_round_taper_RW_approx(
+                            frequencies=f,
+                            gamma=self.input_data.relativistic_gamma,
+                            layer=self.layer,
+                            radius_small=self.radius_small,
+                            radius_large=self.radius_large,
+                            length=self.input_data.length,
+                            step_size=self.step_size)
+        else:
+            out = np.zeros_like(f)
+
+        return out
+
+
+    def wake(self, t):
+        raise NotImplementedError("Wake not implemented for single-layer "
+                                  "resistive wall impedance")
+
+
+    @staticmethod
+    def _zlong_round_taper_RW_approx(frequencies: ArrayLike, gamma: float,
+                                    layer: Layer, radius_small: float,
+                                    radius_large: float, length: float,
+                                    step_size: float = 1e-3) -> ArrayLike:
+        """
+        Function to compute the longitudinal resistive-wall impedance for a
+        round taper, integrating the radius-dependent approximated formula
+        for a cylindrical structure (see_zlong_round_single_layer_approx above),
+        over the length of the taper.
+        :param frequencies: the frequencies (array) (in Hz)
+        :param gamma: relativistic mass factor
+        :param layer: a layer with material properties (only resistivity,
+        relaxation time and magnetic susceptibility are taken into account
+        at this stage)
+        :param radius_small: the smallest radius of the taper (in m)
+        :param radius_large: the largest radius of the taper (in m)
+        :param length: the total length of the taper (in m)
+        :param step_size: the step size (in the radial direction) for the
+        integration (in m)
+        :return: the longitudinal impedance at these frequencies
+        """
+        if np.isscalar(frequencies):
+            frequencies = np.array(frequencies)
+        beta = np.sqrt(1.-1./gamma**2)
+        omega = 2*np.pi*frequencies.reshape((-1, 1))
+        k = omega/(beta*c_light)
+
+        rho = layer.dc_resistivity
+        tau = layer.resistivity_relaxation_time
+        mu1 = 1.+layer.magnetic_susceptibility
+        eps1 = 1. - 1j/(eps0*rho*omega*(1.+1j*omega*tau))
+        nu = k*np.sqrt(1.-beta**2*eps1*mu1)
+
+        coef_long = 1j*omega*mu0/(2.*np.pi*beta**2*gamma**2)
+
+        npts = int(np.floor(abs(radius_large-radius_small)/step_size)+1)
+        radii = np.linspace(radius_small, radius_large, npts).reshape((1, -1))
+        one_array = np.ones(radii.shape)
+
+        x1 = k.dot(radii)/gamma
+        x1sq = x1**2
+        x2 = nu.dot(radii)
+        zlong = (coef_long.dot(length / float(npts) * one_array) *
+                (sp.k0(x1) / sp.i0(x1) -
+                 1. / (x1sq * (1. / 2. + eps1.dot(one_array) *
+                               sp.kve(1, x2) / (x2 * sp.kve(0, x2)))))
+                )
+
+        return trapz(zlong, axis=1)
+
+
+    @staticmethod
+    def _zdip_round_taper_RW_approx(frequencies: ArrayLike, gamma: float,
+                                    layer: Layer, radius_small: float,
+                                    radius_large: float, length: float,
+                                    step_size: float = 1e-3) -> ArrayLike:
+        """
+        Function to compute the transverse dip. resistive-wall impedance for a
+        round taper, integrating the radius-dependent approximated formula
+        for a cylindrical structure (see_zdip_round_single_layer_approx above),
+        over the length of the taper.
+        :param frequencies: the frequencies (array) (in Hz)
+        :param gamma: relativistic mass factor
+        :param layer: a layer with material properties (only resistivity,
+        relaxation time and magnetic susceptibility are taken into account
+        at this stage)
+        :param radius_small: the smallest radius of the taper (in m)
+        :param radius_large: the largest radius of the taper (in m)
+        :param length: the total length of the taper (in m)
+        :param step_size: the step size (in the radial direction) for the
+        integration (in m)
+        :return: the transverse dipolar impedance at these frequencies
+        """
+        if np.isscalar(frequencies):
+            frequencies = np.array(frequencies)
+        beta = np.sqrt(1.-1./gamma**2)
+        omega = 2*np.pi*frequencies.reshape((-1,1))
+        k = omega/(beta*c_light)
+
+        rho = layer.dc_resistivity
+        tau = layer.resistivity_relaxation_time
+        mu1 = 1.+layer.magnetic_susceptibility
+        eps1 = 1. - 1j/(eps0*rho*omega*(1.+1j*omega*tau))
+        nu = k*np.sqrt(1.-beta**2*eps1*mu1)
+
+        coef_dip = 1j*k**2*Z0/(4.*np.pi*beta*gamma**4)
+
+        npts = int(np.floor(abs(radius_large-radius_small)/step_size)+1)
+        radii = np.linspace(radius_small,radius_large,npts).reshape((1,-1))
+        one_array = np.ones(radii.shape)
+
+        x1 = k.dot(radii)/gamma
+        x1sq = x1**2
+        x2 = nu.dot(radii)
+        zdip = (
+                coef_dip.dot(length / float(npts) * one_array) *
+                (sp.k1(x1) / sp.i1(x1) +
+                 4 * beta**2 * gamma**2 / (x1sq * (2 + x2 * sp.kve(0, x2) /
+                                                   (mu1 * sp.kve(1, x2)))))
+            )
+
+        return trapz(zdip, axis=1)
