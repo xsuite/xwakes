@@ -2,7 +2,7 @@ import os
 
 from .component import Component
 from .element import Element
-from .materials import Layer, Sampling, FlatIW2DInput, RoundIW2DInput, IW2DInput
+from .interface_dataclasses import Layer, Sampling, FlatIW2DInput, RoundIW2DInput, IW2DInput
 
 import subprocess
 from typing import Tuple, List, Optional, Dict, Any, Union

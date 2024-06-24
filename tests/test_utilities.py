@@ -9,7 +9,7 @@ from test_common import relative_error
 from pywit.parameters import *
 from pywit.interface import (FlatIW2DInput, RoundIW2DInput, Sampling,
                              component_names)
-from xwakes.wit.materials import _IW2DInputBase
+from xwakes.wit.interface_dataclasses import _IW2DInputBase
 from pywit.materials import layer_from_json_material_library, copper_at_temperature
 
 from typing import Dict

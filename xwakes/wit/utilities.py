@@ -3,7 +3,7 @@ from .component import (Component, ComponentResonator,
                         ComponentSingleLayerResistiveWall,
                         ComponentTaperSingleLayerRestsistiveWall)
 from .element import Element
-from .materials import FlatIW2DInput, RoundIW2DInput
+from .interface_dataclasses import FlatIW2DInput, RoundIW2DInput
 from .interface import component_names
 from .materials import Layer
 

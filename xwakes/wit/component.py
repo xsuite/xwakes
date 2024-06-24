@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .materials import Layer, FlatIW2DInput, RoundIW2DInput
+from .interface_dataclasses import Layer, FlatIW2DInput, RoundIW2DInput
 from .parameters import *
 from .utils import unique_sigfigs
 
