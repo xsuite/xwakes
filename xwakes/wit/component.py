@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-from .materials import Layer, FlatIW2DInput, RoundIW2DInput
-from .parameters import *
-from .utils import unique_sigfigs
-
 from typing import Optional, Callable, Tuple, Union, List
+
+import xwakes.wit as wit
 
 import numpy as np
 from scipy.constants import c as c_light, mu_0 as mu0, epsilon_0 as eps0
@@ -40,7 +38,7 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
     # the following concatenates adds the rough points to the fine sampling and sorts
     # the result. Then duplicates are removed, where two points are considered
     # equal if they are within 7 significant figures of each other.
-    return unique_sigfigs(
+    return wit.utils.unique_sigfigs(
         np.sort(np.hstack((*intervals, rough_sampling)),kind='stable'), 7)
 
 
@@ -308,12 +306,18 @@ class Component:
         # for all of these components are sufficiently close. If they are, True is returned, otherwise, False is
         # returned.
         xs = np.linspace(1, 10000, 50)
-        return (np.allclose(self.impedance(xs), other.impedance(xs), rtol=REL_TOL, atol=ABS_TOL) and
-                np.allclose(self.wake(xs), other.wake(xs), rtol=REL_TOL, atol=ABS_TOL))
+        return (np.allclose(self.impedance(xs), other.impedance(xs),
+                            rtol=wit.parameters.REL_TOL,
+                            atol=wit.parameters.ABS_TOL)
+                and np.allclose(self.wake(xs), other.wake(xs),
+                                rtol=wit.parameters.REL_TOL,
+                                atol=wit.parameters.ABS_TOL))
 
-    def impedance_to_array(self, rough_points: int, start: float = MIN_FREQ,
-                           stop: float = MAX_FREQ,
-                           precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
+    def impedance_to_array(self, rough_points: int,
+                           start: float = wit.parameters.MIN_FREQ,
+                           stop: float = wit.parameters.MAX_FREQ,
+                           precision_factor: float = wit.parameters.FREQ_P_FACTOR
+                           ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a frequency grid based on the f_rois attribute of the component and evaluates the component's
         impedance function at these frequencies.
@@ -347,9 +351,10 @@ class Component:
 
         return xs, self.impedance(xs)
 
-    def wake_to_array(self, rough_points: int, start: float = MIN_TIME,
-                      stop: float = MAX_TIME,
-                      precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
+    def wake_to_array(self, rough_points: int,
+                      start: float = wit.parameters.MIN_TIME,
+                      stop: float = wit.parameters.MAX_TIME,
+                      precision_factor: float = wit.parameters.TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
         Produces a time grid based on the t_rois attribute of the component and evaluates the component's
         wake function at these time points.
@@ -383,11 +388,14 @@ class Component:
 
         return xs, self.wake(xs)
 
-    def discretize(self, freq_points: int, time_points: int, freq_start: float = MIN_FREQ, freq_stop: float = MAX_FREQ,
-                   time_start: float = MIN_TIME, time_stop: float = MAX_TIME,
-                   freq_precision_factor: float = FREQ_P_FACTOR,
-                   time_precision_factor: float = TIME_P_FACTOR) -> Tuple[
-        Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
+    def discretize(self, freq_points: int, time_points: int,
+                   freq_start: float = wit.parameters.MIN_FREQ,
+                   freq_stop: float = wit.parameters.MAX_FREQ,
+                   time_start: float =wit.parameters.MIN_TIME,
+                   time_stop: float = wit.parameters.MAX_TIME,
+                   freq_precision_factor: float = wit.parameters.FREQ_P_FACTOR,
+                   time_precision_factor: float = wit.parameters.TIME_P_FACTOR) -> Tuple[
+            Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         """
         Combines the two discretization-functions in order to fully discretize the wake and impedance of the object
         as specified by a number of parameters.
@@ -501,7 +509,7 @@ class ComponentResonator(Component):
 
 class ComponentClassicThickWall(Component):
     def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
-                 layer: Layer, radius: float) -> ComponentClassicThickWall:
+                 layer: wit.Layer, radius: float) -> ComponentClassicThickWall:
         """
         Creates a single component object modeling a resistive wall
         impedance/wake, based on the "classic thick wall formula" (see e.g.
@@ -597,7 +605,7 @@ class ComponentClassicThickWall(Component):
 
 class ComponentSingleLayerResistiveWall(Component):
     def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
-                 input_data: Union[FlatIW2DInput, RoundIW2DInput]):
+                 input_data: Union[wit.FlatIW2DInput, wit.RoundIW2DInput]):
         """
         Creates a single component object modeling a resistive wall impedance,
         based on the single-layer approximated formulas by E. Metral (see e.g.
@@ -624,7 +632,7 @@ class ComponentSingleLayerResistiveWall(Component):
         self.exponents = exponents
         self.plane = plane
 
-        if isinstance(input_data, FlatIW2DInput):
+        if isinstance(input_data, wit.FlatIW2DInput):
             if len(input_data.top_layers) > 1:
                 raise NotImplementedError("Input data can have only one layer")
             self.yok_long = 1.
@@ -645,7 +653,7 @@ class ComponentSingleLayerResistiveWall(Component):
                                           "case of a single plate is "
                                           "implemented; hence the bottom "
                                           "half-gap must be infinite")
-        elif isinstance(input_data, RoundIW2DInput):
+        elif isinstance(input_data, wit.RoundIW2DInput):
             self.radius = input_data.inner_layer_radius
             if len(input_data.layers) > 1:
                 raise NotImplementedError("Input data can have only one layer")
@@ -716,7 +724,7 @@ class ComponentSingleLayerResistiveWall(Component):
 
     @staticmethod
     def _zlong_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
-                                         layer: Layer, radius: float,
+                                         layer: wit.Layer, radius: float,
                                          length: float) -> ArrayLike:
         """
         Function to compute the longitudinal resistive-wall impedance from
@@ -758,7 +766,7 @@ class ComponentSingleLayerResistiveWall(Component):
 
     @staticmethod
     def _zdip_round_single_layer_approx(frequencies: ArrayLike, gamma: float,
-                                        layer: Layer, radius: float,
+                                        layer: wit.Layer, radius: float,
                                         length: float) -> ArrayLike:
         """
         Function to compute the transverse dipolar resistive-wall impedance from
@@ -800,9 +808,9 @@ class ComponentSingleLayerResistiveWall(Component):
         return zdip
 
 
-class ComponentTaperSingleLayerRestsistiveWall(Component):
+class ComponentTaperSingleLayerResistiveWall(Component):
     def __init__(self, plane: str, exponents: Tuple[int, int, int, int],
-                 input_data: Union[FlatIW2DInput, RoundIW2DInput],
+                 input_data: Union[wit.FlatIW2DInput, wit.RoundIW2DInput],
                  radius_small: float, radius_large: float,
                  step_size: float = 1e-3):
         """
@@ -838,7 +846,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
         self.exponents = exponents
         self.plane = plane
 
-        if isinstance(input_data, FlatIW2DInput):
+        if isinstance(input_data, wit.FlatIW2DInput):
             if len(input_data.top_layers) > 1:
                 raise NotImplementedError("Input data can have only one layer")
             self.yok_long = 1.
@@ -857,7 +865,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
             else:
                 raise NotImplementedError("For asymmetric structures, only the case of a single plate is implemented; "
                                         "hence the bottom half gap must be infinite")
-        elif isinstance(input_data, RoundIW2DInput):
+        elif isinstance(input_data, wit.RoundIW2DInput):
             self.radius = input_data.inner_layer_radius
             if len(input_data.layers) > 1:
                 raise NotImplementedError("Input data can have only one layer")
@@ -938,7 +946,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
 
     @staticmethod
     def _zlong_round_taper_RW_approx(frequencies: ArrayLike, gamma: float,
-                                    layer: Layer, radius_small: float,
+                                    layer: wit.Layer, radius_small: float,
                                     radius_large: float, length: float,
                                     step_size: float = 1e-3) -> ArrayLike:
         """
@@ -990,7 +998,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
 
     @staticmethod
     def _zdip_round_taper_RW_approx(frequencies: ArrayLike, gamma: float,
-                                    layer: Layer, radius_small: float,
+                                    layer: wit.Layer, radius_small: float,
                                     radius_large: float, length: float,
                                     step_size: float = 1e-3) -> ArrayLike:
         """

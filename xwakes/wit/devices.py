@@ -1,8 +1,6 @@
 from typing import Tuple,Sequence
-from .component import Component
-from .element import Element
-from .utilities import create_resonator_component
-from .interface import component_names, get_component_name
+
+import xwakes.wit as wit
 
 import numpy as np
 from scipy import integrate
@@ -14,7 +12,7 @@ free_space_impedance = mu_0 * c_light
 
 
 def create_tesla_cavity_component(plane: str, exponents: Tuple[int, int, int, int], a: float, g: float,
-                                  period_length: float) -> Component:
+                                  period_length: float) -> wit.Component:
     """
     Creates a single component object modeling a periodic accelerating stucture.
     Follow K. Bane formalism developped in SLAC-PUB-9663, "Short-range dipole wakefields
@@ -265,13 +263,14 @@ def create_flat_taper_stupakov_formula_component(half_gap_small: float, half_gap
     :param cutoff_frequency: the cutoff frequency (used only for the longitudinal component)
     :return: A component object of a flat taper
     """
-    component_id = get_component_name(True, plane, exponents)
+    component_id = wit.interface.get_component_name(True, plane, exponents)
 
     r_shunt = shunt_impedance_flat_taper_stupakov_formula(half_gap_small=half_gap_small, half_gap_big=half_gap_big,
                                                           taper_slope=taper_slope, half_width=half_width,
                                                           cutoff_frequency=cutoff_frequency, component_id=component_id)
 
-    return create_resonator_component(plane=plane, exponents=exponents, r=r_shunt, q=1, f_r=cutoff_frequency)
+    return wit.utilities.create_resonator_component(
+        plane=plane, exponents=exponents, r=r_shunt, q=1, f_r=cutoff_frequency)
 
 
 def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_big: float, taper_slope: float,
@@ -279,7 +278,7 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
                                                cutoff_frequency: float = None,
                                                component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
                                                name: str = "Flat taper", tag: str = "",
-                                               description: str = "") -> Element:
+                                               description: str = "") -> wit.Element:
     """
     Creates an element using the flat taper Stupakov formula
     :param half_gap_small: small vertical half-gap
@@ -299,7 +298,7 @@ def create_flat_taper_stupakov_formula_element(half_gap_small: float, half_gap_b
 
     components = []
     for component_id in component_ids:
-        _, plane, exponents = component_names[component_id]
+        _, plane, exponents = wit.interface.component_names[component_id]
         components.append(create_flat_taper_stupakov_formula_component(half_gap_small=half_gap_small,
                                                                        half_gap_big=half_gap_big,
                                                                        taper_slope=taper_slope,

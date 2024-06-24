@@ -2,20 +2,21 @@ from __future__ import annotations
 
 import numpy as np
 
-from .element import Element
-from .component import Component, Union
+from typing import Union, List
 
-from typing import List
+import xwakes.wit as wit
 
 
-class ElementsGroup(Element):
+
+
+class ElementsGroup(wit.Element):
     """
     A class used to store many elements of the same kind (i.e. Collimators, Roman Pots, Broadband resonators...).
     Each of these groups require different handling of the input files and impedance computations (for some we use IW2D,
     while for others we simply read the wake from a file), therefore this should be used as a base class from which
     specific classes are derived.
     """
-    def __init__(self, elements_list: List[Element], name: str = "Unnamed Element", tag: str = "",
+    def __init__(self, elements_list: List[wit.Element], name: str = "Unnamed Element", tag: str = "",
                  description: str = ""):
         """
         The initialization function of the ElementsGroup class.

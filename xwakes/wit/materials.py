@@ -1,103 +1,12 @@
-from .utils import round_sigfigs
-
 from pathlib import Path
 import numpy as np
 import json
 from typing import Callable, Tuple, Optional
-from dataclasses import dataclass
+
+import xwakes.wit as wit
 
 
-@dataclass(frozen=True, eq=True)
-class Sampling:
-    start: float
-    stop: float
-    # 0 = logarithmic, 1 = linear, 2 = both
-    scan_type: int
-    added: Tuple[float]
-    sampling_exponent: Optional[float] = None
-    points_per_decade: Optional[float] = None
-    min_refine: Optional[float] = None
-    max_refine: Optional[float] = None
-    n_refine: Optional[float] = None
-
-
-@dataclass(frozen=True, eq=True)
-class Layer:
-    # The distance in mm of the inner surface of the layer from the reference orbit
-    thickness: float
-    dc_resistivity: float
-    resistivity_relaxation_time: float
-    re_dielectric_constant: float
-    magnetic_susceptibility: float
-    permeability_relaxation_frequency: float
-
-
-# Define several dataclasses for IW2D input elements. We must split mandatory
-# and optional arguments into private dataclasses to respect the resolution
-# order. The public classes RoundIW2DInput and FlatIW2D input inherit from
-# from the private classes.
-# https://stackoverflow.com/questions/51575931/class-inheritance-in-python-3-7-dataclasses
-
-@dataclass(frozen=True, eq=True)
-class _IW2DInputBase:
-    machine: str
-    length: float
-    relativistic_gamma: float
-    calculate_wake: bool
-    f_params: Sampling
-
-
-@dataclass(frozen=True, eq=True)
-class _IW2DInputOptional:
-    z_params: Optional[Sampling] = None
-    long_factor: Optional[float] = None
-    wake_tol: Optional[float] = None
-    freq_lin_bisect: Optional[float] = None
-    comment: Optional[str] = None
-
-
-@dataclass(frozen=True, eq=True)
-class IW2DInput(_IW2DInputOptional, _IW2DInputBase):
-    pass
-
-
-@dataclass(frozen=True, eq=True)
-class _RoundIW2DInputBase(_IW2DInputBase):
-    layers: Tuple[Layer]
-    inner_layer_radius: float
-    # (long, xdip, ydip, xquad, yquad)
-    yokoya_factors: Tuple[float, float, float, float, float]
-
-
-@dataclass(frozen=True, eq=True)
-class _RoundIW2DInputOptional(_IW2DInputOptional):
-    pass
-
-
-@dataclass(frozen=True, eq=True)
-class RoundIW2DInput(_RoundIW2DInputOptional, _RoundIW2DInputBase):
-    pass
-
-
-@dataclass(frozen=True, eq=True)
-class _FlatIW2DInputBase(_IW2DInputBase):
-    top_bottom_symmetry: bool
-    top_layers: Tuple[Layer]
-    top_half_gap: float
-
-
-@dataclass(frozen=True, eq=True)
-class _FlatIW2DInputOptional(_IW2DInputOptional):
-    bottom_layers: Optional[Tuple[Layer]] = None
-    bottom_half_gap: Optional[float] = None
-
-
-@dataclass(frozen=True, eq=True)
-class FlatIW2DInput(_FlatIW2DInputOptional, _FlatIW2DInputBase):
-    pass
-
-
-def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
+def layer_from_dict(thickness: float, material_dict: dict) -> wit.Layer:
     """
     Define a layer from a dictionary containing the materials properties.
 
@@ -121,7 +30,7 @@ def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
     assert not any(missing_properties_list), '{} missing from the input dictionary'.format(
             ", ".join(required_material_properties[np.asarray(missing_properties_list)]))
 
-    return Layer(thickness=thickness,
+    return wit.Layer(thickness=thickness,
                  dc_resistivity=material_dict['dc_resistivity'],
                  resistivity_relaxation_time=material_dict['resistivity_relaxation_time'],
                  re_dielectric_constant=material_dict['re_dielectric_constant'],
@@ -130,7 +39,7 @@ def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
 
 
 def layer_from_json_material_library(thickness: float, material_key: str,
-                                     library_path: Path = Path(__file__).parent.joinpath('materials.json')) -> Layer:
+                                     library_path: Path = Path(__file__).parent.joinpath('materials.json')) -> wit.Layer:
     """
     Define a layer using the materials.json library of materials properties.
 
@@ -222,7 +131,7 @@ def magnetoresistance_Kohler(B_times_Sratio: float, P: Tuple[float, ...]) -> flo
         return 10.**np.polyval(P, np.log10(B_times_Sratio))
 
 
-def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> Layer:
+def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> wit.Layer:
     """
     Define a layer of pure copper material at any temperature, any B field and any RRR.
     We use a magnetoresistance law fitted from the UPPER curve of the plot in NIST, "Properties of copper and copper
@@ -255,7 +164,8 @@ def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: 
 
     rhoDC_B0 = rho_vs_T_Hust_Lankford(T, rho273K, RRR, P)  # resistivity for B=0
     Sratio = rho_vs_T_Hust_Lankford(273, rho273K, RRR, P) / rhoDC_B0
-    dc_resistivity = round_sigfigs(rhoDC_B0 * (1.+magnetoresistance_Kohler(B*Sratio, kohler_P)),3) # we round it to 3 significant digits
+    dc_resistivity = wit.utils.round_sigfigs(
+        rhoDC_B0 * (1.+magnetoresistance_Kohler(B*Sratio, kohler_P)),3) # we round it to 3 significant digits
 
     # tauAC formula from Ascroft-Mermin (Z=1 for copper), Drude model (used also for other
     # materials defined above) with parameters from CRC - Handbook of Chem. and Phys.
@@ -266,9 +176,10 @@ def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: 
     A = 63.546  # Cu atomic mass in g/mol
     Z = 1  # number of valence electrons
     n = 6.022e23*Z*rho_m*1e6 / A
-    tauAC = round_sigfigs(me / (n*dc_resistivity*e**2),3)  # relaxation time (s) (3 significant digits)
+    tauAC = wit.utils.round_sigfigs(
+        me / (n*dc_resistivity*e**2),3)  # relaxation time (s) (3 significant digits)
 
-    return Layer(thickness=thickness,
+    return wit.Layer(thickness=thickness,
                  dc_resistivity=dc_resistivity,
                  resistivity_relaxation_time=tauAC,
                  re_dielectric_constant=1,
@@ -276,7 +187,8 @@ def copper_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: 
                  permeability_relaxation_frequency=np.inf)
 
 
-def tungsten_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> Layer:
+def tungsten_at_temperature(
+        thickness: float, T: float = 300, RRR: float = 70, B: float = 0) -> wit.Layer:
     """
     Define a layer of tungsten at any temperature, any B field and any RRR.
     The resistivity vs. temperature and RRR is found from Hust & Lankford (see above).
@@ -310,7 +222,8 @@ def tungsten_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B
 
     rhoDC_B0 = rho_vs_T_Hust_Lankford(T, rho273K, RRR, P, rhoc)  # resistivity for B=0
     Sratio = rho_vs_T_Hust_Lankford(273, rho273K, RRR, P, rhoc) / rhoDC_B0
-    dc_resistivity = round_sigfigs(rhoDC_B0 * (1.+magnetoresistance_Kohler(B*Sratio, kohler_P)),3)  # 3 significant digits
+    dc_resistivity = wit.utils.round_sigfigs(
+        rhoDC_B0 * (1.+magnetoresistance_Kohler(B*Sratio, kohler_P)),3)  # 3 significant digits
 
     # tauAC formula from Ascroft-Mermin (Z=2 for tungsten), Drude model (used also for other
     # materials defined above) with parameters from CRC - Handbook of Chem. and Phys.
@@ -320,9 +233,10 @@ def tungsten_at_temperature(thickness: float, T: float = 300, RRR: float = 70, B
     A =  183.84 # W atomic mass in g/mol
     Z = 2 # number of valence electrons
     n = 6.022e23 * Z * rhom * 1e6 / A
-    tauAC = round_sigfigs(me/(n*dc_resistivity*e**2),3) # relaxation time (s) (3 significant digits)
+    tauAC = wit.utils.round_sigfigs(
+        me/(n*dc_resistivity*e**2),3) # relaxation time (s) (3 significant digits)
 
-    return Layer(thickness=thickness,
+    return wit.Layer(thickness=thickness,
                  dc_resistivity=dc_resistivity,
                  resistivity_relaxation_time=tauAC,
                  re_dielectric_constant=1,

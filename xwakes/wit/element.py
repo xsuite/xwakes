@@ -1,8 +1,6 @@
 from __future__ import annotations
 
-from .component import Component, Union
-
-from typing import List
+from typing import List, Union
 from collections import defaultdict
 
 from scipy.special import comb
@@ -11,7 +9,7 @@ import copy
 
 class Element:
     def __init__(self, length: float = 0, beta_x: float = 0, beta_y: float = 0,
-                 components: List[Component] = None, name: str = "Unnamed Element",
+                 components: List[wit.Component] = None, name: str = "Unnamed Element",
                  tag: str = "", description: str = ""):
         """
         The initialization function of the Element class.

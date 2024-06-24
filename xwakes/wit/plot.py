@@ -1,15 +1,12 @@
-from .component import Component
-from .element import Element
-from .model import Model
-from .parameters import *
-
 from typing import List, Dict, Union, Optional, Set
 from collections import defaultdict
 
 import numpy as np
 
+import xwakes.wit as wit
 
-def plot_component(component: Component, plot_impedance: bool = True, plot_wake: bool = True, start: float = 1,
+
+def plot_component(component: wit.Component, plot_impedance: bool = True, plot_wake: bool = True, start: float = 1,
                    stop: float = 10000, points: int = 200, step_size: float = None, plot_real: bool = True,
                    plot_imag: bool = True) -> None:
     """
@@ -56,7 +53,7 @@ def plot_component(component: Component, plot_impedance: bool = True, plot_wake:
     plt.show()
 
 
-def plot_element_in_plane(element: Element, plane: str, plot_impedance: bool = True, plot_wake: bool = True,
+def plot_element_in_plane(element: wit.Element, plane: str, plot_impedance: bool = True, plot_wake: bool = True,
                           start: float = 1, stop: float = 10000, points: int = 200, step_size: float = None,
                           plot_real: bool = True, plot_imag: bool = True):
     """
@@ -82,8 +79,10 @@ def plot_element_in_plane(element: Element, plane: str, plot_impedance: bool = T
                    points=points, step_size=step_size, plot_real=plot_real, plot_imag=plot_imag)
 
 
-def plot_component_impedance(component: Component, logscale_x: bool = True, logscale_y: bool = True,
-                             points: int = 1000, start=MIN_FREQ, stop=MAX_FREQ, title: Optional[str] = None) -> None:
+def plot_component_impedance(component: wit.Component, logscale_x: bool = True, logscale_y: bool = True,
+                             points: int = 1000,
+                             start=wit.parameters.MIN_FREQ,
+                             stop=wit.parameters.MAX_FREQ, title: Optional[str] = None) -> None:
     import matplotlib.pyplot as plt
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
@@ -109,8 +108,10 @@ def plot_component_impedance(component: Component, logscale_x: bool = True, logs
     plt.show()
 
 
-def plot_component_wake(component: Component, logscale_x: bool = True, logscale_y: bool = True,
-                        points: int = 1000, start=MIN_TIME, stop=MAX_TIME, title: Optional[str] = None) -> None:
+def plot_component_wake(component: wit.Component, logscale_x: bool = True, logscale_y: bool = True,
+                        points: int = 1000,
+                        start=wit.parameters.MIN_TIME,
+                        stop=wit.parameters.MAX_TIME, title: Optional[str] = None) -> None:
     import matplotlib.pyplot as plt
     fig: plt.Figure = plt.figure()
     ax: plt.Axes = fig.add_subplot(111)
@@ -133,8 +134,11 @@ def plot_component_wake(component: Component, logscale_x: bool = True, logscale_
     plt.show()
 
 
-def generate_contribution_plots(model: Model, start_freq: float = MIN_FREQ, stop_freq: float = MAX_FREQ,
-                                start_time: float = MIN_TIME, stop_time: float = MAX_TIME, points: int = 1000,
+def generate_contribution_plots(model: wit.Model,
+                                start_freq: float = wit.parameters.MIN_FREQ,
+                                stop_freq: float = wit.parameters.MAX_FREQ,
+                                start_time: float = wit.parameters.MIN_TIME,
+                                stop_time: float = wit.parameters.MAX_TIME, points: int = 1000,
                                 freq_scale: str = 'log', time_scale: str = 'log', absolute: bool = False) -> None:
 
     import matplotlib.pyplot as plt
@@ -144,7 +148,7 @@ def generate_contribution_plots(model: Model, start_freq: float = MIN_FREQ, stop
     ts = np.geomspace(start_time, stop_time, points)
 
     all_tags = set([e.tag for e in model.elements])
-    elements: Dict[str, Union[int, Element]] = defaultdict(int)
+    elements: Dict[str, Union[int, wit.Element]] = defaultdict(int)
 
     for element in model.elements:
         elements[element.tag] += element

@@ -1,11 +1,9 @@
 from .component import (Component, ComponentResonator,
                         ComponentClassicThickWall,
                         ComponentSingleLayerResistiveWall,
-                        ComponentTaperSingleLayerRestsistiveWall)
+                        ComponentTaperSingleLayerResistiveWall)
+
 from .element import Element
-from .materials import FlatIW2DInput, RoundIW2DInput
-from .interface import component_names
-from .materials import Layer
 
 from yaml import load, SafeLoader
 from typing import Tuple, Dict, List, Union, Sequence, Optional, Callable
@@ -17,6 +15,8 @@ from numpy.typing import ArrayLike
 import scipy.constants
 from scipy import special as sp
 import numpy as np
+
+import xwakes.wit as wit
 
 c_light = scipy.constants.speed_of_light  # m s-1
 mu0 = scipy.constants.mu_0
@@ -196,7 +196,7 @@ def create_many_resonators_element(length: float, beta_x: float, beta_y: float,
 
 def create_classic_thick_wall_component(plane: str,
                                         exponents: Tuple[int, int, int, int],
-                                        layer: Layer,
+                                        layer: wit.Layer,
                                         radius: float)-> ComponentClassicThickWall:
     """
     Creates a single component object modeling a resistive wall impedance/wake,
@@ -219,7 +219,7 @@ def create_classic_thick_wall_component(plane: str,
 
 def create_resistive_wall_single_layer_approx_component(
         plane: str, exponents: Tuple[int, int, int, int],
-        input_data: Union[FlatIW2DInput, RoundIW2DInput]) -> Component:
+        input_data: Union[wit.FlatIW2DInput, wit.RoundIW2DInput]) -> Component:
     """
     Creates a single component object modeling a resistive wall impedance,
     based on the single-layer approximated formulas by E. Metral (see e.g.
@@ -247,7 +247,7 @@ def create_resistive_wall_single_layer_approx_component(
 
 
 def create_resistive_wall_single_layer_approx_element(
-            input_data: Union[FlatIW2DInput, RoundIW2DInput],
+            input_data: Union[wit.FlatIW2DInput, wit.RoundIW2DInput],
             beta_x: float, beta_y: float,
             component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
             name: str = "", tag: str = "", description: str = "") -> Element:
@@ -279,7 +279,7 @@ def create_resistive_wall_single_layer_approx_element(
     components = []
     length = input_data.length
     for component_id in component_ids:
-        _, plane, exponents = component_names[component_id]
+        _, plane, exponents = wit.interface.component_names[component_id]
         components.append(create_resistive_wall_single_layer_approx_component(
                           plane, exponents, input_data))
 
@@ -290,7 +290,7 @@ def create_resistive_wall_single_layer_approx_element(
 
 
 def create_taper_RW_approx_component(plane: str, exponents: Tuple[int, int, int, int],
-                                     input_data: Union[FlatIW2DInput, RoundIW2DInput],
+                                     input_data: Union[wit.FlatIW2DInput, wit.RoundIW2DInput],
                                      radius_small: float, radius_large: float,
                                      step_size: float = 1e-3) -> Component:
     """
@@ -319,7 +319,7 @@ def create_taper_RW_approx_component(plane: str, exponents: Tuple[int, int, int,
     for the integration (in m)
     :return: A component object
     """
-    return ComponentTaperSingleLayerRestsistiveWall(plane=plane,
+    return ComponentTaperSingleLayerResistiveWall(plane=plane,
                                                     exponents=exponents,
                                                     input_data=input_data,
                                                     radius_small=radius_small,
@@ -328,7 +328,7 @@ def create_taper_RW_approx_component(plane: str, exponents: Tuple[int, int, int,
 
 
 def create_taper_RW_approx_element(
-            input_data: Union[FlatIW2DInput, RoundIW2DInput],
+            input_data: Union[wit.FlatIW2DInput, wit.RoundIW2DInput],
             beta_x: float, beta_y: float,
             radius_small: float, radius_large: float, step_size: float=1e-3,
             component_ids: Sequence[str] = ('zlong', 'zxdip', 'zydip', 'zxqua', 'zyqua'),
@@ -366,7 +366,7 @@ def create_taper_RW_approx_element(
     components = []
     length = input_data.length
     for component_id in component_ids:
-        _, plane, exponents = component_names[component_id]
+        _, plane, exponents = wit.interface.component_names[component_id]
         components.append(create_taper_RW_approx_component(plane=plane, exponents=exponents, input_data=input_data,
                                                            radius_small=radius_small, radius_large=radius_large,
                                                            step_size=step_size))
