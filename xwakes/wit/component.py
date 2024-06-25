@@ -105,10 +105,12 @@ class Component:
         return self._t_rois
 
     def function_vs_t(self, t, beta0):
-        return self.wake(t)
+        out = -self.wake(-t)
+        return out
 
     def function_vs_zeta(self, zeta, beta0):
-        return self.wake(zeta / beta0 / c_light)
+        out = -self.wake(-zeta / beta0 / c_light)
+        return out
 
     @property
     def kick(self) -> str:
@@ -493,13 +495,17 @@ class ComponentResonator(Component):
         if plane == 'z':
             omega_bar = omega_r * root_term
             alpha = omega_r / (2 * q)
-            out = (t < 0) * (omega_r * r * np.exp(-alpha * t) * (
-                   np.cos(omega_bar * t) -
-                   alpha * np.sin(omega_bar * t) / omega_bar) / q).real
+            out = np.zeros_like(t)
+            mask = t > 0
+            out[mask] = (omega_r * r * np.exp(-alpha * t[mask]) * (
+                   np.cos(omega_bar * t[mask]) -
+                   alpha * np.sin(omega_bar * t[mask]) / omega_bar) / q).real
         else:
             omega_bar = omega_r * root_term
-            out = (t < 0) * (omega_r * r * np.exp(-omega_r * t / (2 * q)) *
-                   np.sin(omega_r * root_term * t) /
+            out = np.zeros_like(t)
+            mask = t > 0
+            out[mask] = (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
+                   np.sin(omega_r * root_term * t[mask]) /
                    (q * root_term)).real
         return out
 
