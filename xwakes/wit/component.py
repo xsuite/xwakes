@@ -1039,3 +1039,49 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
             )
 
         return trapz(zdip, axis=1)
+
+
+class ComponentInterpolated(Component):
+    def __init__(self, interpolation_frequencies: ArrayLike = None,
+                impedance_input: Optional[Callable] = None,
+                interpolation_times: ArrayLike = None,
+                wake_input: Optional[Callable] = None, plane: str = '',
+                source_exponents: Tuple[int, int] = (-1, -1),
+                test_exponents: Tuple[int, int] = (-1, -1),
+                name: str = "Interpolated Component",
+                f_rois: Optional[List[Tuple[float, float]]] = None,
+                t_rois: Optional[List[Tuple[float, float]]] = None):
+
+        assert ((interpolation_frequencies is not None) ==
+                (impedance_input is not None)), ("Either both or none of the "
+                "impedance and the interpolation frequencies must be given")
+
+        self.interpolation_frequencies = interpolation_frequencies
+        self.impedance_input = impedance_input
+
+        assert ((interpolation_times is not None) ==
+                (wake_input is not None)), ("Either both or none of the wake "
+                "and the interpolation times must be given")
+
+        self.interpolation_times = interpolation_times
+        self.wake_input = wake_input
+
+        super.__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+                       source_exponents=source_exponents,
+                       test_exponents=test_exponents,
+                       f_rois=f_rois, t_rois=t_rois,
+                       name=name)
+
+    def impedance(self, f):
+        if self.impedance_input is not None:
+            return np.interp(f, self.interpolation_frequencies,
+                             self.impedance_input)
+        else:
+            return np.zeros_like(f)
+
+    def wake(self, t):
+        if self.wake_input is not None:
+            return np.interp(t, self.interpolation_times, self.wake_input)
+        else:
+            return np.zeros_like(t)
+
