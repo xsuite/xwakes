@@ -42,6 +42,7 @@ xfwake.track(p_ref)
 
 
 import matplotlib.pyplot as plt
+plt.close('all')
 plt.plot(p.zeta, p.px, label='xwakes')
 plt.plot(p_ref.zeta, p_ref.px, '--', label='xfields')
 
