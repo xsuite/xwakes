@@ -104,6 +104,26 @@ class Component:
     def t_rois(self) -> List[Tuple[float, float]]:
         return self._t_rois
 
+    def function_vs_t(self, t, beta0):
+        return self.wake(t)
+
+    def function_vs_zeta(self, zeta, beta0):
+        return self.wake(zeta / beta0 / c_light)
+
+    @property
+    def kick(self) -> str:
+        return {'x': 'px', 'y': 'py', 'z': 'delta'}[self.plane]
+
+    @property
+    def source_moments(self) -> List[str]:
+        out = ['num_particles']
+        if self.source_exponents[0] != 0:
+            out.append('x')
+        if self.source_exponents[1] != 0:
+            out.append('y')
+
+        return out
+
     def generate_wake_from_impedance(self) -> None:
         """
         Uses the impedance function of the Component object to generate its wake function, using
@@ -473,12 +493,12 @@ class ComponentResonator(Component):
         if plane == 'z':
             omega_bar = omega_r * root_term
             alpha = omega_r / (2 * q)
-            out = (omega_r * r * np.exp(-alpha * t) * (
+            out = (t < 0) * (omega_r * r * np.exp(-alpha * t) * (
                    np.cos(omega_bar * t) -
                    alpha * np.sin(omega_bar * t) / omega_bar) / q).real
         else:
             omega_bar = omega_r * root_term
-            out = (omega_r * r * np.exp(-omega_r * t / (2 * q)) *
+            out = (t < 0) * (omega_r * r * np.exp(-omega_r * t / (2 * q)) *
                    np.sin(omega_r * root_term * t) /
                    (q * root_term)).real
         return out
