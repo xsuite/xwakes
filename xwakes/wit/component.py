@@ -414,7 +414,7 @@ class Component:
 
 class ComponentResonator(Component):
     def __init__(self, plane: str,
-                exponents: Tuple[int, int, int, int],
+                exponents: Tuple[int, int, int, int]| None = None,
                 source_exponents: Tuple[int, int] | None = None,
                 test_exponents: Tuple[int, int] | None = None,
                 r: float = None, q: float = None, f_r: float = None,
