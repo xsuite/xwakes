@@ -44,6 +44,7 @@ setup(
         'numpy>=1.0',
         'scipy',
         'pyyaml',
+        'pandas'
         ],
     extras_require={
         'tests': ['pytest'],
