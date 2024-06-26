@@ -473,6 +473,7 @@ class ComponentResonator(Component):
                          name="Resonator")
 
     def impedance(self, f):
+        f = np.atleast_1d(f)
         f_r = self.f_r
         q = self.q
         r = self.r
@@ -486,6 +487,7 @@ class ComponentResonator(Component):
 
 
     def wake(self, t):
+        t = np.atleast_1d(t)
         f_r = self.f_r
         q = self.q
         r = self.r
