@@ -6,13 +6,14 @@ from scipy.constants import c as clight
 
 import xtrack as xt
 import xpart as xp
+import xfields as xf
 
 import matplotlib.pyplot as plt
 from scipy.signal import hilbert
 from scipy.stats import linregress
 
 f_rev = 43347.648455970964
-fline=(9240*f_rev - (0.13)*f_rev)
+fline = (9240*f_rev - (0.13)*f_rev)
 
 res = wit.ComponentResonator(
     r=0.942e9*70, q=5e5, f_r=fline,
@@ -21,21 +22,11 @@ res = wit.ComponentResonator(
     plane='x'
 )
 
-import xfields as xf
-
 # Simulation settings
 n_turns = 2_048
 
 circumference = 6911.5662
 #bucket_length_m = circumference / 35640
-
-#xfcomponent = xf.WakeComponent(
-#    source_exponents=res.source_exponents,
-#    test_exponents=res.test_exponents,
-#    kick={'x': 'px', 'y': 'py', 'z': 'delta'}[res.plane],
-#    function=lambda zeta: res.wake(zeta/p.beta0[0]/clight) * (zeta < 0)
-#)
-
 
 wake = xf.Wakefield(components=[res], zeta_range=(-1, 1),
                     num_slices=100, num_turns=100, circumference=circumference)
