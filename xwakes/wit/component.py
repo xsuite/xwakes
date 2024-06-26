@@ -1122,7 +1122,7 @@ class ComponentInterpolated(Component):
         self.interpolation_times = interpolation_times
         self.wake_input = wake_input
 
-        super.__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+        super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
                        source_exponents=source_exponents,
                        test_exponents=test_exponents,
                        f_rois=f_rois, t_rois=t_rois,
