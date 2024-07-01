@@ -1,17 +1,18 @@
 import numpy as np
 
-import xwakes.wit as wit
+import xwakes as xw
 
 from scipy.constants import c as clight
 
 import xtrack as xt
 p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 1000))
 p.x[p.zeta > 0] += 1e-3
+p.y[p.zeta > 0] += 1e-3
 p_ref = p.copy()
 
-wake = wit.ComponentResonator(
+wake = xw.WakeResonator(
     r=1e8, q=1e7, f_r=1e9,
-    kind='dipolar_x'
+    kind=['dipolar_x', 'dipolar_y'],
 )
 wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
 
