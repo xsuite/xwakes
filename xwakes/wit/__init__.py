@@ -15,4 +15,5 @@ from . import utils
 from .component import (Component, ComponentClassicThickWall, ComponentResonator,
                         ComponentTaperSingleLayerRestsistiveWall,
                         ComponentSingleLayerResistiveWall)
+from .interface_dataclasses import Layer
 from .element import Element

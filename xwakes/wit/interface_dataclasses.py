@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Tuple, Optional
+import numpy as np
 
 @dataclass(frozen=True, eq=True)
 class Sampling:
@@ -20,10 +21,10 @@ class Layer:
     # The distance in mm of the inner surface of the layer from the reference orbit
     thickness: float
     dc_resistivity: float
-    resistivity_relaxation_time: float
-    re_dielectric_constant: float
-    magnetic_susceptibility: float
-    permeability_relaxation_frequency: float
+    resistivity_relaxation_time: float = 0.0
+    re_dielectric_constant: float = 1.0
+    magnetic_susceptibility: float = 0.0
+    permeability_relaxation_frequency: float = np.inf
 
 
 # Define several dataclasses for IW2D input elements. We must split mandatory
