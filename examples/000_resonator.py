@@ -18,13 +18,6 @@ res = wit.ComponentResonator(
 
 import xfields as xf
 
-#xfcomponent = xf.WakeComponent(
-#    source_exponents=res.source_exponents,
-#    test_exponents=res.test_exponents,
-#    kick={'x': 'px', 'y': 'py', 'z': 'delta'}[res.plane],
-#    function=lambda zeta: res.wake(zeta/p.beta0[0]/clight) * (zeta < 0)
-#)
-
 
 wake = xf.Wakefield(components=[res], zeta_range=(-1, 1),
                     num_slices=100)
