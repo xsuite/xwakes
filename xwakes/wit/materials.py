@@ -1,10 +1,12 @@
-from .interface import Layer
 from .utils import round_sigfigs
 
 from pathlib import Path
 import numpy as np
 import json
 from typing import Callable, Tuple
+from .interface_dataclasses import Layer
+
+
 
 
 def layer_from_dict(thickness: float, material_dict: dict) -> Layer:
