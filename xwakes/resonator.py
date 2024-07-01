@@ -11,31 +11,21 @@ class WakeResonator(BaseWake):
                 source_exponents: Tuple[int, int] | None = None,
                 test_exponents: Tuple[int, int] | None = None,
                 r: float = None, q: float = None, f_r: float = None,
-                f_roi_level: float = 0.5,
-                factor=1.):
+                f_roi_level: float = 0.5):
 
         if kind is not None:
             if isinstance(kind, str):
                 kind = [kind]
-            if not hasattr(factor, '__iter__'):
-                factor = [factor]*len(kind)
 
             components = []
-            for kk, ff in zip(kind, factor):
+            for kk in kind:
                 cc = ComponentResonator(r=r, q=q, f_r=f_r,
-                                        kind=kk, f_roi_level=f_roi_level,
-                                        factor=ff)
+                                        kind=kk, f_roi_level=f_roi_level)
                 components.append(cc)
         else:
-            assert not hasattr(factor, '__iter__') or len(factor) == 1
-            if hasattr(factor, '__iter__'):
-                factor = factor[0]
             cc = ComponentResonator(r=r, q=q, f_r=f_r, f_roi_level=f_roi_level,
                                     plane=plane, source_exponents=source_exponents,
-                                    test_exponents=test_exponents,
-                                    factor=factor)
+                                    test_exponents=test_exponents)
             components = [cc]
 
         self.components = components
-
-
