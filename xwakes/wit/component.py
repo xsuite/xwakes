@@ -491,7 +491,8 @@ class ComponentResonator(Component):
                 source_exponents: Tuple[int, int] | None = None,
                 test_exponents: Tuple[int, int] | None = None,
                 r: float = None, q: float = None, f_r: float = None,
-                f_roi_level: float = 0.5) -> ComponentResonator:
+                f_roi_level: float = 0.5,
+                factor=1.0) -> ComponentResonator:
         """
         Creates a resonator component with the given parameters
         :param plane: the plane the component corresponds to
@@ -512,6 +513,7 @@ class ComponentResonator(Component):
         self.q = q
         self.f_r = f_r
         self.f_roi_level = f_roi_level
+        self.factor = factor
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=exponents,
@@ -531,11 +533,12 @@ class ComponentResonator(Component):
         f_r = self.f_r
         q = self.q
         r = self.r
+        factor = self.factor
         plane = self.plane
         if plane == 'z':
-            out = r / (1 - 1j * q * (f_r / f - f / f_r))
+            out = factor * r / (1 - 1j * q * (f_r / f - f / f_r))
         else:
-            out = (f_r * r) / (f * (1 - 1j * q * (f_r / f - f / f_r)))
+            out = factor * (f_r * r) / (f * (1 - 1j * q * (f_r / f - f / f_r)))
 
         return out
 
@@ -545,6 +548,7 @@ class ComponentResonator(Component):
         f_r = self.f_r
         q = self.q
         r = self.r
+        factor = self.factor
         plane = self.plane
         omega_r = 2 * np.pi * f_r
         root_term = np.sqrt(1 - 1 / (4 * q ** 2) + 0J)
@@ -553,14 +557,14 @@ class ComponentResonator(Component):
             alpha = omega_r / (2 * q)
             out = np.zeros_like(t)
             mask = t > 0
-            out[mask] = (omega_r * r * np.exp(-alpha * t[mask]) * (
+            out[mask] = factor * (omega_r * r * np.exp(-alpha * t[mask]) * (
                    np.cos(omega_bar * t[mask]) -
                    alpha * np.sin(omega_bar * t[mask]) / omega_bar) / q).real
         else:
             omega_bar = omega_r * root_term
             out = np.zeros_like(t)
             mask = t > 0
-            out[mask] = (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
+            out[mask] = factor * (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
                    np.sin(omega_r * root_term * t[mask]) /
                    (q * root_term)).real
         return out
@@ -593,7 +597,8 @@ class ComponentClassicThickWall(Component):
                  exponents: Tuple[int, int, int, int] | None = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
-                 layer: Layer = None, radius: float = None) -> ComponentClassicThickWall:
+                 layer: Layer = None, radius: float = None,
+                 factor: float = 1.0) -> ComponentClassicThickWall:
         """
         Creates a single component object modeling a resistive wall
         impedance/wake, based on the "classic thick wall formula" (see e.g.
@@ -610,6 +615,7 @@ class ComponentClassicThickWall(Component):
         self.layer = layer
         self.radius = radius
         self.plane = plane
+        self.factor = factor
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=exponents,
@@ -631,10 +637,11 @@ class ComponentClassicThickWall(Component):
         material_permeability = material_relative_permeability * mu0
         radius = self.radius
         plane = self.plane
+        factor = self.factor
         exponents = self.exponents
 
         if plane == 'z' and exponents == (0, 0, 0, 0):
-            out = ((1/2) *
+            out = factor * ((1/2) *
                     (1 + np.sign(f)*1j) *
                     material_resistivity / (np.pi * radius) *
                     (1 / self.delta_skin(f, material_resistivity,
@@ -642,7 +649,7 @@ class ComponentClassicThickWall(Component):
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
+            out = factor * ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
                     material_resistivity / (np.pi * radius**3) *
                     (1 / self.delta_skin(f, material_resistivity,
                                          material_permeability)))
@@ -658,17 +665,18 @@ class ComponentClassicThickWall(Component):
         material_resistivity = layer.dc_resistivity
         radius = self.radius
         plane = self.plane
+        factor = self.factor
         exponents = self.exponents
 
         # Longitudinal impedance
         if plane == 'z' and exponents == (0, 0, 0, 0):
-            out = (-c_light / (2*np.pi*radius) *
+            out = factor * (-c_light / (2*np.pi*radius) *
                     (Z0 * material_resistivity/np.pi)**(1/2) *
                     1/(t**(1/2)))
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = (-c_light / (2*np.pi*radius**3) *
+            out = factor * (-c_light / (2*np.pi*radius**3) *
                     (Z0 * material_resistivity/np.pi)**(1/2) *
                     1/(t**(3/2)))
         else:
@@ -699,7 +707,8 @@ class ComponentSingleLayerResistiveWall(Component):
                  exponents: Tuple[int, int, int, int] = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
-                 input_data: Union[FlatIW2DInput, RoundIW2DInput] = None):
+                 input_data: Union[FlatIW2DInput, RoundIW2DInput] = None,
+                 factor: float = 1.0):
         """
         Creates a single component object modeling a resistive wall impedance,
         based on the single-layer approximated formulas by E. Metral (see e.g.
@@ -724,12 +733,14 @@ class ComponentSingleLayerResistiveWall(Component):
         """
         self.input_data = input_data
         self.plane = plane
+        self.factor = factor
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=exponents,
                                     source_exponents=source_exponents,
                                     test_exponents=test_exponents,
                                     plane=plane)
+        factor = self.factor
 
         if isinstance(input_data, FlatIW2DInput):
             if len(input_data.top_layers) > 1:
@@ -775,10 +786,13 @@ class ComponentSingleLayerResistiveWall(Component):
                          name="Single layer resistive wall")
 
     def impedance(self, f):
+
+        factor = self.factor
+
         # Longitudinal impedance
         if (self.plane == 'z' and self.source_exponents == (0, 0)
            and self.test_exponents == (0, 0)):
-            out = self.yok_long*self._zlong_round_single_layer_approx(
+            out = factor * self.yok_long*self._zlong_round_single_layer_approx(
                                     frequencies=f,
                                     gamma=self.input_data.relativistic_gamma,
                                     layer=self.layer,
@@ -787,7 +801,7 @@ class ComponentSingleLayerResistiveWall(Component):
         # Transverse impedances
         elif (self.plane == 'x' and self.source_exponents == (1, 0) and
               self.test_exponents == (0, 0)):
-            out = self.yok_dipx * self._zdip_round_single_layer_approx(
+            out = factor * self.yok_dipx * self._zdip_round_single_layer_approx(
                 frequencies=f,
                 gamma=self.input_data.relativistic_gamma,
                 layer=self.layer,
@@ -795,7 +809,7 @@ class ComponentSingleLayerResistiveWall(Component):
                 length=self.input_data.length)
         elif (self.plane == 'y' and self.source_exponents == (0, 1) and
               self.test_exponents == (0, 0)):
-            out = self.yok_dipy * self._zdip_round_single_layer_approx(
+            out = factor * self.yok_dipy * self._zdip_round_single_layer_approx(
                 frequencies=f,
                 gamma=self.input_data.relativistic_gamma,
                 layer=self.layer,
@@ -803,7 +817,7 @@ class ComponentSingleLayerResistiveWall(Component):
                 length=self.input_data.length)
         elif (self.plane == 'x' and self.source_exponents == (0, 0)
              and self.test_exponents == (1, 0)):
-            out = self.yok_quax * self._zdip_round_single_layer_approx(
+            out = factor * self.yok_quax * self._zdip_round_single_layer_approx(
                 frequencies=f,
                 gamma=self.input_data.relativistic_gamma,
                 layer=self.layer,
@@ -811,7 +825,7 @@ class ComponentSingleLayerResistiveWall(Component):
                 length=self.input_data.length)
         elif (self.plane == 'y' and self.source_exponents == (0, 0) and
               self.test_exponents == (0, 1)):
-            out = self.yok_quay * self._zdip_round_single_layer_approx(
+            out = factor * self.yok_quay * self._zdip_round_single_layer_approx(
                 frequencies=f,
                 gamma=self.input_data.relativistic_gamma,
                 layer=self.layer,
@@ -921,7 +935,8 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                  test_exponents: Tuple[int, int] | None = None,
                  input_data: Union[FlatIW2DInput, RoundIW2DInput] = None,
                  radius_small: float = None, radius_large: float = None,
-                 step_size: float = 1e-3):
+                 step_size: float = 1e-3,
+                 factor: float = 1.0) -> ComponentTaperSingleLayerRestsistiveWall:
         """
         Creates a single component object modeling a round or flat taper (flatness
         along the horizontal direction, change of half-gap along the vertical one)
@@ -953,6 +968,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
         self.radius_small = radius_small
         self.step_size = step_size
         self.plane = plane
+        self.factor = factor
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=exponents,
@@ -1000,10 +1016,12 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                          name="Taper single layer resistive wall")
 
     def impedance(self, f):
+
+        factor = self.factor
         # Longitudinal impedance
         if (self.plane == 'z' and self.source_exponents == (0, 0)
             and self.test_exponents == (0, 0)):
-            out = self.yok_long*self._zlong_round_taper_RW_approx(
+            out = factor * self.yok_long*self._zlong_round_taper_RW_approx(
                             frequencies=f,
                             gamma=self.input_data.relativistic_gamma,
                             layer=self.layer,
@@ -1014,7 +1032,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
         # Transverse impedances
         elif (self.plane == 'x' and self.source_exponents == (1, 0)
               and self.test_exponents == (0, 0)):
-            out = self.yok_dipx*self._zdip_round_taper_RW_approx(
+            out = factor * self.yok_dipx*self._zdip_round_taper_RW_approx(
                             frequencies=f,
                             gamma=self.input_data.relativistic_gamma,
                             layer=self.layer,
@@ -1024,7 +1042,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                             step_size=self.step_size)
         elif (self.plane == 'y' and self.source_exponents == (0, 1)
               and self.test_exponents == (0, 0)):
-            out = self.yok_dipy*self._zdip_round_taper_RW_approx(
+            out = factor * self.yok_dipy*self._zdip_round_taper_RW_approx(
                             frequencies=f,
                             gamma=self.input_data.relativistic_gamma,
                             layer=self.layer,
@@ -1034,7 +1052,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                             step_size=self.step_size)
         elif (self.plane == 'x' and self.source_exponents == (0, 0)
              and self.test_exponents == (1, 0)):
-            out = self.yok_quax*self._zdip_round_taper_RW_approx(
+            out = factor * self.yok_quax*self._zdip_round_taper_RW_approx(
                             frequencies=f,
                             gamma=self.input_data.relativistic_gamma,
                             layer=self.layer,
@@ -1044,7 +1062,7 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                             step_size=self.step_size)
         elif (self.plane == 'y' and self.source_exponents == (0, 0)
               and self.test_exponents == (0, 1)):
-            out = self.yok_quay*self._zdip_round_taper_RW_approx(
+            out = factor * self.yok_quay*self._zdip_round_taper_RW_approx(
                             frequencies=f,
                             gamma=self.input_data.relativistic_gamma,
                             layer=self.layer,
