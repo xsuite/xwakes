@@ -17,6 +17,29 @@ else:
 
 Z0 = mu0 * c_light
 
+KIND_DEFINITIONS = {
+    'longitudinal':   {'plane': 'z', 'source_exponents':(0, 0), 'test_exponents': (0, 0)},
+     'constant_x':    {'plane': 'x', 'source_exponents':(0, 0), 'test_exponents': (0, 0)},
+     'constant_y':    {'plane': 'y', 'source_exponents':(0, 0), 'test_exponents': (0, 0)},
+     'dipolar_x':      {'plane': 'x', 'source_exponents':(1, 0), 'test_exponents': (0, 0)},
+     'dipolar_y':      {'plane': 'y', 'source_exponents':(0, 1), 'test_exponents': (0, 0)},
+     'dipolar_xy':     {'plane': 'x', 'source_exponents':(0, 1), 'test_exponents': (0, 0)},
+     'dipolar_yx':     {'plane': 'y', 'source_exponents':(1, 0), 'test_exponents': (0, 0)},
+     'quadrupolar_x':  {'plane': 'x', 'source_exponents':(0, 0), 'test_exponents': (1, 0)},
+     'quadrupolar_y':  {'plane': 'y', 'source_exponents':(0, 0), 'test_exponents': (0, 1)},
+     'quadrupolar_xy': {'plane': 'x', 'source_exponents':(0, 0), 'test_exponents': (0, 1)},
+     'quadrupolar_yx': {'plane': 'y', 'source_exponents':(0, 0), 'test_exponents': (1, 0)},
+     'dipole_x':      {'plane': 'x', 'source_exponents':(1, 0), 'test_exponents': (0, 0)},
+     'dipole_y':      {'plane': 'y', 'source_exponents':(0, 1), 'test_exponents': (0, 0)},
+     'dipole_xy':     {'plane': 'x', 'source_exponents':(0, 1), 'test_exponents': (0, 0)},
+     'dipole_yx':     {'plane': 'y', 'source_exponents':(1, 0), 'test_exponents': (0, 0)},
+     'quadrupole_x':  {'plane': 'x', 'source_exponents':(0, 0), 'test_exponents': (1, 0)},
+     'quadrupole_y':  {'plane': 'y', 'source_exponents':(0, 0), 'test_exponents': (0, 1)},
+     'quadrupole_xy': {'plane': 'x', 'source_exponents':(0, 0), 'test_exponents': (0, 1)},
+     'quadrupole_yx': {'plane': 'y', 'source_exponents':(0, 0), 'test_exponents': (1, 0)},
+}
+
+
 def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
                                 fine_points: int, rois: List[Tuple[float, float]]):
     """
@@ -48,7 +71,9 @@ class Component:
     A data structure representing the impedance- and wake functions of some Component in a specified plane.
     """
 
-    def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None, plane: str = '',
+    def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None,
+                 kind: str = None,
+                 plane: str = None,
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None):
@@ -65,6 +90,13 @@ class Component:
         referred to as 'a' and 'b'. Must be specified for valid initialization
         :param name: An optional user-specified name of the component
         """
+
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                                    kind=kind, exponents=None,
+                                    source_exponents=source_exponents,
+                                    test_exponents=test_exponents,
+                                    plane=plane)
+
         # Enforces that either impedance or wake is defined.
         assert impedance or wake, "The impedance- and wake functions cannot both be undefined."
         # The impedance- and wake functions as callable objects, e.g lambda functions
@@ -73,8 +105,9 @@ class Component:
         self.name = name
 
         # The plane of the Component, either 'x', 'y' or 'z'
-        assert plane.lower() in ['x', 'y', 'z'], \
-            "Cannot initialize Component object without specified plane"
+        assert plane.lower() in ['x', 'y', 'z'], (
+            f"Invalid plane specified: {plane}. Must be 'x', 'y' or 'z'.")
+
         self.plane = plane
 
         assert source_exponents != (-1, -1) and len(source_exponents) == 2, \
@@ -435,7 +468,9 @@ class Component:
 
 
 class ComponentResonator(Component):
-    def __init__(self, plane: str,
+    def __init__(self,
+                kind: str = None,
+                plane: str = None,
                 exponents: Tuple[int, int, int, int]| None = None,
                 source_exponents: Tuple[int, int] | None = None,
                 test_exponents: Tuple[int, int] | None = None,
@@ -462,8 +497,11 @@ class ComponentResonator(Component):
         self.f_r = f_r
         self.f_roi_level = f_roi_level
 
-        source_exponents, test_exponents = _handle_exponents_input(
-            exponents, source_exponents, test_exponents)
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                                    kind=kind, exponents=exponents,
+                                    source_exponents=source_exponents,
+                                    test_exponents=test_exponents,
+                                    plane=plane)
 
         # we set impedance and wake to a dummy callable because they will be
         # overridden by methods
@@ -533,7 +571,9 @@ class ComponentResonator(Component):
 
 
 class ComponentClassicThickWall(Component):
-    def __init__(self, plane: str,
+    def __init__(self,
+                 kind: str = None,
+                 plane: str = None,
                  exponents: Tuple[int, int, int, int] | None = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
@@ -555,8 +595,11 @@ class ComponentClassicThickWall(Component):
         self.radius = radius
         self.plane = plane
 
-        source_exponents, test_exponents = _handle_exponents_input(
-            exponents, source_exponents, test_exponents)
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                                    kind=kind, exponents=exponents,
+                                    source_exponents=source_exponents,
+                                    test_exponents=test_exponents,
+                                    plane=plane)
 
         # we set impedance and wake to a dummy callable because they will be
         # overridden by methods
@@ -634,7 +677,9 @@ class ComponentClassicThickWall(Component):
 
 
 class ComponentSingleLayerResistiveWall(Component):
-    def __init__(self, plane: str,
+    def __init__(self,
+                 kind: str = None,
+                 plane: str = None,
                  exponents: Tuple[int, int, int, int] = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
@@ -664,8 +709,11 @@ class ComponentSingleLayerResistiveWall(Component):
         self.input_data = input_data
         self.plane = plane
 
-        source_exponents, test_exponents = _handle_exponents_input(
-            exponents, source_exponents, test_exponents)
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                                    kind=kind, exponents=exponents,
+                                    source_exponents=source_exponents,
+                                    test_exponents=test_exponents,
+                                    plane=plane)
 
         if isinstance(input_data, FlatIW2DInput):
             if len(input_data.top_layers) > 1:
@@ -849,7 +897,9 @@ class ComponentSingleLayerResistiveWall(Component):
 
 
 class ComponentTaperSingleLayerRestsistiveWall(Component):
-    def __init__(self, plane: str,
+    def __init__(self,
+                 kind: str = None,
+                 plane: str = None,
                  exponents: Tuple[int, int, int, int] = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
@@ -888,8 +938,11 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
         self.step_size = step_size
         self.plane = plane
 
-        source_exponents, test_exponents = _handle_exponents_input(
-            exponents, source_exponents, test_exponents)
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                                    kind=kind, exponents=exponents,
+                                    source_exponents=source_exponents,
+                                    test_exponents=test_exponents,
+                                    plane=plane)
 
         if isinstance(input_data, FlatIW2DInput):
             if len(input_data.top_layers) > 1:
@@ -1144,7 +1197,23 @@ class ComponentInterpolated(Component):
             return np.zeros_like(t)
 
 
-def _handle_exponents_input(exponents, source_exponents, test_exponents):
+def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_exponents, plane):
+
+    if kind is not None:
+        assert exponents is None, (
+            "If kind is specified, `exponents` should not be specified.")
+        assert source_exponents is None and test_exponents is None, (
+            "If kind is specified, `source_exponents` and test_exponents should "
+            "not be specified.")
+        assert test_exponents is None, (
+            "If kind is specified, `test_exponents` should not be specified.")
+        assert plane is None, (
+            "If kind is specified, `plane` should not be specified.")
+        assert kind in KIND_DEFINITIONS, f'Unknown kind {kind}'
+        source_exponents, test_exponents, plane = (
+            KIND_DEFINITIONS[kind]['source_exponents'],
+            KIND_DEFINITIONS[kind]['test_exponents'],
+            KIND_DEFINITIONS[kind]['plane'])
 
     if exponents is not None:
         assert source_exponents is None and test_exponents is None, (
@@ -1160,4 +1229,4 @@ def _handle_exponents_input(exponents, source_exponents, test_exponents):
             "If source_exponents or test_exponents is specified, exponents "
             "should not be specified.")
 
-    return source_exponents, test_exponents
+    return source_exponents, test_exponents, plane

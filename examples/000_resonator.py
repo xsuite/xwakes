@@ -11,9 +11,7 @@ p_ref = p.copy()
 
 res = wit.ComponentResonator(
     r=1e8, q=1e7, f_r=1e9,
-    source_exponents=(1, 0),
-    test_exponents=(0, 0),
-    plane='x'
+    kind='dipolar_x'
 )
 
 import xfields as xf

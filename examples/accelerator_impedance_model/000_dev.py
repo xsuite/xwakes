@@ -18,6 +18,5 @@ re_wall_quadrupolar_y = wit.WakeComponentClassicThickWall(
 
 re_wall = wit.Element(
     components=[re_wall_dipolar_x, re_wall_dipolar_y,
-                re_wall_quadrupolar_x, re_wall_quadrupolar_y])
-
-
+                re_wall_quadrupolar_x, re_wall_quadrupolar_y],
+    length=1.0, 
