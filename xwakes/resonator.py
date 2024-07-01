@@ -1,6 +1,6 @@
 from typing import Tuple
 
-from .basewake import BaseWake
+from .basewake import BaseWake, _handle_kind
 from .wit import ComponentResonator
 
 
@@ -14,13 +14,15 @@ class WakeResonator(BaseWake):
                 f_roi_level: float = 0.5):
 
         if kind is not None:
-            if isinstance(kind, str):
-                kind = [kind]
+
+            kind = _handle_kind(kind)
 
             components = []
-            for kk in kind:
+            for kk in kind.keys():
+                ff = kind[kk]
                 cc = ComponentResonator(r=r, q=q, f_r=f_r,
-                                        kind=kk, f_roi_level=f_roi_level)
+                                        kind=kk, f_roi_level=f_roi_level,
+                                        factor=ff, plane=plane,)
                 components.append(cc)
         else:
             cc = ComponentResonator(r=r, q=q, f_r=f_r, f_roi_level=f_roi_level,
@@ -29,3 +31,4 @@ class WakeResonator(BaseWake):
             components = [cc]
 
         self.components = components
+        self.kind = kind

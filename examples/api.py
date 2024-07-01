@@ -1,3 +1,9 @@
+
+WakeResonator(kind=['dipolar_x', 'dipolar_y'], ...)
+WakeResonator(kind={'dipolar_x': 1.0, 'dipolar_y': 2.0}, ...)
+WakeResonator(kind=Yokoya('circular')
+
+
 # Elements (what we expose)
 WakeClassicThickWall # e.g. WakeClassicThickWall(kind=['dipolar_x', 'dipolar_y']...)
 WakeClassicThickWallYokoya

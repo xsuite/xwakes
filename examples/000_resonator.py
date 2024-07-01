@@ -12,7 +12,8 @@ p_ref = p.copy()
 
 wake = xw.WakeResonator(
     r=1e8, q=1e7, f_r=1e9,
-    kind=['dipolar_x', 'dipolar_y'],
+    # kind=['dipolar_x', 'dipolar_y'],
+    kind=xw.Yokoya('circular'),
 )
 wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
 

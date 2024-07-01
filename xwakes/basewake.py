@@ -14,3 +14,15 @@ class BaseWake:
 
     def track(self, particles) -> None:
         self._xfields_wf.track(particles)
+
+
+def _handle_kind(kind):
+    if isinstance(kind, str):
+        kind = [kind]
+
+    if isinstance(kind, (list, tuple)):
+        kind = {kk: 1.0 for kk in kind}
+
+    assert hasattr(kind, 'keys')
+
+    return kind
