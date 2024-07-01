@@ -207,6 +207,22 @@ class Component:
                     self.power_x == other.power_x,
                     self.power_y == other.power_y])
 
+    def configure_for_tracking(self, zeta_range: Tuple[float, float],
+                               num_slices: int,
+                               **kwargs # for multibuunch compatibility
+                               ) -> None:
+        import xfields as xf
+        self._xfields_wf = xf.Wakefield(components=[self], zeta_range=zeta_range,
+                                        num_slices=num_slices, **kwargs)
+
+    def track(self, particles):
+
+        if not hasattr(self, '_xfields_wf') or not self._xfields_wf:
+            raise ValueError('The component has not been configured for tracking. '
+                             'Call configure_for_tracking before calling track.')
+        self._xfields_wf.track(particles)
+
+
     def __add__(self, other: Component) -> Component:
         """
         Defines the addition operator for two Components
