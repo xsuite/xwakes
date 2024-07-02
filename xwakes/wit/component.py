@@ -138,11 +138,11 @@ class Component:
         return self._t_rois
 
     def function_vs_t(self, t, beta0):
-        out = -self.wake(-t)
+        out = self.wake(-t)
         return out
 
     def function_vs_zeta(self, zeta, beta0):
-        out = -self.wake(-zeta / beta0 / c_light)
+        out = self.wake(-zeta / beta0 / c_light)
         return out
 
     @property
@@ -575,7 +575,7 @@ class ComponentResonator(Component):
             omega_bar = omega_r * root_term
             out = np.zeros_like(t)
             mask = t > 0
-            out[mask] = factor * (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
+            out[mask] = factor * (-omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
                    np.sin(omega_r * root_term * t[mask]) /
                    (q * root_term)).real
         return out
@@ -687,7 +687,7 @@ class ComponentClassicThickWall(Component):
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = factor * (-c_light / (2*np.pi*radius**3) *
+            out = factor * (c_light / (2*np.pi*radius**3) *
                     (Z0 * material_resistivity/np.pi)**(1/2) *
                     1/(t**(3/2)))
         else:
