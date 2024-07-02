@@ -201,6 +201,9 @@ class Component:
         :param other: Another Component
         :return: True if self and other can be added together, False otherwise
         """
+        if not isinstance(other, Component):
+            return False
+
         return all([self.source_exponents == other.source_exponents,
                     self.test_exponents == other.test_exponents,
                     self.plane == other.plane,
@@ -231,6 +234,10 @@ class Component:
         :return: A new Component whose impedance and wake functions are the sums
         of the respective functions of the two addends.
         """
+
+        if not isinstance(other, Component):
+            return other.__radd__(self)
+
         # Enforce that the two addends are in the same plane
         assert self.plane == other.plane, "The two addends correspond to different planes and cannot be added.\n" \
                                           f"{self.plane} != {other.plane}"
@@ -280,6 +287,10 @@ class Component:
         :param other: The left addend of an addition
         :return: The sum of self and other if other is a Component, otherwise just self.
         """
+
+        if not isinstance(other, Component):
+            return other.__add__(self)
+
         # Checks if the left addend, other, is not a Component
         if not isinstance(other, Component):
             # In which case, the right addend is simply returned
