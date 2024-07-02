@@ -61,6 +61,6 @@ def _expand_components(components):
         else:
             assert hasattr(cc, 'components')
             _expanded_components.extend(
-                _expanded_components(cc.components))
+                _expand_components(cc.components))
 
     return _expanded_components
