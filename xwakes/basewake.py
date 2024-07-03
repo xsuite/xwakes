@@ -7,8 +7,8 @@ class BaseWake:
                                num_slices: int,
                                **kwargs # for multibunch compatibility
                                ) -> None:
-        import xfields as xf
-        self._xfields_wf = xf.Wakefield(
+        from xfields.beam_elements.wakefields import WakeTracker
+        self._xfields_wf = WakeTracker(
             components=_expand_components(self.components),
             zeta_range=zeta_range,
             num_slices=num_slices, **kwargs)
