@@ -21,8 +21,10 @@ Zx_from_zeta = omega * (1 + 1j)
 Zx_from_t = omega * (1 + 1j)
 for ii, oo in enumerate(omega):
     print(ii)
-    Zx_from_zeta[ii] = 1j * np.sum(wx_vs_zeta * np.exp(-1j * oo * z / clight)) * (z[1] - z[0])/clight
-    Zx_from_t[ii] = 1j * np.sum(wx_vs_t * np.exp(1j * oo * t)) * (t[1] - t[0])
+    Zx_from_zeta[ii] = 1j * np.sum(wx_vs_zeta
+                * np.exp(-1j * oo * z / clight)) * (z[1] - z[0])/clight
+    Zx_from_t[ii] = 1j * np.sum(
+                wx_vs_t * np.exp(1j * oo * t)) * (t[1] - t[0])
 
 
 
