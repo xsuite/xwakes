@@ -19,7 +19,7 @@ def read_headtail_file(wake_file, wake_file_columns):
 
     dict_components = {}
 
-    conversion_factor_time = -1E-9
+    conversion_factor_time = 1E-9
 
     itime = wake_file_columns.index('time')
     dict_components['time'] = conversion_factor_time * wake_data[:, itime]
