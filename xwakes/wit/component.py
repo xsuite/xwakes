@@ -138,7 +138,7 @@ class Component:
         return self._t_rois
 
     def function_vs_t(self, t, beta0):
-        out = self.wake(-t)
+        out = self.wake(t)
         return out
 
     def function_vs_zeta(self, zeta, beta0):
