@@ -8,13 +8,16 @@ class BaseWake:
                                **kwargs # for multibunch compatibility
                                ) -> None:
         from xfields.beam_elements.wakefields import WakeTracker
-        self._xfields_wf = WakeTracker(
+        self._wake_tracker = WakeTracker(
             components=_expand_components(self.components),
             zeta_range=zeta_range,
             num_slices=num_slices, **kwargs)
 
     def track(self, particles) -> None:
-        self._xfields_wf.track(particles)
+        if not hasattr(self, '_wake_tracker') or self._wake_tracker is None:
+            raise ValueError('Wake not configured for tracking, '
+                             'call `configure_for_tracking` first')
+        self._wake_tracker.track(particles)
 
     def __add__(self, other):
         return _add_wakes(self, other)
