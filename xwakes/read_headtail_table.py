@@ -28,9 +28,9 @@ def read_headtail_file(wake_file, wake_file_columns):
         if component != 'time':
             assert component in valid_wake_components
             if component == 'longitudinal':
-                conversion_factor = -1E12
+                conversion_factor = -1E12 # CHECK!!!
             else:
-                conversion_factor = -1E15
+                conversion_factor = 1E15
 
             dict_components[component] = (wake_data[:, i_component] *
                                             conversion_factor)
