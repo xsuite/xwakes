@@ -42,6 +42,18 @@ plt.plot(omega, Zx_from_zeta.imag, label='Im Zx from zeta')
 plt.plot(omega, Zx_from_t.imag, '--', label='Im Zx from t')
 plt.plot(omega, res.components[0].impedance(omega/2/np.pi).imag, '-.', label='Im Zx from xwakes')
 
+plt.figure(2)
+plt.plot(z, wx_vs_zeta)
+plt.xlabel('z [m]')
+plt.ylabel('Wx(z)')
+
+plt.figure(3)
+plt.plot(t, wx_vs_t)
+plt.xlabel('t [s]')
+plt.ylabel('Wx(t)')
+
+
+
 plt.show()
 
 
