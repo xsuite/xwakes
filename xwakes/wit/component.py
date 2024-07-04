@@ -1198,12 +1198,15 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
 
 
 class ComponentInterpolated(Component):
-    def __init__(self, interpolation_frequencies: ArrayLike = None,
+    def __init__(self,
+                interpolation_frequencies: ArrayLike = None,
                 impedance_input: Optional[Callable] = None,
                 interpolation_times: ArrayLike = None,
-                wake_input: Optional[Callable] = None, plane: str = '',
-                source_exponents: Tuple[int, int] = (-1, -1),
-                test_exponents: Tuple[int, int] = (-1, -1),
+                wake_input: Optional[Callable] = None,
+                kind: str = None,
+                plane: str = None,
+                source_exponents: Tuple[int, int] = None,
+                test_exponents: Tuple[int, int] = None,
                 name: str = "Interpolated Component",
                 f_rois: Optional[List[Tuple[float, float]]] = None,
                 t_rois: Optional[List[Tuple[float, float]]] = None):
@@ -1211,6 +1214,12 @@ class ComponentInterpolated(Component):
         assert ((interpolation_frequencies is not None) ==
                 (impedance_input is not None)), ("Either both or none of the "
                 "impedance and the interpolation frequencies must be given")
+
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                            kind=kind, exponents=None,
+                            source_exponents=source_exponents,
+                            test_exponents=test_exponents,
+                            plane=plane)
 
         self.interpolation_frequencies = interpolation_frequencies
         self.impedance_input = impedance_input
