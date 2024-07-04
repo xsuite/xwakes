@@ -575,7 +575,7 @@ class ComponentResonator(Component):
             omega_bar = omega_r * root_term
             out = np.zeros_like(t)
             mask = t > 0
-            out[mask] = factor * (-omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
+            out[mask] = factor * (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
                    np.sin(omega_r * root_term * t[mask]) /
                    (q * root_term)).real
         return out
