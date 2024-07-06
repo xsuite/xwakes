@@ -38,9 +38,14 @@ wake_pyht.track(p_ref)
 
 import matplotlib.pyplot as plt
 plt.close('all')
+plt.figure(1)
+sp1 = plt.subplot(211)
 plt.plot(p_table.zeta, p_table.px, '--', label='xwakes from table')
 plt.plot(p_ref.zeta, p_ref.px, '-.', label='pyht')
-
+plt.legend()
+plt.subplot(212, sharex=sp1)
+plt.plot(p_table.zeta, p_table.py, '--', label='xwakes from table')
+plt.plot(p_ref.zeta, p_ref.py, '-.', label='pyht')
 plt.legend()
 
 plt.show()
