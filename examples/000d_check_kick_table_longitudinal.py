@@ -11,7 +11,7 @@ from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
 p = xt.Particles.merge([
     xt.Particles(p0c=7e12, zeta=np.linspace(-1e-3, 1e-3, 100000)),
-    xt.Particles(p0c=7e12, zeta=np.zeros(100000))
+    xt.Particles(p0c=7e12, zeta=1e-6+np.zeros(100000))
 ])
 
 p_table = p.copy()
