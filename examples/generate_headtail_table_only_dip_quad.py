@@ -17,3 +17,8 @@ out[:, 4] = data[:, 5]
 np.savetxt('HLLHC_wake_dip_quad.dat', out, delimiter='\t')
 np.savetxt('HLLHC_wake_dip.dat', out[:, :3], delimiter='\t')
 np.savetxt('HLLHC_wake_quad.dat', out[:, [0, 3, 4]], delimiter='\t')
+
+out_long = np.zeros((data.shape[0], 2), dtype=float)
+out_long[:, 0] = data[:, 0]
+out_long[:, 1] = data[:, 1]
+np.savetxt('HLLHC_wake_long.dat', out_long, delimiter='\t')
