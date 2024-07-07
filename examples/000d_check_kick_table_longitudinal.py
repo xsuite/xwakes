@@ -1,7 +1,7 @@
 import numpy as np
-import pandas as pd
 
 import xwakes as xw
+import xobjects as xo
 
 from scipy.constants import c as clight
 
@@ -25,7 +25,7 @@ table = xw.read_headtail_file('HLLHC_wake.dat', wake_file_columns=[
                      'quadrupole_xy', 'dipole_yx', 'quadrupole_yx',
                      'constant_x', 'constant_y'])
 wake_from_table = xw.WakeFromTable(table, columns=['time', 'longitudinal'])
-wake_from_table.configure_for_tracking(zeta_range=(-1e-3, 1e-3), num_slices=1000)
+wake_from_table.configure_for_tracking(zeta_range=(-2e-3, 2e-3), num_slices=1000)
 
 from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -37,6 +37,9 @@ wake_pyht = WakeField(slicer, waketable)
 
 wake_from_table.track(p_table)
 wake_pyht.track(p_ref)
+
+assert np.max(p_ref.delta) > 1e-12
+xo.assert_allclose(p_table.delta, p_ref.delta, atol=1e-16, rtol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')

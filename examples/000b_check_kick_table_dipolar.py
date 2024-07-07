@@ -3,9 +3,8 @@ import pandas as pd
 
 import xwakes as xw
 
-from scipy.constants import c as clight
-
 import xtrack as xt
+import xobjects as xo
 
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
@@ -35,6 +34,9 @@ wake_pyht = WakeField(slicer, waketable)
 
 wake_from_table.track(p_table)
 wake_pyht.track(p_ref)
+
+xo.assert_allclose(p_table.px, p_ref.px, atol=1e-30, rtol=2e-3)
+xo.assert_allclose(p_table.py, p_ref.py, atol=1e-30, rtol=2e-3)
 
 import matplotlib.pyplot as plt
 plt.close('all')
