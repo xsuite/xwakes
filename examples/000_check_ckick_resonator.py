@@ -32,15 +32,6 @@ table = pd.DataFrame({'time': t_samples, 'dipolar_x': w_dipole_x_samples,
 wake_from_table = xw.WakeFromTable(table)
 wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 
-
-# import xfields as xf
-# xfwake = xf.Wakefield(components=[
-#         xf.ResonatorWake(
-#             r_shunt=1e8, q_factor=1e7, frequency=1e9,
-#             source_exponents=(1, 0), test_exponents=(0, 0),
-#             kick='px')],
-#         zeta_range=(-1, 1), num_slices=10)
-
 from PyHEADTAIL.impedances.wakes import CircularResonator, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 res_pyht = CircularResonator(R_shunt=1e8, Q=1e7, frequency=1e9)
