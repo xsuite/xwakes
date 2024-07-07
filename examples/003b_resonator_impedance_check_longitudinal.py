@@ -13,6 +13,14 @@ assert wake.components[0].plane == 'z'
 assert wake.components[0].source_exponents == (0, 0)
 assert wake.components[0].test_exponents == (0, 0)
 
+# Assert that the function is positive at close to zero from the right
+assert wake.components[0].function_vs_t(1e-10, beta0=beta0) > 0
+assert wake.components[0].function_vs_t(-1e-10, beta0=beta0) == 0
+
+# Zeta has opposite sign compared to t
+assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0) > 0
+assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0) == 0
+
 z = np.linspace(-20, 20, 100000)
 t = np.linspace(-20/clight, 20/clight, 100000)
 
