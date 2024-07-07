@@ -1,4 +1,5 @@
 import pandas as pd
+from scipy.constants import c as clight
 
 import xtrack as xt
 import xpart as xp
@@ -23,9 +24,22 @@ assert wake.components[0].test_exponents == {
     'dipolar_x': (0, 0), 'dipolar_y': (0, 0),
     'quadrupolar_x': (1, 0), 'quadrupolar_y': (0, 1)}[f'{wake_type}_{plane}']
 
-xo.assert_allclose(wake.components[0].function_vs_t(0.1, beta0=1.), 6e15, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_t(0, beta0=1.), 6e15, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_t(-0.1, beta0=1.), 0, rtol=1e-10, atol=0)
+beta0_check = 0.3
+xo.assert_allclose(wake.components[0].function_vs_t(0.1, beta0=beta0_check), 6e15, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(0, beta0=beta0_check), 6e15, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(-0.1, beta0=beta0_check), 0, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(10 - 0.1, beta0=beta0_check), 6e15, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(10 + 0.1, beta0=beta0_check), 0, rtol=1e-10, atol=0)
+
+xo.assert_allclose(wake.components[0].function_vs_zeta(-0.1, beta0=beta0_check), 6e15, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_zeta(0, beta0=beta0_check), 6e15, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_zeta(0.1, beta0=beta0_check), 0, rtol=1e-10, atol=0)
+xo.assert_allclose(
+    wake.components[0].function_vs_zeta(-beta0_check * clight * 10 + 0.1, beta0=beta0_check),
+    6e15, rtol=1e-10, atol=0)
+xo.assert_allclose(
+    wake.components[0].function_vs_zeta(-beta0_check * clight * 10 - 0.1, beta0=beta0_check),
+    0, rtol=1e-10, atol=0)
 
 one_turn_map = xt.LineSegmentMap(length=1, qx=0.28, qy=0.31, qs=0.1e-3, bets=100)
 

@@ -13,6 +13,11 @@ table = pd.DataFrame({'time': [0, 10],
 wake = xw.WakeFromTable(table)
 wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=100)
 
+assert len(wake.components) == 1
+assert wake.components[0].plane == 'z'
+assert wake.components[0].source_exponents == (0, 0)
+assert wake.components[0].test_exponents == (0, 0)
+
 one_turn_map = xt.LineSegmentMap(length=1, qx=0.28, qy=0.31, qs=5e-3, bets=100)
 
 line_no_wake = xt.Line(elements=[one_turn_map])
