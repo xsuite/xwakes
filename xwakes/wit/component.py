@@ -1246,7 +1246,9 @@ class ComponentInterpolated(Component):
 
     def wake(self, t):
         if self.wake_input is not None:
-            return np.interp(t, self.interpolation_times, self.wake_input)
+            return np.interp(t, self.interpolation_times, self.wake_input,
+                             left=0, right=0 # pad with zeros outside the range
+            )
         else:
             return np.zeros_like(t)
 
