@@ -77,4 +77,4 @@ print(f'Tune with wake: {tune_with_wake}')
 print(f'Tune shift: {tune_with_wake - tune_no_wake}')
 
 xo.assert_allclose(tune_no_wake, 5e-3, atol=1e-6, rtol=0)
-xo.assert_allclose(tune_with_wake, tune_no_wake + 1e-3, atol=2e-4, rtol=0)
+xo.assert_allclose(tune_with_wake, tune_no_wake + 1.15e-3, atol=1e-4, rtol=0)
