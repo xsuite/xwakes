@@ -15,6 +15,13 @@ t = np.linspace(-20/clight, 20/clight, 100000)
 wx_vs_zeta = res.components[0].function_vs_zeta(z, beta0=beta0)
 wx_vs_t = res.components[0].function_vs_t(t, beta0=beta0)
 
+# Assert that the function is positive at close to zero from the right
+assert res.components[0].function_vs_t(1e-10, beta0=beta0) > 0
+assert res.components[0].function_vs_t(-1e-10, beta0=beta0) == 0
+
+# Zeta has opposite sign compared to t
+assert res.components[0].function_vs_zeta(-1e-3, beta0=beta0) > 0
+assert res.components[0].function_vs_zeta(+1e-3, beta0=beta0) == 0
 
 omega = np.linspace(-10e9, 10e9, 1000)
 
