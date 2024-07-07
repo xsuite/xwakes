@@ -5,14 +5,19 @@ from scipy.constants import c as clight
 
 beta0 = 0.1
 
-res = xw.WakeResonator(r=1e8, q=10, f_r=1e9,
+wake = xw.WakeResonator(r=1e8, q=10, f_r=1e9,
     kind='longitudinal')
+
+assert len(wake.components) == 1
+assert wake.components[0].plane == 'z'
+assert wake.components[0].source_exponents == (0, 0)
+assert wake.components[0].test_exponents == (0, 0)
 
 z = np.linspace(-20, 20, 100000)
 t = np.linspace(-20/clight, 20/clight, 100000)
 
-w_vs_zeta = res.components[0].function_vs_zeta(z, beta0=beta0)
-w_vs_t = res.components[0].function_vs_t(t, beta0=beta0)
+w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0)
+w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0)
 
 omega = np.linspace(-10e9, 10e9, 1000)
 
@@ -33,13 +38,13 @@ plt.figure(1)
 spre = plt.subplot(211)
 plt.plot(omega, Z_from_zeta.real, label='Re Zx from zeta')
 plt.plot(omega, Z_from_t.real, '--', label='Re Zx from t')
-plt.plot(omega, res.components[0].impedance(omega/2/np.pi).real, '-.', label='Re Zx from xwakes')
+plt.plot(omega, wake.components[0].impedance(omega/2/np.pi).real, '-.', label='Re Zx from xwakes')
 plt.legend()
 
 spim = plt.subplot(212, sharex=spre)
 plt.plot(omega, Z_from_zeta.imag, label='Im Zx from zeta')
 plt.plot(omega, Z_from_t.imag, '--', label='Im Zx from t')
-plt.plot(omega, res.components[0].impedance(omega/2/np.pi).imag, '-.', label='Im Zx from xwakes')
+plt.plot(omega, wake.components[0].impedance(omega/2/np.pi).imag, '-.', label='Im Zx from xwakes')
 
 plt.figure(2)
 plt.plot(z, w_vs_zeta)
