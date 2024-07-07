@@ -6,12 +6,22 @@ import xwakes as xw
 import xobjects as xo
 
 plane = 'y'
+wake_type = 'quadrupolar'
 
 table = pd.DataFrame({'time': [0, 10],
-                      f'dipole_{plane}': [1e16, 1e16]})
+                      f'{wake_type}_{plane}': [1e16, 1e16]})
 
 wake = xw.WakeFromTable(table)
 wake.configure_for_tracking(zeta_range=(-10e-2, 10e-2), num_slices=1000)
+
+assert len(wake.components) == 1
+assert wake.components[0].plane == plane
+assert wake.components[0].source_exponents == {
+    'dipolar_x': (1, 0), 'dipolar_y': (0, 1),
+    'quadrupolar_x': (0, 0), 'quadrupolar_y': (0, 0)}[f'{wake_type}_{plane}']
+assert wake.components[0].test_exponents == {
+    'dipolar_x': (0, 0), 'dipolar_y': (0, 0),
+    'quadrupolar_x': (1, 0), 'quadrupolar_y': (0, 1)}[f'{wake_type}_{plane}']
 
 ot_map = xt.LineSegmentMap(length=1, qx=0.28, qy=0.31, qs=1e-3, bets=100)
 
