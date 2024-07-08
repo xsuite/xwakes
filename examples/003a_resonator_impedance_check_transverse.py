@@ -22,16 +22,16 @@ assert wake.components[0].test_exponents == {
 z = np.linspace(-20, 20, 100000)
 t = np.linspace(-20/clight, 20/clight, 100000)
 
-w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0)
-w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0)
+w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-20)
+w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-20)
 
 # Assert that the function is positive at close to zero from the right
-assert wake.components[0].function_vs_t(1e-10, beta0=beta0) > 0
-assert wake.components[0].function_vs_t(-1e-10, beta0=beta0) == 0
+assert wake.components[0].function_vs_t(1e-10, beta0=beta0, dt=1e-20) > 0
+assert wake.components[0].function_vs_t(-1e-10, beta0=beta0, dt=1e-20) == 0
 
 # Zeta has opposite sign compared to t
-assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0) > 0
-assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0) == 0
+assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0, dzeta=1e-20) > 0
+assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0, dzeta=1e-20) == 0
 
 omega = np.linspace(-10e9, 10e9, 1000)
 
