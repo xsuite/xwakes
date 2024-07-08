@@ -2,11 +2,10 @@ import numpy as np
 import pandas as pd
 
 import xwakes as xw
-
-from scipy.constants import c as clight
-
 import xtrack as xt
 import xobjects as xo
+
+from scipy.constants import c as clight
 
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 

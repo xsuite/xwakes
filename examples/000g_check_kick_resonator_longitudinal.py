@@ -66,16 +66,13 @@ res_pyht = Resonator(R_shunt=1e8, Q=1e7, frequency=1e9,
 slicer = UniformBinSlicer(n_slices=None, z_sample_points=wake._wake_tracker.slicer.zeta_centers)
 wake_pyht = WakeField(slicer, res_pyht)
 
-assert np.max(np.abs(p_ref.delta)) > 0
-xo.assert_allclose(p.delta, p_ref.delta, rtol=0, atol=0.5e-3*np.max(np.abs(p_ref.delta)))
-xo.assert_allclose(p_table.delta, p_ref.delta, rtol=0, atol=2e-3*np.max(np.abs(p_ref.delta)))
-
-
-import xpart as xp
-
 wake.track(p)
 wake_from_table.track(p_table)
 wake_pyht.track(p_ref)
+
+assert np.max(np.abs(p_ref.delta)) > 0
+xo.assert_allclose(p.delta, p_ref.delta, rtol=0, atol=0.5e-3*np.max(np.abs(p_ref.delta)))
+xo.assert_allclose(p_table.delta, p_ref.delta, rtol=0, atol=2e-3*np.max(np.abs(p_ref.delta)))
 
 import matplotlib.pyplot as plt
 plt.close('all')

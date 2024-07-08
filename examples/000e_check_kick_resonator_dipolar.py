@@ -3,10 +3,10 @@ import pandas as pd
 
 import xwakes as xw
 import xobjects as xo
+import xtrack as xt
 
 from scipy.constants import c as clight
 
-import xtrack as xt
 
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 

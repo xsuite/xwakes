@@ -20,20 +20,20 @@ assert wake.components[0].source_exponents == (0, 0)
 assert wake.components[0].test_exponents == (0, 0)
 
 beta0_check = 0.3
-xo.assert_allclose(wake.components[0].function_vs_t(0.1, beta0=beta0_check), 1e13, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_t(0, beta0=beta0_check), 1e13, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_t(-0.1, beta0=beta0_check), 0, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_t(10 - 0.1, beta0=beta0_check), 1e13, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_t(10 + 0.1, beta0=beta0_check), 0, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(0.1, beta0=beta0_check, dt=1e-20), 1e13, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(0, beta0=beta0_check, dt=1e-20), 1e13/2, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(-0.1, beta0=beta0_check, dt=1e-20), 0, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(10 - 0.1, beta0=beta0_check, dt=1e-20), 1e13, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_t(10 + 0.1, beta0=beta0_check, dt=1e-20), 0, rtol=1e-10, atol=0)
 
-xo.assert_allclose(wake.components[0].function_vs_zeta(-0.1, beta0=beta0_check), 1e13, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_zeta(0, beta0=beta0_check), 1e13, rtol=1e-10, atol=0)
-xo.assert_allclose(wake.components[0].function_vs_zeta(0.1, beta0=beta0_check), 0, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_zeta(-0.1, beta0=beta0_check, dzeta=1e-20), 1e13, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_zeta(0, beta0=beta0_check, dzeta=1e-20), 1e13/2, rtol=1e-10, atol=0)
+xo.assert_allclose(wake.components[0].function_vs_zeta(0.1, beta0=beta0_check, dzeta=1e-20), 0, rtol=1e-10, atol=0)
 xo.assert_allclose(
-    wake.components[0].function_vs_zeta(-beta0_check * clight * 10 + 0.1, beta0=beta0_check),
+    wake.components[0].function_vs_zeta(-beta0_check * clight * 10 + 0.1, beta0=beta0_check, dzeta=1e-20),
     1e13, rtol=1e-10, atol=0)
 xo.assert_allclose(
-    wake.components[0].function_vs_zeta(-beta0_check * clight * 10 - 0.1, beta0=beta0_check),
+    wake.components[0].function_vs_zeta(-beta0_check * clight * 10 - 0.1, beta0=beta0_check, dzeta=1e-20),
     0, rtol=1e-10, atol=0)
 
 one_turn_map = xt.LineSegmentMap(length=1, qx=0.28, qy=0.31, qs=5e-3, bets=100)
