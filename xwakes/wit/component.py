@@ -137,12 +137,13 @@ class Component:
     def t_rois(self) -> List[Tuple[float, float]]:
         return self._t_rois
 
-    def function_vs_t(self, t, beta0):
+    def function_vs_t(self, t, beta0, dt):
         out = self.wake(t)
         return out
 
-    def function_vs_zeta(self, zeta, beta0):
-        out = self.wake(-zeta / beta0 / c_light)
+    def function_vs_zeta(self, zeta, beta0, dzeta):
+        out = self.function_vs_t(-zeta / beta0 / c_light, beta0,
+                                 dzeta / beta0 / c_light)
         return out
 
     @property
@@ -567,17 +568,27 @@ class ComponentResonator(Component):
             omega_bar = omega_r * root_term
             alpha = omega_r / (2 * q)
             out = np.zeros_like(t)
-            mask = t > 0
+            mask = t >= 0
             out[mask] = factor * (omega_r * r * np.exp(-alpha * t[mask]) * (
                    np.cos(omega_bar * t[mask]) -
                    alpha * np.sin(omega_bar * t[mask]) / omega_bar) / q).real
         else:
             omega_bar = omega_r * root_term
             out = np.zeros_like(t)
-            mask = t > 0
+            mask = t >= 0
             out[mask] = factor * (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
                    np.sin(omega_r * root_term * t[mask]) /
                    (q * root_term)).real
+        return out
+
+    def function_vs_t(self, t, beta0, dt):
+        out = self.wake(t)
+        isscalar = np.isscalar(t)
+        mask_left_edge = np.abs(t) < dt / 2
+        # Handle discontinuity at t=0 consistently with beam loading theorem
+        out[mask_left_edge] = 0.5 * self.wake(0)
+        if isscalar:
+            out = out[0]
         return out
 
     @property
@@ -1251,6 +1262,26 @@ class ComponentInterpolated(Component):
             )
         else:
             return np.zeros_like(t)
+
+    def function_vs_t(self, t, beta0, dt):
+
+        assert dt > 0
+
+        out = self.wake(t)
+        isscalar = np.isscalar(t)
+        if isscalar:
+            t = np.array([t])
+
+        # Handle discontinuity at edges (consistently with beam loading theorem)
+        mask_left_edge = np.abs(t - self.interpolation_times[0]) < dt / 2
+        out[mask_left_edge] = self.wake_input[0] / 2.
+        mask_right_edge = np.abs(t - self.interpolation_times[-1]) < dt / 2
+        out[mask_right_edge] = self.wake_input[-1] / 2.
+
+        if isscalar:
+            out = out[0]
+
+        return out
 
 
 def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_exponents, plane):
