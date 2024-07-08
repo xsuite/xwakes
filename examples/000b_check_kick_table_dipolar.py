@@ -24,6 +24,14 @@ table = xw.read_headtail_file('HLLHC_wake.dat', wake_file_columns=[
 wake_from_table = xw.WakeFromTable(table, columns=['dipole_x', 'dipole_y'])
 wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
 
+assert len(wake_from_table.components) == 2
+assert wake_from_table.components[0].plane == 'x'
+assert wake_from_table.components[0].source_exponents == (1, 0)
+assert wake_from_table.components[0].test_exponents == (0, 0)
+assert wake_from_table.components[1].plane == 'y'
+assert wake_from_table.components[1].source_exponents == (0, 1)
+assert wake_from_table.components[1].test_exponents == (0, 0)
+
 from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 slicer = UniformBinSlicer(n_slices=None,
