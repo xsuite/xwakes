@@ -26,8 +26,8 @@ wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 t_samples = np.linspace(-10/clight, 10/clight, 100000)
 w_dipole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1.)
 w_dipole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1.)
-table = pd.DataFrame({'time': t_samples, 'dipolar_x': w_dipole_x_samples,
-                        'dipolar_y': w_dipole_y_samples})
+table = pd.DataFrame({'time': t_samples, 'quadrupolar_x': w_dipole_x_samples,
+                        'quadrupolar_x': w_dipole_y_samples})
 wake_from_table = xw.WakeFromTable(table)
 wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 
