@@ -6,6 +6,7 @@ import xwakes as xw
 from scipy.constants import c as clight
 
 import xtrack as xt
+import xobjects as xo
 
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
@@ -22,14 +23,54 @@ wake = xw.WakeResonator(
 )
 wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 
+assert len(wake.components) == 2
+assert wake.components[0].plane == 'x'
+assert wake.components[0].source_exponents == (0, 0)
+assert wake.components[0].test_exponents == (1, 0)
+assert wake.components[1].plane == 'y'
+assert wake.components[1].source_exponents == (0, 0)
+assert wake.components[1].test_exponents == (0, 1)
+
+# Assert that the function is positive at close to zero from the right
+assert wake.components[0].function_vs_t(1e-10, beta0=1, dt=1e-20) > 0
+assert wake.components[0].function_vs_t(-1e-10, beta0=1, dt=1e-20) == 0
+assert wake.components[1].function_vs_t(1e-10, beta0=1, dt=1e-20) > 0
+assert wake.components[1].function_vs_t(-1e-10, beta0=1, dt=1e-20) == 0
+
+# Zeta has opposite sign compared to t
+assert wake.components[0].function_vs_zeta(-1e-3, beta0=1, dzeta=1e-20) > 0
+assert wake.components[0].function_vs_zeta(+1e-3, beta0=1, dzeta=1e-20) == 0
+assert wake.components[1].function_vs_zeta(-1e-3, beta0=1, dzeta=1e-20) > 0
+assert wake.components[1].function_vs_zeta(+1e-3, beta0=1, dzeta=1e-20) == 0
+
 # Build equivalent WakeFromTable
 t_samples = np.linspace(-10/clight, 10/clight, 100000)
-w_quadrupole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1.)
-w_quadrupole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1.)
+w_quadrupole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1., dt=1e-20)
+w_quadrupole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1., dt=1e-20)
 table = pd.DataFrame({'time': t_samples, 'quadrupolar_x': w_quadrupole_x_samples,
                         'quadrupolar_y': w_quadrupole_y_samples})
 wake_from_table = xw.WakeFromTable(table)
 wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
+
+assert len(wake_from_table.components) == 2
+assert wake_from_table.components[0].plane == 'x'
+assert wake_from_table.components[0].source_exponents == (0, 0)
+assert wake_from_table.components[0].test_exponents == (1, 0)
+assert wake_from_table.components[1].plane == 'y'
+assert wake_from_table.components[1].source_exponents == (0, 0)
+assert wake_from_table.components[1].test_exponents == (0, 1)
+
+# Assert that the function is positive at close to zero from the right
+assert wake_from_table.components[0].function_vs_t(1e-10, beta0=1, dt=1e-20) > 0
+assert wake_from_table.components[0].function_vs_t(-1e-10, beta0=1, dt=1e-20) == 0
+assert wake_from_table.components[1].function_vs_t(1e-10, beta0=1, dt=1e-20) > 0
+assert wake_from_table.components[1].function_vs_t(-1e-10, beta0=1, dt=1e-20) == 0
+
+# Zeta has opposite sign compared to t
+assert wake_from_table.components[0].function_vs_zeta(-1e-3, beta0=1, dzeta=1e-20) > 0
+assert wake_from_table.components[0].function_vs_zeta(+1e-3, beta0=1, dzeta=1e-20) == 0
+assert wake_from_table.components[1].function_vs_zeta(-1e-3, beta0=1, dzeta=1e-20) > 0
+assert wake_from_table.components[1].function_vs_zeta(+1e-3, beta0=1, dzeta=1e-20) == 0
 
 from PyHEADTAIL.impedances.wakes import Resonator, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
@@ -45,6 +86,12 @@ import xpart as xp
 wake.track(p)
 wake_from_table.track(p_table)
 wake_pyht.track(p_ref)
+
+assert np.max(np.abs(p_ref.px)) > 0
+xo.assert_allclose(p.px, p_ref.px, rtol=0, atol=0.5e-3*np.max(np.abs(p_ref.px)))
+xo.assert_allclose(p.py, p_ref.py, rtol=0, atol=0.5e-3*np.max(np.abs(p_ref.py)))
+xo.assert_allclose(p_table.px, p_ref.px, rtol=0, atol=2e-3*np.max(np.abs(p_ref.px)))
+xo.assert_allclose(p_table.py, p_ref.py, rtol=0, atol=2e-3*np.max(np.abs(p_ref.py)))
 
 import matplotlib.pyplot as plt
 plt.close('all')
