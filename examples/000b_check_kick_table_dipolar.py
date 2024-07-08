@@ -16,13 +16,17 @@ p_ref = p.copy()
 p_ref = PyHtXtParticles.from_dict(p_ref.to_dict())
 
 # Build equivalent WakeFromTable
-table = xw.read_headtail_file('HLLHC_wake.dat', wake_file_columns=[
+table = xw.read_headtail_file('HLLHC_wake_flattop_nocrab.dat', wake_file_columns=[
                      'time', 'longitudinal', 'dipole_x', 'dipole_y',
                      'quadrupole_x', 'quadrupole_y', 'dipole_xy',
                      'quadrupole_xy', 'dipole_yx', 'quadrupole_yx',
                      'constant_x', 'constant_y'])
 wake_from_table = xw.WakeFromTable(table, columns=['dipole_x', 'dipole_y'])
 wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
+
+# Zotter convention
+assert table['dipole_x'].values[1] > 0
+assert table['dipole_y'].values[1] > 0
 
 assert len(wake_from_table.components) == 2
 assert wake_from_table.components[0].plane == 'x'
@@ -32,14 +36,17 @@ assert wake_from_table.components[1].plane == 'y'
 assert wake_from_table.components[1].source_exponents == (0, 1)
 assert wake_from_table.components[1].test_exponents == (0, 0)
 
-for i_component in [0, 1]:
-    # Assert that the function is positive at close to zero from the right
-    assert wake_from_table.components[0].function_vs_t(1e-10, beta0=1) > 0
-    assert wake_from_table.components[0].function_vs_t(-1e-10, beta0=1) == 0
+# Assert that the function is positive at close to zero from the right
+assert wake_from_table.components[0].function_vs_t(1e-10, beta0=1) > 0
+assert wake_from_table.components[0].function_vs_t(-1e-10, beta0=1) == 0
+assert wake_from_table.components[1].function_vs_t(1e-10, beta0=1) > 0
+assert wake_from_table.components[1].function_vs_t(-1e-10, beta0=1) == 0
 
-    # Zeta has opposite sign compared to t
-    assert wake_from_table.components[0].function_vs_zeta(-1e-3, beta0=1) > 0
-    assert wake_from_table.components[0].function_vs_zeta(+1e-3, beta0=1) == 0
+# Zeta has opposite sign compared to t
+assert wake_from_table.components[0].function_vs_zeta(-1e-3, beta0=1) > 0
+assert wake_from_table.components[0].function_vs_zeta(+1e-3, beta0=1) == 0
+assert wake_from_table.components[1].function_vs_zeta(-1e-3, beta0=1) > 0
+assert wake_from_table.components[1].function_vs_zeta(+1e-3, beta0=1) == 0
 
 from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer

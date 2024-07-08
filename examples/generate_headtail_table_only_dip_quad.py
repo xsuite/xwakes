@@ -5,7 +5,7 @@ wakefields only
 
 import numpy as np
 
-data = np.loadtxt('HLLHC_wake.dat')
+data = np.loadtxt('HLLHC_wake_flattop_nocrab.dat')
 
 out = np.zeros((data.shape[0], 5), dtype=float)
 out[:, 0] = data[:, 0]
