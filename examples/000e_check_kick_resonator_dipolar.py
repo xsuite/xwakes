@@ -11,7 +11,7 @@ import xtrack as xt
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
 p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
-                 weight=1e10)
+                 weight=1e14)
 p.x[p.zeta > 0] += 1e-3
 p.y[p.zeta > 0] += 1e-3
 p_table = p.copy()
