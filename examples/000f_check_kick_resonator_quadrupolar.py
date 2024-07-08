@@ -24,10 +24,10 @@ wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 
 # Build equivalent WakeFromTable
 t_samples = np.linspace(-10/clight, 10/clight, 100000)
-w_dipole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1.)
-w_dipole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1.)
-table = pd.DataFrame({'time': t_samples, 'quadrupolar_x': w_dipole_x_samples,
-                        'quadrupolar_x': w_dipole_y_samples})
+w_quadrupole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1.)
+w_quadrupole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1.)
+table = pd.DataFrame({'time': t_samples, 'quadrupolar_x': w_quadrupole_x_samples,
+                        'quadrupolar_y': w_quadrupole_y_samples})
 wake_from_table = xw.WakeFromTable(table)
 wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 
@@ -48,10 +48,15 @@ wake_pyht.track(p_ref)
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.plot(p.zeta, p.px, label='xwakes')
+plt.figure(1)
+sp1 = plt.subplot(211)
 plt.plot(p_table.zeta, p_table.px, '--', label='xwakes from table')
 plt.plot(p_ref.zeta, p_ref.px, '-.', label='pyht')
-
+plt.legend()
+plt.subplot(212, sharex=sp1)
+plt.plot(p_table.zeta, p_table.py, '--', label='xwakes from table')
+plt.plot(p_ref.zeta, p_ref.py, '-.', label='pyht')
+plt.legend()
 plt.legend()
 
 plt.show()
