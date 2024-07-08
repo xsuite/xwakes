@@ -20,6 +20,8 @@ class WakeResonator(BaseWake):
             components = []
             for kk in kind.keys():
                 ff = kind[kk]
+                if ff == 0:
+                    continue
                 cc = ComponentResonator(r=r, q=q, f_r=f_r,
                                         kind=kk, f_roi_level=f_roi_level,
                                         factor=ff, plane=plane,)

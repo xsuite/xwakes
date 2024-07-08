@@ -1267,10 +1267,11 @@ class ComponentInterpolated(Component):
 
         assert dt > 0
 
-        out = self.wake(t)
         isscalar = np.isscalar(t)
         if isscalar:
             t = np.array([t])
+
+        out = self.wake(t)
 
         # Handle discontinuity at edges (consistently with beam loading theorem)
         mask_left_edge = np.abs(t - self.interpolation_times[0]) < dt / 2
