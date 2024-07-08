@@ -32,6 +32,15 @@ assert wake_from_table.components[1].plane == 'y'
 assert wake_from_table.components[1].source_exponents == (0, 1)
 assert wake_from_table.components[1].test_exponents == (0, 0)
 
+for i_component in [0, 1]:
+    # Assert that the function is positive at close to zero from the right
+    assert wake_from_table.components[0].function_vs_t(1e-10, beta0=1) > 0
+    assert wake_from_table.components[0].function_vs_t(-1e-10, beta0=1) == 0
+
+    # Zeta has opposite sign compared to t
+    assert wake_from_table.components[0].function_vs_zeta(-1e-3, beta0=1) > 0
+    assert wake_from_table.components[0].function_vs_zeta(+1e-3, beta0=1) == 0
+
 from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 slicer = UniformBinSlicer(n_slices=None,
