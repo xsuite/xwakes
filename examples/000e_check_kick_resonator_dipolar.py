@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 
 import xwakes as xw
+import xobjects as xo
 
 from scipy.constants import c as clight
 
@@ -9,7 +10,8 @@ import xtrack as xt
 
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
-p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000))
+p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
+                 weight=1e10)
 p.x[p.zeta > 0] += 1e-3
 p.y[p.zeta > 0] += 1e-3
 p_table = p.copy()
@@ -25,8 +27,8 @@ wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
 
 # Build equivalent WakeFromTable
 t_samples = np.linspace(-10/clight, 10/clight, 100000)
-w_dipole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1.)
-w_dipole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1.)
+w_dipole_x_samples = wake.components[0].function_vs_t(t_samples, beta0=1., dt=1e-20)
+w_dipole_y_samples = wake.components[1].function_vs_t(t_samples, beta0=1., dt=1e-20)
 table = pd.DataFrame({'time': t_samples, 'dipolar_x': w_dipole_x_samples,
                         'dipolar_y': w_dipole_y_samples})
 wake_from_table = xw.WakeFromTable(table)
@@ -44,14 +46,22 @@ wake.track(p)
 wake_from_table.track(p_table)
 wake_pyht.track(p_ref)
 
+assert np.max(np.abs(p_ref.px)) > 0
+xo.assert_allclose(p.px, p_ref.px, rtol=0, atol=0.5e-3*np.max(np.abs(p_ref.px)))
+xo.assert_allclose(p.py, p_ref.py, rtol=0, atol=0.5e-3*np.max(np.abs(p_ref.py)))
+xo.assert_allclose(p_table.px, p_ref.px, rtol=0, atol=2e-3*np.max(np.abs(p_ref.px)))
+xo.assert_allclose(p_table.py, p_ref.py, rtol=0, atol=2e-3*np.max(np.abs(p_ref.py)))
+
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.figure(1)
 sp1 = plt.subplot(211)
+plt.plot(p_table.zeta, p.px, '-', label='xwakes resonator')
 plt.plot(p_table.zeta, p_table.px, '--', label='xwakes from table')
 plt.plot(p_ref.zeta, p_ref.px, '-.', label='pyht')
 plt.legend()
 plt.subplot(212, sharex=sp1)
+plt.plot(p_table.zeta, p.py, '-', label='xwakes resonator')
 plt.plot(p_table.zeta, p_table.py, '--', label='xwakes from table')
 plt.plot(p_ref.zeta, p_ref.py, '-.', label='pyht')
 plt.legend()
