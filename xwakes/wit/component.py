@@ -668,6 +668,8 @@ class ComponentClassicThickWall(Component):
         factor = self.factor
         exponents = tuple(self.source_exponents + self.test_exponents)
 
+        intrinsic_impedance = np.sqrt(material_magnetic_permeability / eps0)
+
         if plane == 'z' and exponents == (0, 0, 0, 0):
             out = factor * ((1/2) *
                     (1 + np.sign(f)*1j) *
@@ -677,10 +679,17 @@ class ComponentClassicThickWall(Component):
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = factor * ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
-                    material_resistivity / (np.pi * radius**3) *
-                    (1 / self.delta_skin(f, material_resistivity,
-                                         material_magnetic_permeability)))
+            out = factor * ((1 + np.sign(f)*1j) * material_resistivity
+                            / (np.pi * radius**3 * (2 * np.pi * f * np.sqrt(eps0 * mu0)))
+                            / self.delta_skin(f, material_resistivity,
+                                              material_magnetic_permeability))
+
+
+
+            # out = factor * ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
+            #         material_resistivity / (np.pi * radius**3) *
+            #         (1 / self.delta_skin(f, material_resistivity,
+            #                              material_magnetic_permeability)))
         else:
             raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
@@ -727,8 +736,8 @@ class ComponentClassicThickWall(Component):
 
     @staticmethod
     def delta_skin(f, material_resistivity, material_magnetic_permeability):
-        return (2 * material_resistivity / (2*np.pi*abs(f) *
-                                        material_magnetic_permeability)) ** (1/2)
+        return np.sqrt(2 * material_resistivity / (2*np.pi*abs(f) *
+                                        material_magnetic_permeability))
 
     @property
     def f_rois(self):
