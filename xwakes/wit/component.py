@@ -725,14 +725,13 @@ class ComponentClassicThickWall(Component):
 
         # Longitudinal
         if plane == 'z' and exponents == (0, 0, 0, 0):
-            out = factor * (-c_light / (2*np.pi*radius) *
-                    (Z0 * material_resistivity/np.pi)**(1/2) *
-                    1/(t**(1/2)))
+            out[mask_positive] = factor * (1. / (4 * np.pi * radius)
+                            * np.sqrt(Z0 * material_resistivity / np.pi / c_light)
+                            * 1/(t[mask_positive]**(3/2)))
         # Transverse dipolar
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
             out[mask_positive] = factor * (
-                        #   1. / (beta0 * c_light)**(1/2)
                         1. / (np.pi * radius**3)
                         * np.sqrt(c_light * Z0 * material_resistivity / np.pi)
                         * 1/(t[mask_positive]**(1/2)))
@@ -759,11 +758,18 @@ class ComponentClassicThickWall(Component):
         return []
 
     def function_vs_t(self, t, beta0, dt):
+
+        isscalar = np.isscalar(t)
+        t = np.atleast_1d(t)
+
         assert dt > 0
         mask_zero = np.abs(t) < dt * self.zero_rel_tol
         out = np.zeros_like(t)
         out[mask_zero] = self.wake(dt * self.zero_rel_tol, beta0=beta0)
         out[~mask_zero] = self.wake(t[~mask_zero], beta0=beta0)
+
+        if isscalar:
+            out = out[0]
         return out
 
     @staticmethod
