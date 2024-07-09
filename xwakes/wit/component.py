@@ -620,7 +620,9 @@ class ComponentClassicThickWall(Component):
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
                  layer: Layer = None, radius: float = None,
-                 factor: float = 1.0) -> ComponentClassicThickWall:
+                 factor: float = 1.0,
+                 zero_rel_tol: float = 0.01
+                 ) -> ComponentClassicThickWall:
         """
         Creates a single component object modeling a resistive wall
         impedance/wake, based on the "classic thick wall formula" (see e.g.
@@ -634,10 +636,14 @@ class ComponentClassicThickWall(Component):
         :param radius: the chamber radius in m
         :return: A component object
         """
+        assert layer is not None, "Layer object must be provided"
+        assert radius is not None, "Radius must be provided"
+
         self.layer = layer
         self.radius = radius
         self.plane = plane
         self.factor = factor
+        self.zero_rel_tol = zero_rel_tol
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=exponents,
@@ -660,7 +666,7 @@ class ComponentClassicThickWall(Component):
         radius = self.radius
         plane = self.plane
         factor = self.factor
-        exponents = self.exponents
+        exponents = tuple(self.source_exponents + self.test_exponents)
 
         if plane == 'z' and exponents == (0, 0, 0, 0):
             out = factor * ((1/2) *
@@ -676,9 +682,8 @@ class ComponentClassicThickWall(Component):
                     (1 / self.delta_skin(f, material_resistivity,
                                          material_permeability)))
         else:
-            print("Warning: resistive wall impedance not implemented for "
+            raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
-            out = np.zeros_like(f)
 
         return out
 
@@ -688,23 +693,30 @@ class ComponentClassicThickWall(Component):
         radius = self.radius
         plane = self.plane
         factor = self.factor
-        exponents = self.exponents
+        exponents = tuple(self.source_exponents + self.test_exponents)
 
-        # Longitudinal impedance
+        isscalar = np.isscalar(t)
+        t = np.atleast_1d(t)
+        mask_positive = t > 1e-20
+        out = np.zeros_like(t)
+
+        # Longitudinal
         if plane == 'z' and exponents == (0, 0, 0, 0):
             out = factor * (-c_light / (2*np.pi*radius) *
                     (Z0 * material_resistivity/np.pi)**(1/2) *
                     1/(t**(1/2)))
-        # Transverse dipolar impedance
+        # Transverse dipolar
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = factor * (c_light / (2*np.pi*radius**3) *
+            out[mask_positive] = factor * (c_light / (2*np.pi*radius**3) *
                     (Z0 * material_resistivity/np.pi)**(1/2) *
-                    1/(t**(3/2)))
+                    1/(t[mask_positive]**(3/2)))
         else:
-            print("Warning: resistive wall wake not implemented for "
+            raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
-            out = np.zeros_like(t)
+
+        if isscalar:
+            out = out[0]
 
         return out
 
@@ -720,6 +732,14 @@ class ComponentClassicThickWall(Component):
     @property
     def t_rois(self):
         return []
+
+    def function_vs_t(self, t, beta0, dt):
+        assert dt > 0
+        mask_zero = np.abs(t) < dt * self.zero_rel_tol
+        out = np.zeros_like(t)
+        out[mask_zero] = self.wake(dt * self.zero_rel_tol)
+        out[~mask_zero] = self.wake(t[~mask_zero])
+        return out
 
 
 class ComponentSingleLayerResistiveWall(Component):
