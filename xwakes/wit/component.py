@@ -619,7 +619,9 @@ class ComponentClassicThickWall(Component):
                  exponents: Tuple[int, int, int, int] | None = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
-                 layer: Layer = None, radius: float = None,
+                 layer: Layer = None,
+                 radius: float = None,
+                 resistivity: float = None,
                  factor: float = 1.0,
                  zero_rel_tol: float = 0.01
                  ) -> ComponentClassicThickWall:
@@ -636,13 +638,22 @@ class ComponentClassicThickWall(Component):
         :param radius: the chamber radius in m
         :return: A component object
         """
-        assert layer is not None, "Layer object must be provided"
-        assert radius is not None, "Radius must be provided"
+
+        if (layer is None and resistivity is None):
+            raise ValueError(
+                "Either a layer object or a resistivity must be provided")
+        if layer is not None and resistivity is not None:
+            raise ValueError(
+                "Both a layer object and a resistivity cannot be provided")
+
+        if radius is None:
+            raise ValueError("Radius must be provided")
 
         self.layer = layer
         self.radius = radius
         self.plane = plane
         self.factor = factor
+        self.resistivity = resistivity
         self.zero_rel_tol = zero_rel_tol
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
@@ -660,15 +671,18 @@ class ComponentClassicThickWall(Component):
 
     def impedance(self, f):
         layer = self.layer
-        material_resistivity = layer.dc_resistivity
-        material_relative_permeability = 1. + layer.magnetic_susceptibility
-        material_magnetic_permeability = material_relative_permeability * mu0
+        material_magnetic_permeability = mu0
+        if layer is not None:
+            self._check_layer(layer) # Checks that there are no unsupported layer properties
+                                # (e.g. permeability different from vacuum)
+            material_resistivity = layer.dc_resistivity
+        else:
+            material_resistivity = self.resistivity
+
         radius = self.radius
         plane = self.plane
         factor = self.factor
         exponents = tuple(self.source_exponents + self.test_exponents)
-
-        intrinsic_impedance = np.sqrt(material_magnetic_permeability / eps0)
 
         if plane == 'z' and exponents == (0, 0, 0, 0):
             out = factor * ((1/2) *
@@ -683,13 +697,6 @@ class ComponentClassicThickWall(Component):
                             / (np.pi * radius**3 * (2 * np.pi * f * np.sqrt(eps0 * mu0)))
                             / self.delta_skin(f, material_resistivity,
                                               material_magnetic_permeability))
-
-
-
-            # out = factor * ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
-            #         material_resistivity / (np.pi * radius**3) *
-            #         (1 / self.delta_skin(f, material_resistivity,
-            #                              material_magnetic_permeability)))
         else:
             raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
@@ -698,8 +705,12 @@ class ComponentClassicThickWall(Component):
 
     def wake(self, t, beta0=None):
         layer = self.layer
-        material_resistivity = layer.dc_resistivity
-        material_magnetic_permeability = (1. + layer.magnetic_susceptibility) * mu0
+        if layer is not None:
+            self._check_layer(layer) # Checks that there are no unsupported layer properties
+                                # (e.g. permeability different from vacuum)
+            material_resistivity = layer.dc_resistivity
+        else:
+            material_resistivity = self.resistivity
         radius = self.radius
         plane = self.plane
         factor = self.factor
@@ -751,9 +762,23 @@ class ComponentClassicThickWall(Component):
         assert dt > 0
         mask_zero = np.abs(t) < dt * self.zero_rel_tol
         out = np.zeros_like(t)
-        out[mask_zero] = self.wake(dt * self.zero_rel_tol)
-        out[~mask_zero] = self.wake(t[~mask_zero])
+        out[mask_zero] = self.wake(dt * self.zero_rel_tol, beta0=beta0)
+        out[~mask_zero] = self.wake(t[~mask_zero], beta0=beta0)
         return out
+
+    @staticmethod
+    def _check_layer(layer):
+        if not isinstance(layer, Layer):
+            raise ValueError("Layer must be a wit Layer object")
+        if layer.thickness is not None:
+            raise ValueError("Layer thickness not supported for "
+                             "classic thick wall impedance")
+        if layer.re_dielectric_constant != 1.0:
+            raise ValueError("Dielectric constant not supported for "
+                             "classic thick wall impedance")
+        if layer.permeability_relaxation_frequency < np.inf:
+            raise ValueError("Permeability relaxation frequency not supported for "
+                             "classic thick wall impedance")
 
 
 class ComponentSingleLayerResistiveWall(Component):

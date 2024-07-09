@@ -32,8 +32,8 @@ assert wake.components[0].test_exponents == {
     'dipolar_x': (0, 0), 'dipolar_y': (0, 0),
     'quadrupolar_x': (1, 0), 'quadrupolar_y': (0, 1)}[f'{wake_type}_{plane}']
 
-z = np.linspace(-100, 100, 100000)
-t = np.linspace(-100/beta0/clight, 100/beta0/clight, 100000)
+z = np.linspace(-50, 50, 1000000)
+t = np.linspace(-50/beta0/clight, 50/beta0/clight, 1000000)
 
 w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-4)
 
