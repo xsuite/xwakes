@@ -57,7 +57,6 @@ xo.assert_allclose(wake.components[0].impedance(-f_test_sign).imag,
                    wake.components[0].impedance(f_test_sign).imag,
                    atol=0, rtol=1e-8)
 
-
 xo.assert_allclose(
     Z_from_zeta, Z_analytical, rtol=0, atol=1e-4 * np.max(np.abs(Z_analytical)))
 xo.assert_allclose(
