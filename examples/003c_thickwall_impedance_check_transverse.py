@@ -33,11 +33,11 @@ assert wake.components[0].test_exponents == {
     'quadrupolar_x': (1, 0), 'quadrupolar_y': (0, 1)}[f'{wake_type}_{plane}']
 
 z = np.linspace(-20, 20, 100000)
-t = np.linspace(-20/beta0/clight, 20/beta0/clight, 100000)
+t = np.linspace(-100/beta0/clight, 100/beta0/clight, 10000000)
 
-w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-4)
+w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-2)
 
-w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-4/beta0/clight)
+w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-2/beta0/clight)
 
 # # Assert that the function is positive at close to zero from the right
 # assert wake.components[0].function_vs_t(1e-10, beta0=beta0, dt=1e-20) > 0
@@ -47,7 +47,7 @@ w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-4/beta0/clight)
 # assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0, dzeta=1e-20) > 0
 # assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0, dzeta=1e-20) == 0
 
-omega = np.linspace(-10e9, 10e9, 500)
+omega = np.linspace(-10e9, 10e9, 200)
 
 Z_from_zeta = omega * (1 + 1j)
 Z_from_t = omega * (1 + 1j)

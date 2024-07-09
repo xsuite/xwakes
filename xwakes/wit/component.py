@@ -687,13 +687,16 @@ class ComponentClassicThickWall(Component):
 
         return out
 
-    def wake(self, t):
+    def wake(self, t, beta0=None):
         layer = self.layer
         material_resistivity = layer.dc_resistivity
+        material_magnetic_permeability = (1. + layer.magnetic_susceptibility) * mu0
         radius = self.radius
         plane = self.plane
         factor = self.factor
         exponents = tuple(self.source_exponents + self.test_exponents)
+
+        beta0 = beta0 if beta0 is not None else 1
 
         isscalar = np.isscalar(t)
         t = np.atleast_1d(t)
@@ -708,9 +711,11 @@ class ComponentClassicThickWall(Component):
         # Transverse dipolar
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out[mask_positive] = factor * (c_light / (2*np.pi*radius**3) *
-                    (Z0 * material_resistivity/np.pi)**(1/2) *
-                    1/(t[mask_positive]**(3/2)))
+            out[mask_positive] = factor * (
+                        #   1. / (beta0 * c_light)**(1/2)
+                        1. / (np.pi * radius**3)
+                        * np.sqrt(c_light * Z0 * material_resistivity / np.pi)
+                        * 1/(t[mask_positive]**(1/2)))
         else:
             raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
