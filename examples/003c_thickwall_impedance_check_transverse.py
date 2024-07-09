@@ -32,12 +32,12 @@ assert wake.components[0].test_exponents == {
     'dipolar_x': (0, 0), 'dipolar_y': (0, 0),
     'quadrupolar_x': (1, 0), 'quadrupolar_y': (0, 1)}[f'{wake_type}_{plane}']
 
-z = np.linspace(-20, 20, 100000)
-t = np.linspace(-100/beta0/clight, 100/beta0/clight, 10000000)
+z = np.linspace(-100, 100, 100000)
+t = np.linspace(-100/beta0/clight, 100/beta0/clight, 100000)
 
-w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-2)
+w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-4)
 
-w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-2/beta0/clight)
+w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-4/beta0/clight)
 
 # # Assert that the function is positive at close to zero from the right
 # assert wake.components[0].function_vs_t(1e-10, beta0=beta0, dt=1e-20) > 0

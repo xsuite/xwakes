@@ -662,7 +662,7 @@ class ComponentClassicThickWall(Component):
         layer = self.layer
         material_resistivity = layer.dc_resistivity
         material_relative_permeability = 1. + layer.magnetic_susceptibility
-        material_permeability = material_relative_permeability * mu0
+        material_magnetic_permeability = material_relative_permeability * mu0
         radius = self.radius
         plane = self.plane
         factor = self.factor
@@ -673,14 +673,14 @@ class ComponentClassicThickWall(Component):
                     (1 + np.sign(f)*1j) *
                     material_resistivity / (np.pi * radius) *
                     (1 / self.delta_skin(f, material_resistivity,
-                                            material_permeability)))
+                                            material_magnetic_permeability)))
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
             out = factor * ((c_light/(2*np.pi*f)) * (1+np.sign(f)*1j) *
                     material_resistivity / (np.pi * radius**3) *
                     (1 / self.delta_skin(f, material_resistivity,
-                                         material_permeability)))
+                                         material_magnetic_permeability)))
         else:
             raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
@@ -726,9 +726,9 @@ class ComponentClassicThickWall(Component):
         return out
 
     @staticmethod
-    def delta_skin(f, material_resistivity, material_permeability):
-        return (material_resistivity / (2*np.pi*abs(f) *
-                                        material_permeability)) ** (1/2)
+    def delta_skin(f, material_resistivity, material_magnetic_permeability):
+        return (2 * material_resistivity / (2*np.pi*abs(f) *
+                                        material_magnetic_permeability)) ** (1/2)
 
     @property
     def f_rois(self):
