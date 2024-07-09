@@ -13,7 +13,7 @@ wake_type = 'dipolar'
 
 comp  = xw.wit.ComponentClassicThickWall(
     kind=f'{wake_type}_{plane}',
-    layer=xw.wit.Layer(dc_resistivity=1e-7, thickness=None),
+    resistivity=1e-7,
     radius=1e-2
     )
 
