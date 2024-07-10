@@ -16,7 +16,6 @@ imp_data = pd.read_csv(
     skiprows=1, names=['f', 'ReZlong', 'ImZlong'], sep=' '
 )
 
-
 Z_first_quadrant = interp1d(imp_data['f'], imp_data['ReZlong'] + 1j * imp_data['ImZlong'])
 def Z_function(omega):
     isscalar = np.isscalar(omega)
