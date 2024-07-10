@@ -7,7 +7,6 @@ import xpart as xp
 import xwakes as xw
 import xobjects as xo
 
-
 table = pd.DataFrame({'time': [0, 10],
                       'longitudinal': [1e13, 1e13]})
 
