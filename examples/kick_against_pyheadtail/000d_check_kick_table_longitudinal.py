@@ -3,8 +3,6 @@ import numpy as np
 import xwakes as xw
 import xobjects as xo
 
-from scipy.constants import c as clight
-
 import xtrack as xt
 
 from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles

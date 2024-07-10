@@ -2,7 +2,6 @@ import numpy as np
 import pandas as pd
 
 import xwakes as xw
-
 import xtrack as xt
 import xobjects as xo
 
