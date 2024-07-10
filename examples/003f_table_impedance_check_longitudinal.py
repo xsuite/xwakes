@@ -73,6 +73,8 @@ omega = np.linspace(-10e9, 10e9, 500)
 
 Z_from_zeta = omega * (1 + 1j)
 Z_from_t = omega * (1 + 1j)
+Z_from_zeta_thick = omega * (1 + 1j)
+Z_from_t_thick = omega * (1 + 1j)
 dz = z[1] - z[0]
 dt = t[1] - t[0]
 for ii, oo in enumerate(omega):
@@ -81,12 +83,18 @@ for ii, oo in enumerate(omega):
                 * np.exp(1j * oo * (z / beta0 / clight)) , z)
     Z_from_t[ii] = np.trapezoid(
                 w_vs_t * np.exp(-1j * oo * t), t)
+    Z_from_zeta_thick[ii] = 1/beta0/clight * np.trapezoid(w_vs_zeta
+                * np.exp(1j * oo * (z / beta0 / clight)) , z)
+    Z_from_t_thick[ii] = np.trapezoid(
+                w_thick_vs_t * np.exp(-1j * oo * t), t)
 Z_analytical = Z_function(omega/2/np.pi)
 
 Z_thick_wall = wake_thick.components[0].impedance(omega/2/np.pi)
 
-# Z_from_zeta -= (Z_from_zeta.mean() - Z_analytical.mean())
-# Z_from_t -= (Z_from_t.mean() - Z_analytical.mean())
+Z_from_zeta -= (Z_from_zeta.mean() - Z_analytical.mean())
+Z_from_t -= (Z_from_t.mean() - Z_analytical.mean())
+Z_from_zeta_thick -= (Z_from_zeta_thick.mean() - Z_thick_wall.mean())
+Z_from_t_thick -= (Z_from_t_thick.mean() - Z_thick_wall.mean())
 
 
 
@@ -110,19 +118,29 @@ Z_thick_wall = wake_thick.components[0].impedance(omega/2/np.pi)
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1)
+fig1 = plt.figure(1, figsize=(1.4 * 6.4, 1.4 * 4.8))
 spre = plt.subplot(211)
-plt.plot(omega, Z_from_zeta.real, label='Re Zx from zeta')
-plt.plot(omega, Z_from_t.real, '--', label='Re Zx from t')
-plt.plot(omega, Z_analytical.real, '-.', label='Re Zx from xwakes')
-plt.plot(omega, Z_thick_wall.real, ':', label='Re Zx from thick wall')
+# plt.plot(omega / (2 * np.pi), Z_from_zeta.real, label=r'Numerical FT of $W_{IW2D}$(z)')
+plt.plot(omega / (2 * np.pi), Z_from_t.real, '-', label=r'Numerical FT $W(t)$ - table IW2D')
+# plt.plot(omega / (2 * np.pi), Z_from_zeta_thick.real, '-.', label=r'Numerical FT of $W_{RW}$(z)')
+plt.plot(omega / (2 * np.pi), Z_from_t_thick.real, '--', label=r'Numerical FT $W(t)$ - thick wall model')
+plt.plot(omega / (2 * np.pi), Z_analytical.real, '-.', label='Z from IW2D')
+plt.plot(omega / (2 * np.pi), Z_thick_wall.real, ':', label='Z analytical RW')
+plt.ylabel(r'Re$\{Z(f)\}$')
+plt.ylim(0, 0.175)
 plt.legend()
 
 spim = plt.subplot(212, sharex=spre)
-plt.plot(omega, Z_from_zeta.imag, label='Im Zx from zeta')
-plt.plot(omega, Z_from_t.imag, '--', label='Im Zx from t')
-plt.plot(omega, Z_analytical.imag, '-.', label='Im Zx from xwakes')
-plt.plot(omega, Z_thick_wall.imag, ':', label='Im Zx from thick wall')
+# plt.plot(omega / (2 * np.pi), Z_from_zeta.imag, label=r'Numerical FT of $W_{IW2D}$(z)')
+plt.plot(omega / (2 * np.pi), Z_from_t.imag, '-', label=r'Numerical FT of $W_{IW2D}$(t)')
+# plt.plot(omega / (2 * np.pi), Z_from_zeta_thick.imag, '-.', label=r'Numerical FT of $W_{RW}$(z)')
+plt.plot(omega / (2 * np.pi), Z_from_t_thick.imag, '--', label=r'Numerical FT $W(t)$ - thick wall model')
+plt.plot(omega / (2 * np.pi), Z_analytical.imag, '-.', label='Z from IW2D')
+plt.plot(omega / (2 * np.pi), Z_thick_wall.imag, ':', label='Z analytical RW')
+
+plt.xlabel('f [Hz]')
+plt.ylabel(r'Im$\{Z(f)\}$')
+plt.ylim(-0.2, 0.2)
 
 plt.figure(2)
 plt.plot(z, w_vs_zeta)
@@ -137,9 +155,14 @@ plt.xlim(-0.5e-12, 2e-12)
 
 
 mask_positive_t = t > 0
-plt.figure(4)
-plt.plot(t[mask_positive_t], w_vs_t[mask_positive_t])
-plt.plot(t[mask_positive_t], w_thick_vs_t[mask_positive_t])
+fig4 = plt.figure(4)
+plt.plot(t[mask_positive_t], w_vs_t[mask_positive_t], label='Table from IW2D')
+plt.plot(t[mask_positive_t], w_thick_vs_t[mask_positive_t], '--', label='Thick wall approx.')
+plt.xlabel('t [s]')
+plt.ylabel('W(t)')
+plt.xlim(0, 2e-12)
+plt.ylim(-1.5e14, 3.2e14)
+plt.legend()
 
 plt.show()
 
