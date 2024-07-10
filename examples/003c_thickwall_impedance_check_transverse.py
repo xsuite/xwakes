@@ -8,20 +8,11 @@ beta0 = 0.1
 plane = 'y'
 wake_type = 'dipolar'
 
-# wake = xw.WakeResonator(r=1e8, q=10, f_r=1e9,
-#     kind=f'{wake_type}_{plane}')
-
-comp  = xw.wit.ComponentClassicThickWall(
+wake = xw.WakeThickResistiveWall(
     kind=f'{wake_type}_{plane}',
     resistivity=1e-7,
     radius=1e-2
     )
-
-class Dummy:
-    pass
-
-wake = Dummy()
-wake.components = [comp]
 
 assert len(wake.components) == 1
 assert wake.components[0].plane == plane

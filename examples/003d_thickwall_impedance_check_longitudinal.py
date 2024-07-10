@@ -6,17 +6,11 @@ from scipy.constants import c as clight
 
 beta0 = 0.1
 
-comp  = xw.wit.ComponentClassicThickWall(
+wake = xw.WakeThickResistiveWall(
     kind='longitudinal',
     resistivity=1e-7,
     radius=1e-2
     )
-
-class Dummy:
-    pass
-
-wake = Dummy()
-wake.components = [comp]
 
 assert len(wake.components) == 1
 assert wake.components[0].plane == 'z'
@@ -37,7 +31,7 @@ t = np.linspace(-500/beta0/clight, 500/beta0/clight, 1000000)
 w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-4)
 w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-4/beta0/clight)
 
-omega = np.linspace(-5e9, 5e9, 50)
+omega = np.linspace(-1e9, 1e9, 50)
 
 Z_from_zeta = omega * (1 + 1j)
 Z_from_t = omega * (1 + 1j)

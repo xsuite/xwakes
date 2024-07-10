@@ -9,10 +9,10 @@ from scipy.interpolate import interp1d
 beta0 = 1.
 
 wake_data = pd.read_csv(
-    './comparison_rw_for_xwakes/WlongWLHC_1layers10.00mm_precise.dat',
+    './comparison_rw_for_xwakes/5em8/WlongWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['z', 'wlong'], sep=' ')
 imp_data = pd.read_csv(
-    './comparison_rw_for_xwakes/ZlongWLHC_1layers10.00mm_precise.dat',
+    './comparison_rw_for_xwakes/5em8/ZlongWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['f', 'ReZlong', 'ImZlong'], sep=' '
 )
 
@@ -25,7 +25,7 @@ def Z_function(omega):
     mask_zero = np.abs(omega) < imp_data['f'][0]
     if mask_zero.any():
         raise ValueError('Frequency too low')
-    mask_positive = omega > 0
+    mask_positive = omega >= 0
     mask_negative = omega < 0
     out = np.zeros_like(omega, dtype=complex)
     out[mask_positive] = Z_first_quadrant(omega[mask_positive])
@@ -34,8 +34,8 @@ def Z_function(omega):
     return out[0] if isscalar else out
 
 table = pd.DataFrame(
-    {'time': wake_data['z'].values / clight,
-     'longitudinal': wake_data['wlong'].values
+    {'time': np.concatenate([[0], wake_data['z'].values / clight]),
+     'longitudinal': np.concatenate([[wake_data['wlong'].values[0]], wake_data['wlong'].values])
      }
 )
 
@@ -77,8 +77,8 @@ for ii, oo in enumerate(omega):
 
 Z_analytical = Z_function(omega/2/np.pi)
 
-Z_from_zeta -= (Z_from_zeta.mean() - Z_analytical.mean())
-Z_from_t -= (Z_from_t.mean() - Z_analytical.mean())
+# Z_from_zeta -= (Z_from_zeta.mean() - Z_analytical.mean())
+# Z_from_t -= (Z_from_t.mean() - Z_analytical.mean())
 
 
 
@@ -123,8 +123,12 @@ plt.figure(3)
 plt.plot(t, w_vs_t)
 plt.xlabel('t [s]')
 plt.ylabel('W(t)')
+plt.xlim(-0.5e-12, 2e-12)
 
 
+mask_positive_t = t > 0
+plt.figure(4)
+plt.semilogx(t[mask_positive_t], w_vs_t[mask_positive_t])
 
 plt.show()
 
