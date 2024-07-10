@@ -31,13 +31,13 @@ assert wake.components[0].test_exponents == (0, 0)
 # assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0, dzeta=1e-20) > 0
 # assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0, dzeta=1e-20) == 0
 
-z = np.linspace(-50, 50, 1000000)
-t = np.linspace(-50/beta0/clight, 50/beta0/clight, 1000000)
+z = np.linspace(-500, 500, 1000000)
+t = np.linspace(-500/beta0/clight, 500/beta0/clight, 1000000)
 
 w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-4)
 w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-4/beta0/clight)
 
-omega = np.linspace(-10e9, 10e9, 200)
+omega = np.linspace(-5e9, 5e9, 50)
 
 Z_from_zeta = omega * (1 + 1j)
 Z_from_t = omega * (1 + 1j)

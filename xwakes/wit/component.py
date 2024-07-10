@@ -685,7 +685,7 @@ class ComponentClassicThickWall(Component):
         exponents = tuple(self.source_exponents + self.test_exponents)
 
         if plane == 'z' and exponents == (0, 0, 0, 0):
-            out = factor * ((1 + np.sign(f)*1j) * material_resistivity
+            out = -factor * ((1 + np.sign(f)*1j) * material_resistivity
                             / (2* np.pi * radius)
                             / self.delta_skin(f, material_resistivity,
                                               material_magnetic_permeability))

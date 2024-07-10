@@ -1,4 +1,4 @@
-import pandas
+import pandas as pd
 import numpy as np
 from scipy.constants import c as clight
 from scipy.interpolate import interp1d
@@ -11,6 +11,10 @@ from .wit.component import KIND_DEFINITIONS
 class WakeFromTable(BaseWake):
 
     def __init__(self, table, columns=None):
+
+        if isinstance(table, dict):
+            table = pd.DataFrame(table)
+
 
         self.table = table
 
