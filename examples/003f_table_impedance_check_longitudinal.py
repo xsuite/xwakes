@@ -9,10 +9,10 @@ from scipy.interpolate import interp1d
 beta0 = 1.
 
 wake_data = pd.read_csv(
-    './comparison_rw_for_xwakes/5em8/WlongWLHC_1layers10.00mm_precise.dat',
+    './comparison_rw_for_xwakes/WlongWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['z', 'wlong'], sep=' ')
 imp_data = pd.read_csv(
-    './comparison_rw_for_xwakes/5em8/ZlongWLHC_1layers10.00mm_precise.dat',
+    './comparison_rw_for_xwakes/ZlongWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['f', 'ReZlong', 'ImZlong'], sep=' '
 )
 
@@ -41,6 +41,12 @@ table = pd.DataFrame(
 
 wake = xw.WakeFromTable(table=table)
 
+wake_thick = xw.WakeThickResistiveWall(
+    kind='longitudinal',
+    resistivity=1.7e-8, # Copper at room temperature
+    radius=1e-2
+    )
+
 assert len(wake.components) == 1
 assert wake.components[0].plane == 'z'
 assert wake.components[0].source_exponents == (0, 0)
@@ -57,10 +63,11 @@ assert wake.components[0].test_exponents == (0, 0)
 z_positive = wake_data['z'].values
 z_negative = -wake_data['z'].values[::-1]
 z = np.concatenate((z_negative, z_positive))
-t = z / clight
+t = -z[::-1] / clight
 
 w_vs_zeta = wake.components[0].function_vs_zeta(z, beta0=beta0, dzeta=1e-200)
 w_vs_t = wake.components[0].function_vs_t(t, beta0=beta0, dt=1e-200/beta0/clight)
+w_thick_vs_t = wake_thick.components[0].function_vs_t(t, beta0=beta0, dt=1e-200/beta0/clight)
 
 omega = np.linspace(-10e9, 10e9, 500)
 
@@ -70,12 +77,13 @@ dz = z[1] - z[0]
 dt = t[1] - t[0]
 for ii, oo in enumerate(omega):
     print(ii, end='\r', flush=True)
-    Z_from_zeta[ii] = 1/beta0/clight * np.sum(w_vs_zeta
-                * np.exp(1j * oo * z / beta0 / clight) * np.diff(z, prepend=0))
-    Z_from_t[ii] = np.sum(
-                w_vs_t * np.exp(-1j * oo * t) * np.diff(t, prepend=0))
-
+    Z_from_zeta[ii] = 1/beta0/clight * np.trapezoid(w_vs_zeta
+                * np.exp(1j * oo * (z / beta0 / clight)) , z)
+    Z_from_t[ii] = np.trapezoid(
+                w_vs_t * np.exp(-1j * oo * t), t)
 Z_analytical = Z_function(omega/2/np.pi)
+
+Z_thick_wall = wake_thick.components[0].impedance(omega/2/np.pi)
 
 # Z_from_zeta -= (Z_from_zeta.mean() - Z_analytical.mean())
 # Z_from_t -= (Z_from_t.mean() - Z_analytical.mean())
@@ -107,12 +115,14 @@ spre = plt.subplot(211)
 plt.plot(omega, Z_from_zeta.real, label='Re Zx from zeta')
 plt.plot(omega, Z_from_t.real, '--', label='Re Zx from t')
 plt.plot(omega, Z_analytical.real, '-.', label='Re Zx from xwakes')
+plt.plot(omega, Z_thick_wall.real, ':', label='Re Zx from thick wall')
 plt.legend()
 
 spim = plt.subplot(212, sharex=spre)
 plt.plot(omega, Z_from_zeta.imag, label='Im Zx from zeta')
 plt.plot(omega, Z_from_t.imag, '--', label='Im Zx from t')
 plt.plot(omega, Z_analytical.imag, '-.', label='Im Zx from xwakes')
+plt.plot(omega, Z_thick_wall.imag, ':', label='Im Zx from thick wall')
 
 plt.figure(2)
 plt.plot(z, w_vs_zeta)
@@ -128,7 +138,8 @@ plt.xlim(-0.5e-12, 2e-12)
 
 mask_positive_t = t > 0
 plt.figure(4)
-plt.semilogx(t[mask_positive_t], w_vs_t[mask_positive_t])
+plt.plot(t[mask_positive_t], w_vs_t[mask_positive_t])
+plt.plot(t[mask_positive_t], w_thick_vs_t[mask_positive_t])
 
 plt.show()
 
