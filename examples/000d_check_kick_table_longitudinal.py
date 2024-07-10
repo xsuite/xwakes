@@ -19,7 +19,9 @@ p_ref = p.copy()
 p_ref = PyHtXtParticles.from_dict(p_ref.to_dict())
 
 # Build equivalent WakeFromTable
-table = xw.read_headtail_file('HLLHC_wake_flattop_nocrab.dat', wake_file_columns=[
+table = xw.read_headtail_file(
+    '../test_data/headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat',
+    wake_file_columns=[
                      'time', 'longitudinal', 'dipole_x', 'dipole_y',
                      'quadrupole_x', 'quadrupole_y', 'dipole_xy',
                      'quadrupole_xy', 'dipole_yx', 'quadrupole_yx',
@@ -34,12 +36,12 @@ assert wake_from_table.components[0].test_exponents == (0, 0)
 
 # Assert that the function is positive at close to zero from the right
 # (this wake starts with very-high frequency oscillations)
-assert wake_from_table.components[0].function_vs_t(2e-14, beta0=1) > 0
-assert wake_from_table.components[0].function_vs_t(-2e-14, beta0=1) == 0
+assert wake_from_table.components[0].function_vs_t(2e-14, beta0=1, dt=1e-20) > 0
+assert wake_from_table.components[0].function_vs_t(-2e-14, beta0=1, dt=1e-20) == 0
 
 # Zeta has opposite sign compared to t
-assert wake_from_table.components[0].function_vs_zeta(-1e-5, beta0=1) > 0
-assert wake_from_table.components[0].function_vs_zeta(+1e-5, beta0=1) == 0
+assert wake_from_table.components[0].function_vs_zeta(-1e-5, beta0=1, dzeta=1e-20) > 0
+assert wake_from_table.components[0].function_vs_zeta(+1e-5, beta0=1, dzeta=1e-20) == 0
 
 assert table['longitudinal'].values[1] > 0
 
@@ -47,8 +49,9 @@ from PyHEADTAIL.impedances.wakes import WakeTable, WakeField
 from PyHEADTAIL.particles.slicing import UniformBinSlicer
 slicer = UniformBinSlicer(n_slices=None,
                           z_sample_points=wake_from_table._wake_tracker.slicer.zeta_centers)
-waketable = WakeTable('HLLHC_wake_long.dat', [
-                     'time', 'longitudinal'])
+waketable = WakeTable(
+    '../test_data/headtail_format_table_hllhc/HLLHC_wake_long.dat',
+    ['time', 'longitudinal'])
 wake_pyht = WakeField(slicer, waketable)
 
 wake_from_table.track(p_table)
