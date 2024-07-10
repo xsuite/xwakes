@@ -9,10 +9,10 @@ from scipy.interpolate import interp1d
 beta0 = 1.
 
 wake_data = pd.read_csv(
-    './comparison_rw_for_xwakes/WlongWLHC_1layers10.00mm_precise.dat',
+    '../test_data/iw2d_thick_wall/WlongWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['z', 'wlong'], sep=' ')
 imp_data = pd.read_csv(
-    './comparison_rw_for_xwakes/ZlongWLHC_1layers10.00mm_precise.dat',
+    '../test_data/iw2d_thick_wall/ZlongWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['f', 'ReZlong', 'ImZlong'], sep=' '
 )
 
