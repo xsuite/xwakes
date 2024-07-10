@@ -52,13 +52,13 @@ assert wake.components[0].plane == 'z'
 assert wake.components[0].source_exponents == (0, 0)
 assert wake.components[0].test_exponents == (0, 0)
 
-# # Assert that the function is positive at close to zero from the right
-# assert wake.components[0].function_vs_t(1e-10, beta0=beta0, dt=1e-20) > 0
-# assert wake.components[0].function_vs_t(-1e-10, beta0=beta0, dt=1e-20) == 0
+# Assert that the function is positive at close to zero from the right
+assert wake.components[0].function_vs_t(1e-15, beta0=beta0, dt=1e-20) > 0
+assert wake.components[0].function_vs_t(-1e-15, beta0=beta0, dt=1e-20) == 0
 
-# # Zeta has opposite sign compared to t
-# assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0, dzeta=1e-20) > 0
-# assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0, dzeta=1e-20) == 0
+# Zeta has opposite sign compared to t
+assert wake.components[0].function_vs_zeta(-1e-5, beta0=beta0, dzeta=1e-20) > 0
+assert wake.components[0].function_vs_zeta(+1e-5, beta0=beta0, dzeta=1e-20) == 0
 
 z_positive = wake_data['z'].values
 z_negative = -wake_data['z'].values[::-1]
@@ -96,25 +96,22 @@ Z_from_t -= (Z_from_t.mean() - Z_analytical.mean())
 Z_from_zeta_thick -= (Z_from_zeta_thick.mean() - Z_thick_wall.mean())
 Z_from_t_thick -= (Z_from_t_thick.mean() - Z_thick_wall.mean())
 
+f_test_sign = 1e9
+xo.assert_allclose(wake.components[0].impedance(-f_test_sign).real,
+                   wake.components[0].impedance(f_test_sign).real,
+                   atol=0, rtol=1e-8)
+xo.assert_allclose(wake.components[0].impedance(-f_test_sign).imag,
+                   -wake.components[0].impedance(f_test_sign).imag,
+                   atol=0, rtol=1e-8)
 
+xo.assert_allclose(
+    Z_from_zeta, Z_analytical, rtol=0, atol=0.1 * np.max(np.abs(Z_analytical)))
+xo.assert_allclose(
+    Z_from_t, Z_analytical, rtol=0, atol=0.1 * np.max(np.abs(Z_analytical)))
 
-# f_test_sign = 1e9
-# xo.assert_allclose(wake.components[0].impedance(-f_test_sign).real,
-#                    wake.components[0].impedance(f_test_sign).real,
-#                    atol=0, rtol=1e-8)
-# xo.assert_allclose(wake.components[0].impedance(-f_test_sign).imag,
-#                    -wake.components[0].impedance(f_test_sign).imag,
-#                    atol=0, rtol=1e-8)
-
-# xo.assert_allclose(
-#     Z_from_zeta, Z_analytical, rtol=0, atol=1e-4 * np.max(np.abs(Z_analytical)))
-# xo.assert_allclose(
-#     Z_from_t, Z_analytical, rtol=0, atol=1e-4 * np.max(np.abs(Z_analytical)))
-
-# xo.assert_allclose(
-#     Z_from_zeta, Z_analytical, rtol=0, atol=1e-4 * np.max(np.abs(Z_analytical)))
-# xo.assert_allclose(
-#     Z_from_t, Z_analytical, rtol=0, atol=1e-4 * np.max(np.abs(Z_analytical)))
+mask_check_thick = (t > 1e-12) & (t < 2e-11)
+xo.assert_allclose(
+    w_vs_t[mask_check_thick], w_thick_vs_t[mask_check_thick], rtol=0.05, atol=0)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -152,7 +149,6 @@ plt.plot(t, w_vs_t)
 plt.xlabel('t [s]')
 plt.ylabel('W(t)')
 plt.xlim(-0.5e-12, 2e-12)
-
 
 mask_positive_t = t > 0
 fig4 = plt.figure(4)
