@@ -18,7 +18,7 @@ p_ref = PyHtXtParticles.from_dict(p_ref.to_dict())
 
 # Build equivalent WakeFromTable
 table = xw.read_headtail_file(
-    '../test_data/headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat',
+    '../../test_data/headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat',
     wake_file_columns=[
                      'time', 'longitudinal', 'dipole_x', 'dipole_y',
                      'quadrupole_x', 'quadrupole_y', 'dipole_xy',
@@ -57,7 +57,7 @@ from PyHEADTAIL.particles.slicing import UniformBinSlicer
 slicer = UniformBinSlicer(n_slices=None,
                           z_sample_points=wake_from_table._wake_tracker.slicer.zeta_centers)
 waketable = WakeTable(
-    '../test_data/headtail_format_table_hllhc/HLLHC_wake_quad.dat',
+    '../../test_data/headtail_format_table_hllhc/HLLHC_wake_quad.dat',
     ['time', 'quadrupole_x', 'quadrupole_y'])
 wake_pyht = WakeField(slicer, waketable)
 

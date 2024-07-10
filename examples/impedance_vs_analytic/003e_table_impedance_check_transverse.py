@@ -11,10 +11,10 @@ plane = 'y'
 wake_type = 'dipolar'
 
 wake_data = pd.read_csv(
-    '../test_data/iw2d_thick_wall/WydipWLHC_1layers10.00mm_precise.dat',
+    '../../test_data/iw2d_thick_wall/WydipWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['z', 'wydip'], sep=' ')
 imp_data = pd.read_csv(
-    '../test_data/iw2d_thick_wall/ZydipWLHC_1layers10.00mm_precise.dat',
+    '../../test_data/iw2d_thick_wall/ZydipWLHC_1layers10.00mm_precise.dat',
     skiprows=1, names=['f', 'ReZydip', 'ImZydip'], sep=' '
 )
 
