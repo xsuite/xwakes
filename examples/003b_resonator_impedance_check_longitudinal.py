@@ -63,27 +63,32 @@ xo.assert_allclose(
 
 import matplotlib.pyplot as plt
 plt.close('all')
-plt.figure(1)
+fig1 = plt.figure(1, figsize=(6.4 * 1.2, 4.8 * 1.2))
 spre = plt.subplot(211)
-plt.plot(omega, Z_from_zeta.real, label='Re Zx from zeta')
-plt.plot(omega, Z_from_t.real, '--', label='Re Zx from t')
-plt.plot(omega, Z_analytical.real, '-.', label='Re Zx from xwakes')
+plt.plot(omega / (2 * np.pi), Z_from_zeta.real, label='Numerical FT of W(z)')
+plt.plot(omega / (2 * np.pi), Z_from_t.real, '--', label='Numerical FT of W(t)')
+plt.plot(omega / (2 * np.pi), Z_analytical.real, '-.', label='Analytical impedance')
+plt.ylabel(r'Re$\{ Z\}$')
 plt.legend()
 
 spim = plt.subplot(212, sharex=spre)
-plt.plot(omega, Z_from_zeta.imag, label='Im Zx from zeta')
-plt.plot(omega, Z_from_t.imag, '--', label='Im Zx from t')
-plt.plot(omega, Z_analytical.imag, '-.', label='Im Zx from xwakes')
+plt.plot(omega / (2 * np.pi), Z_from_zeta.imag)
+plt.plot(omega / (2 * np.pi), Z_from_t.imag)
+plt.plot(omega / (2 * np.pi), Z_analytical.imag)
+plt.xlabel('f [Hz]')
+plt.ylabel(r'Im$\{ Z\}$')
+plt.subplots_adjust(hspace=0.3, bottom=0.09, top=0.9)
 
 plt.figure(2)
 plt.plot(z, w_vs_zeta)
 plt.xlabel('z [m]')
-plt.ylabel('W(z)')
+plt.ylabel('Wx(z)')
 
-plt.figure(3)
+fig3 = plt.figure(3)
 plt.plot(t, w_vs_t)
 plt.xlabel('t [s]')
 plt.ylabel('W(t)')
+plt.xlim(-0.2e-8, 1e-8)
 
 
 
