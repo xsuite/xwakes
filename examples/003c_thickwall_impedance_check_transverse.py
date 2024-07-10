@@ -38,12 +38,10 @@ assert wake.components[0].function_vs_t(-1e-10, beta0=beta0, dt=1e-20) == 0
 assert wake.components[0].function_vs_zeta(-1e-3, beta0=beta0, dzeta=1e-20) > 0
 assert wake.components[0].function_vs_zeta(+1e-3, beta0=beta0, dzeta=1e-20) == 0
 
-omega = np.linspace(-10e9, 10e9, 200)
+omega = np.linspace(-10e9, 10e9, 80)
 
 Z_from_zeta = omega * (1 + 1j)
 Z_from_t = omega * (1 + 1j)
-dz = z[1] - z[0]
-dt = t[1] - t[0]
 for ii, oo in enumerate(omega):
     print(ii, end='\r', flush=True)
     Z_from_zeta[ii] = 1j/beta0/clight * np.trapezoid(w_vs_zeta
