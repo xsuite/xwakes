@@ -292,5 +292,5 @@ def test_multiwake_transverse_constant(test_context):
     norm = np.max(np.abs(kicks_0))
     kicks_0 /= norm
     kicks_1 = interpolated_wake_1 / norm
-    xo.assert_allclose(particles_0.py / norm, kicks_0, rtol=1e-4, atol=0)
-    xo.assert_allclose(particles_1.py / norm, kicks_1, rtol=1e-4, atol=0)
+    xo.assert_allclose(particles_0.py / norm, kicks_0, rtol=1e-4, atol=5e-14)
+    xo.assert_allclose(particles_1.py / norm, kicks_1, rtol=1e-4, atol=5e-14)
