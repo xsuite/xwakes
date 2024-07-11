@@ -26,7 +26,8 @@ def test_longitudinal_wake_kick(test_context):
     particles = xt.Particles(
         mass0=xt.PROTON_MASS_EV,
         p0c=p0c,
-        zeta=np.array([zeta[i_test], zeta[i_source]]),
+        zeta=[zeta[i_test], zeta[i_source]],
+        delta=[1e-3, 2e-3],
         weight=1e12,
         _context=test_context
     )
@@ -50,9 +51,9 @@ def test_longitudinal_wake_kick(test_context):
     xo.assert_allclose(w_zero_plus, 62831.85307, atol=0, rtol=1e-6) # Regresssion test
 
     assert particles.zeta[1] > particles.zeta[0]
-    xo.assert_allclose(particles.delta[1], scale * w_zero_plus / 2, # beam loading theorem
+    xo.assert_allclose(particles.delta[1] - delta_bef[1], scale * w_zero_plus / 2, # beam loading theorem
                           rtol=1e-4, atol=0)
 
     # Resonator frequency chosen to have practically constant wake
-    xo.assert_allclose(particles.delta[0], scale * w_zero_plus * 3 / 2,  # 1 from particle in front
+    xo.assert_allclose(particles.delta[0] - delta_bef[0], scale * w_zero_plus * 3 / 2,  # 1 from particle in front
                         rtol=1e-4, atol=0)                               # 1/2 from particle itself
