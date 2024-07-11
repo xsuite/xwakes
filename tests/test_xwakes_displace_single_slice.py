@@ -10,7 +10,7 @@ exclude_contexts = ['ContextPyopencl', 'ContextCupy']
 @for_all_test_contexts(excluding=exclude_contexts)
 def test_longitudinal_wake_kick(test_context):
 
-    p0c = 7000e9
+    p0c = 1.2e9
     h_RF = 600
     n_slices = 100
     circumference = 26658.883
