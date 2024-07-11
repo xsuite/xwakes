@@ -1,0 +1,12 @@
+The following people contributed to the development of this package:
+
+CERN contributors:
+ - D. Amorim
+ - X. Buffat
+ - L. Giacomel
+ - G. Iadarola
+ - L. Mether
+ - N. Mounet
+ - M. Rognlien
+ - E. Vik
+ 
