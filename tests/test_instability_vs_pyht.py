@@ -73,18 +73,12 @@ def test_instability_cpu_gpu(test_context):
     wake_field.needs_cpu = True
     wake_field.needs_hidden_lost_particles = True
 
-    damping_time = 7000  # 33.
-    damper = TransverseDamper(dampingrate_x=damping_time, dampingrate_y=damping_time)
-    damper.needs_cpu = True
-    damper.needs_hidden_lost_particles = True
     i_oct = 15.
     det_xx = 1.4e5 * i_oct / 550.0  # from PTC with ATS optics, telescopic factor 1.0
     det_xy = -1.0e5 * i_oct / 550.0
 
     # expected octupole threshold with damper is 273A according to https://indico.cern.ch/event/902528/contributions/3798807/attachments/2010534/3359300/20200327_RunIII_stability_NMounet.pdf
     # expected growth rate with damper but without octupole is ~0.3 [$10^{-4}$/turn] (also according to Nicolas' presentation)
-
-    checkTurn = 1000
 
     ########### PyHEADTAIL part ##############
 
@@ -154,7 +148,6 @@ def test_instability_cpu_gpu(test_context):
         time1 = time.time()
         wake_field.track(particles)
         time2 = time.time()
-        damper.track(particles)
         time3 = time.time()
         x[turn] = np.mean(particles.x)
         if turn % 1000 == 0:
@@ -213,20 +206,6 @@ def test_instability_cpu_gpu(test_context):
         energy_increment=0,
     )
 
-    # n_slices_wakes = 200
-    # limit_z = 3 * sigma_z
-    # wake_folder = pathlib.Path(
-    #     __file__).parent.joinpath('../examples/pyheadtail_interface/wakes').absolute()
-    # wakefile = wake_folder.joinpath(
-    #     "wakeforhdtl_PyZbase_Allthemachine_7000GeV_B1_2021_TeleIndex1_wake.dat")
-    # slicer_for_wakefields = UniformBinSlicer(n_slices_wakes, z_cuts=(-limit_z, limit_z))
-    # waketable = WakeTable(
-    #     wakefile, ["time", "dipole_x", "dipole_y", "quadrupole_x", "quadrupole_y"]
-    # )
-    # wake_field = WakeField(slicer_for_wakefields, waketable)
-    # wake_field.needs_cpu = True
-    # wake_field.needs_hidden_lost_particles = True
-
     wake_df = xw.read_headtail_file(wakefile,
             ["time", "dipole_x", "dipole_y", "quadrupole_x", "quadrupole_y"])
     wf_xw = xw.WakeFromTable(wake_df,
@@ -234,8 +213,8 @@ def test_instability_cpu_gpu(test_context):
     wf_xw.configure_for_tracking(zeta_range=(-limit_z, limit_z),
                                 num_slices=n_slices_wakes)
 
-    line = xt.Line(elements=[arc, wf_xw, damper],
-                       element_names=['arc', 'wake_field', 'damper'])
+    line = xt.Line(elements=[arc, wf_xw],
+                       element_names=['arc', 'wake_field'])
     line.build_tracker(_context=test_context)
 
     t_xt_start = time.time()
