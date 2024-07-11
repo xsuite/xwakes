@@ -11,7 +11,7 @@ from xobjects.test_helpers import for_all_test_contexts
 exclude_contexts = ['ContextPyopencl', 'ContextCupy']
 
 @for_all_test_contexts(excluding=exclude_contexts)
-def test_multiwake_longitudinal(test_context):
+def test_multibunch_pipeline_longitudinal(test_context):
     # Filling scheme
     n_slots = 100
     filling_scheme = np.array(np.floor(np.random.rand(n_slots)+0.1), dtype=int)
@@ -142,7 +142,7 @@ def test_multiwake_longitudinal(test_context):
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
-def test_multiwake_transverse_constant(test_context):
+def test_multibunch_pipeline_transverse_constant(test_context):
     # Filling scheme
     n_slots = 100
     filling_scheme = np.array(np.floor(np.random.rand(n_slots) + 0.1),
@@ -297,7 +297,7 @@ def test_multiwake_transverse_constant(test_context):
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
-def test_multiwake_transverse_dipole_direct(test_context):
+def test_multibunch_pipeline_transverse_dipole_direct(test_context):
     # Filling scheme
     n_slots = 100
     filling_scheme = np.array(np.floor(np.random.rand(n_slots) + 0.1),
@@ -434,7 +434,7 @@ def test_multiwake_transverse_dipole_direct(test_context):
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
-def test_multiwake_transverse_dipole_coupling(test_context):
+def test_multibunch_pipeline_transverse_dipole_coupling(test_context):
     # Filling scheme
     n_slots = 100
     filling_scheme = np.array(np.floor(np.random.rand(n_slots) + 0.1),
@@ -568,7 +568,7 @@ def test_multiwake_transverse_dipole_coupling(test_context):
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
-def test_multiwake_transverse_quadrupole_direct(test_context):
+def test_multibunch_pipeline_transverse_quadrupole_direct(test_context):
     # Filling scheme
     n_slots = 100
     filling_scheme = np.array(np.floor(np.random.rand(n_slots) + 0.1),
@@ -722,7 +722,7 @@ def test_multiwake_transverse_quadrupole_direct(test_context):
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
-def test_multiwake_transverse_quadrupole_coupling(test_context):
+def test_multibunch_pipeline_transverse_quadrupole_coupling(test_context):
     # Filling scheme
     n_slots = 100
     filling_scheme = np.array(np.floor(np.random.rand(n_slots) + 0.1),
