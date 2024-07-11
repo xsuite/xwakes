@@ -78,6 +78,8 @@ def test_constant_wake_kick(test_context):
         mass0=xt.PROTON_MASS_EV,
         p0c=p0c,
         zeta=np.array([zeta[i_test], zeta[i_source]]),
+        px=[1e-4, 2e-4],
+        py=[-3e-4, -4e-4],
         weight=1e12,
         _context=test_context
     )
