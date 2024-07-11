@@ -61,7 +61,7 @@ def test_longitudinal_wake_kick(test_context):
 @for_all_test_contexts(excluding=exclude_contexts)
 def test_constant_wake_kick(test_context):
 
-    p0c = 7000e9
+    p0c = 1.2e9
     h_RF = 600
     n_slices = 100
     circumference = 26658.883
@@ -94,7 +94,8 @@ def test_constant_wake_kick(test_context):
     line.build_tracker()
     line.track(particles, num_turns=1)
 
-    scale = particles.q0**2 * qe**2 / (particles.p0c[0] * qe) * particles.weight[0]
+    scale = particles.q0**2 * qe**2 / (
+        particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
 
     assert len(wf.components) == 2
     comp_x = wf.components[0]
