@@ -253,3 +253,73 @@ def test_cross_dipolar_wake_kick(test_context):
                        rtol=1e-4, atol=1e-20)
     xo.assert_allclose((particles.py - py_bef)/displace_x, expected_y,
                         rtol=1e-4, atol=1e-20)
+
+@for_all_test_contexts(excluding=exclude_contexts)
+def test_quadrupolar_wake_kick(test_context):
+
+    p0c = 1.2e9
+    h_RF = 600
+    n_slices = 100
+    circumference = 26658.883
+    bucket_length = circumference/h_RF
+    zeta_range = (-0.5*bucket_length, 0.5*bucket_length)
+    dz = (zeta_range[1] - zeta_range[0])/n_slices
+    zeta = np.linspace(zeta_range[0] + dz/2, zeta_range[1]-dz/2,
+                       n_slices)
+
+    i_source = -10
+    i_test = 10
+
+    particles = xt.Particles(
+        mass0=xt.PROTON_MASS_EV,
+        p0c=p0c,
+        zeta=zeta,
+        weight=1e12,
+        _context=test_context
+    )
+
+    displace_x_test = 2e-3
+    displace_y_test = 3e-3
+    displace_x_source = 4e-3
+    displace_y_source = 5e-3
+
+    particles.x[i_source] += displace_x_source
+    particles.y[i_source] += displace_y_source
+
+    particles.x[i_test] += displace_x_test
+    particles.y[i_test] += displace_y_test
+
+    px_bef = particles.px.copy()
+    py_bef = particles.py.copy()
+
+    wf = xw.WakeResonator(kind=['quadrupolar_x', 'quadrupolar_y'],
+                          r=1e8, q=1e7, f_r=1e3)
+    wf.configure_for_tracking(zeta_range=zeta_range, num_slices=n_slices)
+
+    line = xt.Line(elements=[wf],
+                   element_names=['wf'])
+    line.build_tracker()
+    line.track(particles, num_turns=1)
+
+    scale = particles.q0**2 * qe**2 / (
+        particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
+
+    assert len(wf.components) == 2
+    comp_x = wf.components[0]
+    comp_y = wf.components[1]
+    assert comp_x.plane == 'x'
+    assert comp_y.plane == 'y'
+    assert comp_x.source_exponents == (0, 0)
+    assert comp_x.test_exponents == (1, 0)
+    assert comp_y.source_exponents == (0, 0)
+    assert comp_y.test_exponents == (0, 1)
+    expected_x = np.sum(comp_x.function_vs_zeta(particles.zeta[i_test] - particles.zeta,
+                        beta0=particles.beta0[0], dzeta=1e-20))*scale
+    expected_y = np.sum(comp_y.function_vs_zeta(particles.zeta[i_test] - particles.zeta,
+                        beta0=particles.beta0[0], dzeta=1e-20))*scale
+    assert expected_x.max() > 1e-14
+    assert expected_y.max() > 1e-14
+    xo.assert_allclose((particles.px - px_bef)[i_test]/displace_x_test, expected_x,
+                       rtol=1e-4, atol=1e-20)
+    xo.assert_allclose((particles.py - py_bef)[i_test]/displace_y_test, expected_y,
+                        rtol=1e-4, atol=1e-20)
