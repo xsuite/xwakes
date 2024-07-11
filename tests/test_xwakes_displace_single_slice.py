@@ -171,20 +171,17 @@ def test_dipolar_wake_kick(test_context):
     assert comp_x.test_exponents == (0, 0)
     assert comp_y.source_exponents == (0, 1)
     assert comp_y.test_exponents == (0, 0)
-    mask = particles.zeta < particles.zeta[i_source]
-    assert np.allclose(
-        (particles.px - px_bef)[mask]/displace_x,
-        (comp_x.function_vs_zeta(-particles.zeta[i_source] +
+    expected_x = comp_x.function_vs_zeta(-particles.zeta[i_source] +
                               particles.zeta,
                               beta0=particles.beta0[0],
-                              dzeta=1e-20)
-                               * scale)[mask],
-                       rtol=1e-4, atol=0)
-    assert np.allclose(
-        (particles.py - py_bef)[mask]/displace_y,
-        (comp_y.function_vs_zeta(-particles.zeta[i_source] +
-                              particles.zeta,
-                              beta0=particles.beta0[0],
-                              dzeta=1e-20)
-                               * scale)[mask],
-                       rtol=1e-4, atol=0)
+                              dzeta=1e-20) * scale
+    expected_y = comp_y.function_vs_zeta(-particles.zeta[i_source] +
+                                particles.zeta,
+                                beta0=particles.beta0[0],
+                                dzeta=1e-20) * scale
+    assert expected_x.max() > 1e-14
+    assert expected_y.max() > 1e-14
+    xo.assert_allclose((particles.px - px_bef)/displace_x, expected_x,
+                       rtol=1e-4, atol=1e-20)
+    xo.assert_allclose((particles.py - py_bef)/displace_y, expected_y,
+                        rtol=1e-4, atol=1e-20)
