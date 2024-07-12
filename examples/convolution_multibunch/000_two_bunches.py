@@ -16,7 +16,7 @@ one_turn_map = xt.LineSegmentMap(
 
 filling_scheme = np.zeros(3564)
 filling_scheme[0] = 1
-filling_scheme[1] = 1
+filling_scheme[10] = 1
 
 wake = xw.WakeResonator(
     kind='dipolar_x',
@@ -26,7 +26,6 @@ wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=500,
     bunch_spacing_zeta=26000/3564,
     bunch_numbers=[0, 1]
     )
-
 
 line = xt.Line(elements=[one_turn_map, wake])
 line.build_tracker()
@@ -48,6 +47,6 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
 time_0 = time.time()
 for i_turn in range(n_turns):
     line.track(particles)
-
 time_1 = time.time()
+
 print(f'Time for {n_turns} turns: {time_1 - time_0} s')
