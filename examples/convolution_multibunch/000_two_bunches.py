@@ -4,6 +4,7 @@ import xwakes as xw
 import time
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 n_turns = 10
 
@@ -16,15 +17,16 @@ one_turn_map = xt.LineSegmentMap(
 
 filling_scheme = np.zeros(3564)
 filling_scheme[0] = 1
-filling_scheme[10] = 1
+filling_scheme[1] = 1
+bunch_numbers = [0, 1]
 
 wake = xw.WakeResonator(
     kind='dipolar_x',
-    r=1e4, q=1, f_r=600e6)
+    r=1e8, q=1e5, f_r=600e6)
 wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=500,
     filling_scheme=filling_scheme,
     bunch_spacing_zeta=26000/3564,
-    bunch_numbers=[0, 1]
+    bunch_numbers=bunch_numbers
     )
 
 line = xt.Line(elements=[one_turn_map, wake])
@@ -41,12 +43,45 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
     line=line,
     bunch_spacing_buckets=10,
     bucket_length=26000/3564/10,
-    bunch_numbers=[0, 1]
+    bunch_numbers=bunch_numbers
 )
+
+mask_shift = (particles.zeta > 1.5e-3) & (particles.zeta < 2.5e-3)
+particles.x = 0
+particles.x[mask_shift] += 1e-3
+particles.px = 0
+particles_megabunch = particles.copy()
 
 time_0 = time.time()
 for i_turn in range(n_turns):
-    line.track(particles)
+    wake.track(particles)
 time_1 = time.time()
 
 print(f'Time for {n_turns} turns: {time_1 - time_0} s')
+
+wake_megabunch = xw.WakeResonator(
+    kind='dipolar_x',
+    r=1e8, q=1e5, f_r=600e6)
+dzeta = wake.slicer.dzeta
+zeta_range_megabunch = (-20e-2 - 26000/3654*3, 20e-2)
+num_slices_megabunch = int(
+    np.round((zeta_range_megabunch[1] - zeta_range_megabunch[0]) / dzeta))
+wake_megabunch.configure_for_tracking(zeta_range=zeta_range_megabunch,
+                                      num_slices=num_slices_megabunch
+    )
+
+line_megabunch = xt.Line(elements=[one_turn_map, wake_megabunch])
+line_megabunch.build_tracker()
+line_megabunch.particle_ref=xp.Particles(p0c=7000e9)
+
+time_0 = time.time()
+for i_turn in range(n_turns):
+    wake_megabunch.track(particles_megabunch)
+time_1 = time.time()
+
+print(f'Time for {n_turns} turns with megabunch: {time_1 - time_0} s')
+
+plt.close('all')
+plt.plot(particles_megabunch.zeta, particles_megabunch.px, 'rx')
+plt.plot(particles.zeta, particles.px, 'b.')
+plt.show()

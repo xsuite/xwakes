@@ -25,6 +25,12 @@ class BaseWake:
     def __radd__(self, other):
         return _add_wakes(other, self)
 
+    @property
+    def slicer(self):
+        if hasattr(self, '_wake_tracker') and self._wake_tracker is not None:
+            return self._wake_tracker.slicer
+        return None
+
 def _add_wakes(wake1, wake2):
     out_components = []
     for ww in [wake1, wake2]:
