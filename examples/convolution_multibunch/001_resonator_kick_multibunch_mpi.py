@@ -36,6 +36,7 @@ my_rank = comm.Get_rank()
 comm_size = comm.Get_size()
 
 if my_rank == 0:
+    np.random.seed(0)
     filling_scheme = np.array(np.floor(np.random.rand(n_slots)+0.1), dtype=int)
     comm.Send(filling_scheme, dest=1, tag=0)
 elif my_rank == 1:
@@ -115,22 +116,18 @@ line.build_tracker()
 
 print('Initialising pipeline and multitracker')
 if my_rank == 0:
-    pipeline_manager = xw.PipelineManagerForWakes(particles=particles_0,
-                    line=line,
-                    wakes_dict={'wake': wf},
-                    communicator=comm)
+    pipeline_manager, multitracker = xw.config_pipeline_manager_and_multitracker_for_wakes(
+        particles=particles_0,
+        line=line,
+        wakes_dict={'wake': wf},
+        communicator=comm)
 if my_rank == 1:
-    pipeline_manager = xw.PipelineManagerForWakes(particles=particles_1,
-                    line=line,
-                    wakes_dict={'wake': wf},
-                    communicator=comm)
+    pipeline_manager, multitracker = xw.config_pipeline_manager_and_multitracker_for_wakes(
+        particles=particles_1,
+        line=line,
+        wakes_dict={'wake': wf},
+        communicator=comm)
 
-if my_rank == 0:
-    multitracker = xt.PipelineMultiTracker(
-        branches=[xt.PipelineBranch(line=line, particles=particles_0)])
-elif my_rank == 1:
-    multitracker = xt.PipelineMultiTracker(
-        branches=[xt.PipelineBranch(line=line, particles=particles_1)])
 print('Tracking')
 pipeline_manager.verbose = False
 multitracker.track(num_turns=1)

@@ -7,4 +7,4 @@ from .wakefield_from_table import WakeFromTable
 from .thick_resistive_wall import WakeThickResistiveWall
 from .yokoya import Yokoya
 from .read_headtail_table import read_headtail_file
-from .pipeline_manager_for_wakes import PipelineManagerForWakes
+from .pipeline_manager_for_wakes import config_pipeline_manager_and_multitracker_for_wakes
