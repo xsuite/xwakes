@@ -17,13 +17,22 @@ def config_pipeline_manager_and_multitracker_for_wakes(particles, line,
 
     for wf_name, wf in wakes_dict.items():
         pipeline_manager.add_element(wf_name)
-        wf._wake_tracker.init_pipeline(
-            pipeline_manager=pipeline_manager,
-            element_name=wf_name,
-            partners_names=[f'particles{rank}'
-                            for rank in range(comm_size) if rank != my_rank])
+        if hasattr(wf, '_wake_tracker'):
+            #for wake elements
+            wf._wake_tracker.init_pipeline(
+                pipeline_manager=pipeline_manager,
+                element_name=wf_name,
+                partners_names=[f'particles{rank}'
+                                for rank in range(comm_size) if rank != my_rank])
+        else:
+            #for other elements with slicer, e.g. collective monitor
+            wf.init_pipeline(
+                pipeline_manager=pipeline_manager,
+                element_name=wf_name,
+                partners_names=[f'particles{rank}'
+                                for rank in range(comm_size) if rank != my_rank])
 
-    branch = PipelineBranch(line, particles)
+    branch = PipelineBranch(line=line, particles=particles)
     multitracker = PipelineMultiTracker(branches=[branch])
 
     return pipeline_manager, multitracker
