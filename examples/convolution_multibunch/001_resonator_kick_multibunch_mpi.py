@@ -167,14 +167,14 @@ for comp, kk in zip(wf.components, kind):
                                                             beta0=parts_tot.beta0[0],
                                                             dzeta=1e-12)) * scale)
 
-    xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1],
-                expected, rtol=1e-4, atol=1e-20)
-
     plt.figure()
     plt.plot(particles.zeta, getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1], 'rx')
     plt.plot(particles.zeta, expected, 'b.')
     plt.title(f'component={kk}, rank={my_rank}, particles={particles.name}')
     plt.show()
+
+    xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1],
+                expected, rtol=1e-4, atol=1e-20)
 
     # we have a barrier here just to avoid mixing up the plots
     comm.Barrier()
