@@ -275,8 +275,12 @@ class Component:
                     sums.append(lambda x, l=left, r=right: l(x) + r(x))
 
         # Initializes and returns a new Component
-        return Component(sums[0], sums[1], self.plane, self.source_exponents, self.test_exponents,
-                         f_rois=self.f_rois + other.f_rois, t_rois=self.t_rois + other.t_rois)
+        return Component(impedance=sums[0], wake=sums[1],
+                         plane=self.plane,
+                         source_exponents=self.source_exponents,
+                         test_exponents=self.test_exponents,
+                         f_rois=self.f_rois + other.f_rois,
+                         t_rois=self.t_rois + other.t_rois)
 
     def __radd__(self, other: Union[int, Component]) -> Component:
         """
@@ -289,16 +293,15 @@ class Component:
         :return: The sum of self and other if other is a Component, otherwise just self.
         """
 
-        if not isinstance(other, Component):
-            return other.__add__(self)
-
         # Checks if the left addend, other, is not a Component
-        if not isinstance(other, Component):
+        if  isinstance(other, int):
             # In which case, the right addend is simply returned
             return self
-
+        elif not isinstance(other, Component):
+            return other.__add__(self)
+        else:
         # Otherwise, their sum is returned (by invocation of Component.__add__(self, other))
-        return self + other
+            return self + other
 
     def __mul__(self, scalar: complex) -> Component:
         """
@@ -310,9 +313,12 @@ class Component:
         # Throws an AssertionError if scalar is not of the type complex, float or int
         assert isinstance(scalar, complex) or isinstance(scalar, float) or isinstance(scalar, int)
         # Initializes and returns a new Component with attributes like self, apart from the scaled functions
-        return Component((lambda x: scalar * self.impedance(x)) if self.impedance else None,
-                         (lambda x: scalar * self.wake(x)) if self.wake else None, self.plane,
-                         self.source_exponents, self.test_exponents, self.name, self.f_rois, self.t_rois)
+        return Component(impedance=(lambda x: scalar * self.impedance(x)) if self.impedance else None,
+                         wake=(lambda x: scalar * self.wake(x)) if self.wake else None,
+                         plane=self.plane,
+                         source_exponents=self.source_exponents,
+                         test_exponents=self.test_exponents, name=self.name,
+                         f_rois=self.f_rois, t_rois=self.t_rois)
 
     def __rmul__(self, scalar: complex) -> Component:
         """

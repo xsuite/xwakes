@@ -73,8 +73,10 @@ def simple_component_from_rois(f_rois=None, t_rois=None):
 
 
 def test_valid_addition():
-    x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
-    a = Component(choice(functions), None, 'x', (0, 0), (0, 0))
+    x = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
+    a = Component(impedance=choice(functions), wake=None,
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
     y = x + x
     b = a + a
     xs = linspace(1, 10000, 200)
@@ -93,7 +95,8 @@ def test_valid_sum():
     imp_aggregates = [0 for _ in range(200)]
     components = []
     for i in range(1, 100):
-        x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
+        x = Component(impedance=choice(functions), wake=choice(functions),
+                      plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
         for j, value in enumerate(values):
             wake_aggregates[j] += x.wake(value)
             imp_aggregates[j] += x.impedance(value)
@@ -108,11 +111,18 @@ def test_valid_sum():
 
 
 def test_invalid_addition():
-    x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
+    x = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
 
-    for other in [Component(choice(functions), choice(functions), 'z', (0, 0), (0, 0)),
-                  Component(choice(functions), choice(functions), 'x', (0, 1), (0, 0)),
-                  Component(choice(functions), choice(functions), 'x', (0, 0), (1, 0))]:
+    for other in [Component(impedance=choice(functions), wake=choice(functions),
+                            plane='z', source_exponents=(0, 0),
+                            test_exponents=(0, 0)),
+                  Component(impedance=choice(functions), wake=choice(functions),
+                            plane='x', source_exponents=(0, 1),
+                            test_exponents=(0, 0)),
+                  Component(impedance=choice(functions), wake=choice(functions),
+                            plane='x', source_exponents=(0, 0),
+                            test_exponents=(1, 0))]:
         with raises(AssertionError):
             x + other
 
@@ -136,7 +146,9 @@ def test_invalid_initialization():
 
 
 def test_valid_multiplication():
-    components = [Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0)) for _ in range(4)]
+    components = [Component(impedance=choice(functions),
+                            wake=choice(functions), plane='x',
+                            source_exponents=(0, 0), test_exponents=(0, 0)) for _ in range(4)]
     xs = linspace(1, 10000, 20)
     with raises(AssertionError):
         components[0] * components[1]
@@ -154,7 +166,10 @@ def test_valid_multiplication():
 
 
 def test_valid_division():
-    components = [Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0)) for _ in range(4)]
+    components = [Component(impedance=choice(functions),
+                            wake=choice(functions),
+                            plane='x', source_exponents=(0, 0),
+                            test_exponents=(0, 0)) for _ in range(4)]
     with raises(TypeError):
         components[0] / components[1]
     with raises(TypeError):
@@ -172,11 +187,13 @@ def test_valid_division():
 
 
 def test_is_compatible():
-    x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
+    x = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
     for i, (plane, source, test) in enumerate(product(('x', 'y', 'z'),
                                                       ((0, 0), (0, 1), (1, 0), (1, 1)),
                                                       ((0, 0), (0, 1), (1, 0), (1, 1)))):
-        y = Component(choice(functions), choice(functions), plane, source, test)
+        y = Component(impedance=choice(functions), wake=choice(functions),
+                      plane=plane, source_exponents=source, test_exponents=test)
         if i == 0:
             assert y.is_compatible(x) and x.is_compatible(y)
         else:
@@ -189,11 +206,15 @@ def test_is_compatible():
 
 def test_component_sorting():
     f = lambda x: x
-    components_unordered = [Component(f, f, plane, source, test) for plane, source, test in
+    components_unordered = [Component(impedance=f, wake=f, plane=plane,
+                                      source_exponents=source,
+                                      test_exponents=test) for plane, source, test in
                             product(('z', 'x', 'y'),
                             ((1, 0), (1, 1), (0, 0), (0, 1)),
                             ((1, 1), (0, 1), (0, 0), (1, 0)))]
-    components_ordered = [Component(f, f, plane, source, test) for plane, source, test in
+    components_ordered = [Component(impedance=f, wake=f, plane=plane,
+                                    source_exponents=source,
+                                    test_exponents=test) for plane, source, test in
                           product(('x', 'y', 'z'),
                           ((0, 0), (0, 1), (1, 0), (1, 1)),
                           ((0, 0), (0, 1), (1, 0), (1, 1)))]
@@ -206,7 +227,9 @@ def test_component_sorting():
 
 
 def test_component_commutativity():
-    x, y = (Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0)) for _ in range(2))
+    x, y = (Component(impedance=choice(functions), wake=choice(functions),
+                      plane='x', source_exponents=(0, 0),
+                      test_exponents=(0, 0)) for _ in range(2))
     a = y + x
     b = x + y
     xs = linspace(1, 10000, 500)
@@ -215,9 +238,12 @@ def test_component_commutativity():
 
 
 def test_component_associativity():
-    x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
-    y = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
-    z = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
+    x = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
+    y = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
+    z = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
     a = x + y
     b = y + z
     c = a + z
@@ -231,8 +257,12 @@ def test_distributivity():
     xs = linspace(1, 10000, 50)
     for _ in range(10):
         for scalar in linspace(0.1, 100, 20):
-            x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
-            y = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
+            x = Component(impedance=choice(functions), wake=choice(functions),
+                          plane='x', source_exponents=(0, 0),
+                          test_exponents=(0, 0))
+            y = Component(impedance=choice(functions), wake=choice(functions),
+                          plane='x', source_exponents=(0, 0),
+                          test_exponents=(0, 0))
             a = scalar * (x + y)
             b = (scalar * x) + (scalar * y)
             testing.assert_allclose(a.impedance(xs), b.impedance(xs), rtol=REL_TOL, atol=ABS_TOL)
