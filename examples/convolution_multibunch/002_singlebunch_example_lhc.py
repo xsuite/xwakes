@@ -21,7 +21,7 @@ bucket_length_m = circumference / 35640
 num_slices = 100
 
 wake_table_name = xf.general._pkg_root.joinpath(
-    '../test_data/HLLHC_wakedat')
+    '../test_data/HLLHC_wake.dat')
 wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
                      'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
                      'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
@@ -94,12 +94,8 @@ turns = np.linspace(0, n_turns - 1, n_turns)
 for i_turn in range(n_turns):
     line.track(particles, num_turns=1)
 
-    prof_num_part = wf._wake_tracker.moments_data.get_moment_profile(moment_name='num_particles', i_turn=0)
-    mask_nonzero = prof_num_part[1] > 0
-    prof_x = wf._wake_tracker.moments_data.get_moment_profile(moment_name='x', i_turn=0)[1]
-    prof_y = wf._wake_tracker.moments_data.get_moment_profile(moment_name='y', i_turn=0)[1]
-    mean_x_xt[i_turn] = np.average(prof_x[mask_nonzero], weights=prof_num_part[1][mask_nonzero])
-    mean_y_xt[i_turn] = np.average(prof_y[mask_nonzero], weights=prof_num_part[1][mask_nonzero])
+    mean_x_xt[i_turn] = np.mean(particles.x)
+    mean_y_xt[i_turn] = np.mean(particles.y)
 
     if i_turn % 50 == 0:
         print(f'Turn: {i_turn}')
