@@ -189,8 +189,7 @@ def test_xwakes_kick_vs_pyheadtail_table_longitudinal():
     wake_pyht.track(p_ref)
 
     assert np.max(p_ref.delta) > 1e-12
-    # TODO: check why minus sign is needed
-    xo.assert_allclose(p_table.delta, -p_ref.delta, atol=1e-14, rtol=0)
+    xo.assert_allclose(p_table.delta, p_ref.delta, atol=1e-14, rtol=0)
 
 def test_xwakes_kick_vs_pyheadtail_resonator_dipolar():
 
