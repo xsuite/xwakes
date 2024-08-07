@@ -72,9 +72,9 @@ class Component:
     """
 
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None,
-                 kind: str = None,
                  plane: str = None,
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
+                 kind: str = None,
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None):
         """
@@ -90,6 +90,9 @@ class Component:
         referred to as 'a' and 'b'. Must be specified for valid initialization
         :param name: An optional user-specified name of the component
         """
+
+        assert (kind in KIND_DEFINITIONS,
+                f"Invalid kind specified: {kind}. Must be one of {KIND_DEFINITIONS.keys()}")
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=None,
