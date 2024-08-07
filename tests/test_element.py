@@ -21,10 +21,15 @@ def create_n_elements(n: int, all_components=False) -> List[Element]:
     ls, bxs, bys = [[uniform(1, 100) for _ in range(n)] for _ in range(3)]
     fs, gs = [[[choice(functions) for _ in range(27 if all_components else 3)] for _ in range(n)] for _ in range(2)]
     if all_components:
-        cs = [[Component(choice(functions), choice(functions), plane, source, test) for plane, source, test in
+        cs = [[Component(impedance=choice(functions),
+                         wake=choice(functions),
+                         plane=plane, source_exponents=source,
+                         test_exponents=test) for plane, source, test in
                product(['x', 'y', 'z'], [(0, 0), (0, 1), (1, 0)], [(0, 0), (0, 1), (1, 0)])] for _ in range(n)]
     else:
-        cs = [[Component(f, g, plane, (choice([0, 1]), choice([0, 1])), (choice([0, 1]), choice([0, 1]))) for f, g, plane in
+        cs = [[Component(impedance=f, wake=g, plane=plane,
+                         source_exponents=(choice([0, 1]),choice([0, 1])),
+                         test_exponents=(choice([0, 1]), choice([0, 1]))) for f, g, plane in
                zip(fs[i], gs[i], ['x', 'y', 'z'])] for i in range(n)]
     return [Element(l, bx, by, cl) for l, bx, by, cl in zip(ls, bxs, bys, cs)]
 
@@ -66,8 +71,10 @@ def test_initialization():
             with raises(AssertionError):
                 Element(length, beta_x, beta_y)
 
-    x = Component(choice(functions), choice(functions), 'x', (0, 0), (0, 0))
-    y = Component(choice(functions), choice(functions), 'y', (0, 0), (0, 0))
+    x = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='x', source_exponents=(0, 0), test_exponents=(0, 0))
+    y = Component(impedance=choice(functions), wake=choice(functions),
+                  plane='y', source_exponents=(0, 0), test_exponents=(0, 0))
 
     Element(1, 1, 1, [x])
     Element(1, 1, 1, [x, y])
@@ -87,8 +94,12 @@ def test_addition():
         l1, l2, bx1, bx2, by1, by2 = (uniform(1, 100) for _ in range(6))
         fs1, gs1 = [choice(functions) for _ in range(3)], [choice(functions) for _ in range(3)]
         fs2, gs2 = [choice(functions) for _ in range(3)], [choice(functions) for _ in range(3)]
-        cs1 = [Component(f, g, plane, (0, 0), (0, 0)) for f, g, plane in zip(fs1, gs1, ['x', 'y', 'z'])]
-        cs2 = [Component(f, g, plane, (0, 0), (0, 0)) for f, g, plane in zip(fs2, gs2, ['x', 'y', 'z'])]
+        cs1 = [Component(impedance=f, wake=g, plane=plane,
+                         source_exponents=(0, 0),
+                         test_exponents=(0, 0)) for f, g, plane in zip(fs1, gs1, ['x', 'y', 'z'])]
+        cs2 = [Component(impedance=f, wake=g, plane=plane,
+                         source_exponents=(0, 0),
+                         test_exponents=(0, 0)) for f, g, plane in zip(fs2, gs2, ['x', 'y', 'z'])]
         e1 = Element(l1, bx1, by1, cs1)
         e2 = Element(l2, bx2, by2, cs2)
         e_left = e1 + e2
@@ -125,7 +136,10 @@ def test_scalar_multiplication():
     """
     for n in range(1, 10):
         l = uniform(1, 100)
-        e = Element(l, 2, 2, [Component(choice(functions), choice(functions), plane, (0, 0), (0, 0))
+        e = Element(l, 2, 2, [Component(impedance=choice(functions),
+                                        wake=choice(functions), plane=plane,
+                                        source_exponents=(0, 0),
+                                        test_exponents=(0, 0))
                               for plane in ('x', 'y', 'z')])
         summed_e = sum(e for _ in range(n))
         scaled_e = n * e
@@ -185,7 +199,9 @@ def test_exponent_conservation():
     es = []
     exp_sums = []
     for a, b, c, d in product((0, 1), (0, 1), (0, 1), (0, 1)):
-        components = [Component(lambda x: x, None, plane, (a, b), (c, d)) for plane in ('x', 'y', 'z')]
+        components = [Component(impedance=lambda x: x,
+                                wake=None, plane=plane, source_exponents=(a, b),
+                                test_exponents=(c, d)) for plane in ('x', 'y', 'z')]
         es.append(Element(1, 1, 1, components))
         exp_sums.append((a + b, c + d))
 
