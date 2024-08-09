@@ -72,9 +72,9 @@ class Component:
     """
 
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None,
-                 kind: str = None,
                  plane: str = None,
                  source_exponents: Tuple[int, int] = (-1, -1), test_exponents: Tuple[int, int] = (-1, -1),
+                 kind: str = None,
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None):
         """
@@ -90,6 +90,9 @@ class Component:
         referred to as 'a' and 'b'. Must be specified for valid initialization
         :param name: An optional user-specified name of the component
         """
+
+        assert (kind in KIND_DEFINITIONS,
+                f"Invalid kind specified: {kind}. Must be one of {KIND_DEFINITIONS.keys()}")
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=None,
@@ -275,8 +278,12 @@ class Component:
                     sums.append(lambda x, l=left, r=right: l(x) + r(x))
 
         # Initializes and returns a new Component
-        return Component(sums[0], sums[1], self.plane, self.source_exponents, self.test_exponents,
-                         f_rois=self.f_rois + other.f_rois, t_rois=self.t_rois + other.t_rois)
+        return Component(impedance=sums[0], wake=sums[1],
+                         plane=self.plane,
+                         source_exponents=self.source_exponents,
+                         test_exponents=self.test_exponents,
+                         f_rois=self.f_rois + other.f_rois,
+                         t_rois=self.t_rois + other.t_rois)
 
     def __radd__(self, other: Union[int, Component]) -> Component:
         """
@@ -289,16 +296,15 @@ class Component:
         :return: The sum of self and other if other is a Component, otherwise just self.
         """
 
-        if not isinstance(other, Component):
-            return other.__add__(self)
-
         # Checks if the left addend, other, is not a Component
-        if not isinstance(other, Component):
+        if  isinstance(other, int):
             # In which case, the right addend is simply returned
             return self
-
+        elif not isinstance(other, Component):
+            return other.__add__(self)
+        else:
         # Otherwise, their sum is returned (by invocation of Component.__add__(self, other))
-        return self + other
+            return self + other
 
     def __mul__(self, scalar: complex) -> Component:
         """
@@ -310,9 +316,12 @@ class Component:
         # Throws an AssertionError if scalar is not of the type complex, float or int
         assert isinstance(scalar, complex) or isinstance(scalar, float) or isinstance(scalar, int)
         # Initializes and returns a new Component with attributes like self, apart from the scaled functions
-        return Component((lambda x: scalar * self.impedance(x)) if self.impedance else None,
-                         (lambda x: scalar * self.wake(x)) if self.wake else None, self.plane,
-                         self.source_exponents, self.test_exponents, self.name, self.f_rois, self.t_rois)
+        return Component(impedance=(lambda x: scalar * self.impedance(x)) if self.impedance else None,
+                         wake=(lambda x: scalar * self.wake(x)) if self.wake else None,
+                         plane=self.plane,
+                         source_exponents=self.source_exponents,
+                         test_exponents=self.test_exponents, name=self.name,
+                         f_rois=self.f_rois, t_rois=self.t_rois)
 
     def __rmul__(self, scalar: complex) -> Component:
         """

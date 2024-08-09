@@ -207,9 +207,9 @@ def test_instability_cpu_gpu(test_context):
     )
 
     wake_df = xw.read_headtail_file(wakefile,
-            ["time", "dipole_x", "dipole_y", "quadrupole_x", "quadrupole_y"])
+            ["time", "dipolar_x", "dipolar_y", "quadrupolar_x", "quadrupolar_y"])
     wf_xw = xw.WakeFromTable(wake_df,
-            columns=["dipole_x", "dipole_y", "quadrupole_x", "quadrupole_y"])
+            columns=["dipolar_x", "dipolar_y", "quadrupolar_x", "quadrupolar_y"])
     wf_xw.configure_for_tracking(zeta_range=(-limit_z, limit_z),
                                 num_slices=n_slices_wakes)
 

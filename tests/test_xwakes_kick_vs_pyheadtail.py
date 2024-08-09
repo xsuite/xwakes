@@ -26,16 +26,16 @@ def test_xwakes_kick_vs_pyheadtail_table_dipolar():
     table = xw.read_headtail_file(
         test_data_folder / 'headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat',
         wake_file_columns=[
-                        'time', 'longitudinal', 'dipole_x', 'dipole_y',
-                        'quadrupole_x', 'quadrupole_y', 'dipole_xy',
-                        'quadrupole_xy', 'dipole_yx', 'quadrupole_yx',
+                        'time', 'longitudinal', 'dipolar_x', 'dipolar_y',
+                        'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
+                        'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
                         'constant_x', 'constant_y'])
-    wake_from_table = xw.WakeFromTable(table, columns=['dipole_x', 'dipole_y'])
+    wake_from_table = xw.WakeFromTable(table, columns=['dipolar_x', 'dipolar_y'])
     wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
 
     # Zotter convention
-    assert table['dipole_x'].values[1] > 0
-    assert table['dipole_y'].values[1] > 0
+    assert table['dipolar_x'].values[1] > 0
+    assert table['dipolar_y'].values[1] > 0
 
     assert len(wake_from_table.components) == 2
     assert wake_from_table.components[0].plane == 'x'
@@ -87,17 +87,17 @@ def test_xwakes_kick_vs_pyheadtail_table_quadrupolar():
     table = xw.read_headtail_file(
         test_data_folder / 'headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat',
         wake_file_columns=[
-                        'time', 'longitudinal', 'dipole_x', 'dipole_y',
-                        'quadrupole_x', 'quadrupole_y', 'dipole_xy',
-                        'quadrupole_xy', 'dipole_yx', 'quadrupole_yx',
+                        'time', 'longitudinal', 'dipolar_x', 'dipolar_y',
+                        'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
+                        'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
                         'constant_x', 'constant_y'])
 
-    wake_from_table = xw.WakeFromTable(table, columns=['quadrupole_x', 'quadrupole_y'])
+    wake_from_table = xw.WakeFromTable(table, columns=['quadrupolar_x', 'quadrupolar_y'])
     wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
 
     # This is specific of this table
-    assert table['quadrupole_x'].values[1] < 0
-    assert table['quadrupole_y'].values[1] < 0
+    assert table['quadrupolar_x'].values[1] < 0
+    assert table['quadrupolar_y'].values[1] < 0
 
     assert len(wake_from_table.components) == 2
     assert wake_from_table.components[0].plane == 'x'
@@ -153,9 +153,9 @@ def test_xwakes_kick_vs_pyheadtail_table_longitudinal():
     table = xw.read_headtail_file(
         test_data_folder / 'headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat',
         wake_file_columns=[
-                        'time', 'longitudinal', 'dipole_x', 'dipole_y',
-                        'quadrupole_x', 'quadrupole_y', 'dipole_xy',
-                        'quadrupole_xy', 'dipole_yx', 'quadrupole_yx',
+                        'time', 'longitudinal', 'dipolar_x', 'dipolar_y',
+                        'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
+                        'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
                         'constant_x', 'constant_y'])
     wake_from_table = xw.WakeFromTable(table, columns=['time', 'longitudinal'])
     wake_from_table.configure_for_tracking(zeta_range=(-2e-3, 2e-3), num_slices=1000)
