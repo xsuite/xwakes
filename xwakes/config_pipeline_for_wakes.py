@@ -32,7 +32,4 @@ def config_pipeline_manager_and_multitracker_for_wakes(particles, line,
                 partners_names=[f'particles{rank}'
                                 for rank in range(comm_size) if rank != my_rank])
 
-    branch = PipelineBranch(line=line, particles=particles)
-    multitracker = PipelineMultiTracker(branches=[branch])
-
-    return pipeline_manager, multitracker
+    return pipeline_manager
