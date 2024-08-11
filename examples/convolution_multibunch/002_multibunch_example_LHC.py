@@ -83,7 +83,7 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
 particles.x += 1e-3
 particles.y += 1e-3
 
-pipeline_manager = xw.config_pipeline_manager_and_multitracker_for_wakes(
+xw.config_pipeline_manager_and_multitracker_for_wakes(
     particles=particles,
     line=line,
     wakes_dict={'wake_lhc': wf},
