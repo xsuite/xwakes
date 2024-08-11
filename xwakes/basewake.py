@@ -18,10 +18,8 @@ class BaseWake:
         if not hasattr(self, '_wake_tracker') or self._wake_tracker is None:
             raise ValueError('Wake not configured for tracking, '
                              'call `configure_for_tracking` first')
-        status = self._wake_tracker.track(particles)
+        return self._wake_tracker.track(particles)
 
-        if status.on_hold == True:
-            return xt.PipelineStatus(on_hold=True)
 
     def __add__(self, other):
         return _add_wakes(self, other)
