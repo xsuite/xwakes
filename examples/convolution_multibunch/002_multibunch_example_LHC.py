@@ -83,7 +83,7 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
 particles.x += 1e-3
 particles.y += 1e-3
 
-pipeline_manager, multitracker = xw.config_pipeline_manager_and_multitracker_for_wakes(
+pipeline_manager, _ = xw.config_pipeline_manager_and_multitracker_for_wakes(
     particles=particles,
     line=line,
     wakes_dict={'wake_lhc': wf},
@@ -115,7 +115,7 @@ plt.legend()
 turns = np.linspace(0, n_turns - 1, n_turns)
 
 for i_turn in range(n_turns):
-    multitracker.track(num_turns=1)
+    line.track(particles, num_turns=1)
 
     prof_num_part = wf._wake_tracker.moments_data.get_moment_profile(moment_name='num_particles', i_turn=0)
     mask_nonzero = prof_num_part[1] > 0
