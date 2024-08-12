@@ -79,7 +79,8 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             line=line, bunch_spacing_buckets=10,
             bunch_numbers=np.array(bunch_numbers_rank[my_rank], dtype=int), # I want to remove this
             bucket_length=bucket_length_m,
-            particle_ref=line.particle_ref
+            particle_ref=line.particle_ref,
+            prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
 
