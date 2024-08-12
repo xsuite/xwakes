@@ -13,9 +13,6 @@ import pandas as pd
 n_turns = 10000
 p0c = 7000e9
 
-bunch_numbers = np.array([0, 1], dtype=int)
-
-
 # Filling scheme
 filling_scheme = np.zeros(3564, dtype=int)
 filling_scheme[0] = 1
@@ -40,7 +37,6 @@ wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m)
                           num_slices=num_slices,
                           bunch_spacing_zeta=circumference/3564,
                           filling_scheme=filling_scheme,
-                          bunch_numbers=bunch_numbers,
                           num_turns=n_turns_wake,
                           circumference=circumference
                           )
@@ -73,7 +69,6 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             total_intensity_particles=2.3e11, # This needs to be renamed!!!!!
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
             line=line, bunch_spacing_buckets=10,
-            bunch_numbers=bunch_numbers,
             bucket_length=bucket_length_m,
             particle_ref=line.particle_ref,
 )
