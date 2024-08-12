@@ -6,13 +6,22 @@ class BaseWake:
 
     def configure_for_tracking(self, zeta_range: Tuple[float, float],
                                num_slices: int,
+                               num_turns=1,
+                               bunch_spacing_zeta=None,  # This is P in the paper
+                               filling_scheme=None,
+                               circumference=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
         from xfields.beam_elements.waketracker import WakeTracker
         self._wake_tracker = WakeTracker(
             components=_expand_components(self.components),
             zeta_range=zeta_range,
-            num_slices=num_slices, **kwargs)
+            num_slices=num_slices,
+            num_turns=num_turns,
+            bunch_spacing_zeta=bunch_spacing_zeta,
+            filling_scheme=filling_scheme,
+            circumference=circumference,
+            **kwargs)
 
     def track(self, particles) -> None:
         if not hasattr(self, '_wake_tracker') or self._wake_tracker is None:
