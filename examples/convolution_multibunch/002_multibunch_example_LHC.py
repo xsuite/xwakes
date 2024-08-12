@@ -86,7 +86,6 @@ particles.y += 1e-3
 xw.config_pipeline_manager_and_multitracker_for_wakes(
     particles=particles,
     line=line,
-    wakes_dict={'wake_lhc': wf},
     communicator=MPI.COMM_WORLD)
 
 
