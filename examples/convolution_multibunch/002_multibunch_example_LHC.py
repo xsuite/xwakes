@@ -86,12 +86,6 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
 particles.x += 1e-3
 particles.y += 1e-3
 
-xw.config_pipeline_for_wakes(
-    particles=particles,
-    line=line,
-    communicator=MPI.COMM_WORLD)
-
-
 mean_x_xt = np.zeros(n_turns)
 mean_y_xt = np.zeros(n_turns)
 
