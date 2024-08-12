@@ -15,16 +15,10 @@ from mpi4py import MPI
 n_turns = 10000
 p0c = 7000e9
 
-n_procs = MPI.COMM_WORLD.Get_size()
-my_rank = MPI.COMM_WORLD.Get_rank()
-
 # Filling scheme
 filling_scheme = np.zeros(3564, dtype=int)
 filling_scheme[0] = 1
 filling_scheme[1] = 1
-bunch_numbers_rank = xp.split_scheme(filling_scheme=filling_scheme,
-                                     n_chunk=int(n_procs))
-bunch_numbers = np.array(bunch_numbers_rank[my_rank], dtype=int)
 
 n_turns_wake = 1
 circumference = 26658.8832
@@ -45,7 +39,6 @@ wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m)
                           num_slices=num_slices,
                           bunch_spacing_zeta=circumference/3564,
                           filling_scheme=filling_scheme,
-                        #   bunch_numbers=bunch_numbers_rank[my_rank],
                           num_turns=n_turns_wake,
                           circumference=circumference
                           )
@@ -78,21 +71,14 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             total_intensity_particles=2.3e11, # This needs to be renamed
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
             line=line, bunch_spacing_buckets=10,
-            bunch_numbers=bunch_numbers, # I want to remove this
             bucket_length=bucket_length_m,
             particle_ref=line.particle_ref,
             prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
-# filled_slots = wf._wake_tracker.slicer.filled_slots
-# scheme = np.zeros(np.max(filled_slots) + 1,
-#                   dtype=np.int64)
-# scheme[filled_slots] = 1
 
-# wf._reconfigure_for_subset(subset=bunch_numbers_rank[my_rank])
-
-xo.assert_allclose(particles.weight.sum(),
-                   2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
+# xo.assert_allclose(particles.weight.sum(),
+#                    2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
 
 particles.x += 1e-3
 particles.y += 1e-3
