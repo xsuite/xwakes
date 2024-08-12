@@ -31,6 +31,7 @@ def config_pipeline_for_wakes(particles, line, communicator,
         ee = line[nn]
         pipeline_manager.add_element(nn)
         if hasattr(ee, '_wake_tracker'):
+            ee._reconfigure_for_parallel(comm_size, my_rank)
             ee = ee._wake_tracker
 
         ee.init_pipeline(

@@ -84,12 +84,12 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
-filled_slots = wf._wake_tracker.slicer.filled_slots
-scheme = np.zeros(np.max(filled_slots) + 1,
-                  dtype=np.int64)
-scheme[filled_slots] = 1
+# filled_slots = wf._wake_tracker.slicer.filled_slots
+# scheme = np.zeros(np.max(filled_slots) + 1,
+#                   dtype=np.int64)
+# scheme[filled_slots] = 1
 
-wf._reconfigure_for_subset(subset=bunch_numbers_rank[my_rank])
+# wf._reconfigure_for_subset(subset=bunch_numbers_rank[my_rank])
 
 xo.assert_allclose(particles.weight.sum(),
                    2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
