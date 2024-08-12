@@ -68,13 +68,16 @@ line = xt.Line(elements=[one_turn_map, wf],
 line.particle_ref = xt.Particles(p0c=p0c)
 line.build_tracker()
 
+# Only train of identical gaussian bunches for now...
+# Need to develop a way of assembling more complex train structures and
+# handling parallel simulation in that case
 particles = xp.generate_matched_gaussian_multibunch_beam(
             filling_scheme=filling_scheme,
-            num_particles=100_000,
-            total_intensity_particles=2.3e11,
+            num_particles=100_000, # This needs to be renamed
+            total_intensity_particles=2.3e11, # This needs to be renamed
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
             line=line, bunch_spacing_buckets=10,
-            bunch_numbers=np.array(bunch_numbers_rank[my_rank], dtype=int),
+            bunch_numbers=np.array(bunch_numbers_rank[my_rank], dtype=int), # I want to remove this
             bucket_length=bucket_length_m,
             particle_ref=line.particle_ref
 )
@@ -83,7 +86,7 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
 particles.x += 1e-3
 particles.y += 1e-3
 
-xw.config_pipeline_manager_and_multitracker_for_wakes(
+xw.config_pipeline_for_wakes(
     particles=particles,
     line=line,
     communicator=MPI.COMM_WORLD)

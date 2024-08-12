@@ -3,9 +3,8 @@ from xtrack.pipeline.multitracker import PipelineBranch, PipelineMultiTracker
 
 import xfields as xf
 
-def config_pipeline_manager_and_multitracker_for_wakes(particles, line,
-                                                       communicator,
-                                                       elements_to_configure=None):
+def config_pipeline_for_wakes(particles, line, communicator,
+                              elements_to_configure=None):
 
     assert communicator is not None, 'communicator must be provided'
 
