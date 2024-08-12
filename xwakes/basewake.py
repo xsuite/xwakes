@@ -1,6 +1,8 @@
 from typing import Tuple
 import xtrack as xt
 
+import numpy as np
+
 class BaseWake:
     pass
 
@@ -24,6 +26,21 @@ class BaseWake:
             circumference=circumference,
             bunch_numbers=bunch_numbers,
             **kwargs)
+
+    def _reconfigure_for_subset(self, subset) -> None:
+
+        filled_slots = self._wake_tracker.slicer.filled_slots
+        scheme = np.zeros(np.max(filled_slots) + 1,
+                        dtype=np.int64)
+        scheme[filled_slots] = 1
+        self.configure_for_tracking(zeta_range=self._wake_tracker.zeta_range,
+                          num_slices=self._wake_tracker.num_slices,
+                          bunch_spacing_zeta=self._wake_tracker.bunch_spacing_zeta,
+                          filling_scheme=scheme,
+                          bunch_numbers=subset,
+                          num_turns=self._wake_tracker.num_turns,
+                          circumference=self._wake_tracker.circumference,
+                          )
 
     def track(self, particles) -> None:
         if not hasattr(self, '_wake_tracker') or self._wake_tracker is None:

@@ -89,14 +89,7 @@ scheme = np.zeros(np.max(filled_slots) + 1,
                   dtype=np.int64)
 scheme[filled_slots] = 1
 
-wf.configure_for_tracking(zeta_range=wf._wake_tracker.zeta_range,
-                          num_slices=wf._wake_tracker.num_slices,
-                          bunch_spacing_zeta=wf._wake_tracker.bunch_spacing_zeta,
-                          filling_scheme=scheme,
-                          bunch_numbers=bunch_numbers_rank[my_rank],
-                          num_turns=wf._wake_tracker.num_turns,
-                          circumference=wf._wake_tracker.circumference,
-                          )
+wf._reconfigure_for_subset(subset=bunch_numbers_rank[my_rank])
 
 xo.assert_allclose(particles.weight.sum(),
                    2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
