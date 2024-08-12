@@ -10,8 +10,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import pandas as pd
 
-from mpi4py import MPI
-
 n_turns = 10000
 p0c = 7000e9
 
@@ -73,7 +71,7 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             line=line, bunch_spacing_buckets=10,
             bucket_length=bucket_length_m,
             particle_ref=line.particle_ref,
-            prepare_line_and_particles_for_mpi_wake_sim=True
+            # prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
 
