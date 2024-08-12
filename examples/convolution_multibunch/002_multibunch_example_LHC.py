@@ -84,13 +84,18 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
-wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m),
-                          num_slices=num_slices,
-                          bunch_spacing_zeta=circumference/3564,
-                          filling_scheme=filling_scheme,
+filled_slots = wf._wake_tracker.slicer.filled_slots
+scheme = np.zeros(np.max(filled_slots) + 1,
+                  dtype=np.int64)
+scheme[filled_slots] = 1
+
+wf.configure_for_tracking(zeta_range=wf._wake_tracker.zeta_range,
+                          num_slices=wf._wake_tracker.num_slices,
+                          bunch_spacing_zeta=wf._wake_tracker.bunch_spacing_zeta,
+                          filling_scheme=scheme,
                           bunch_numbers=bunch_numbers_rank[my_rank],
-                          num_turns=n_turns_wake,
-                          circumference=circumference
+                          num_turns=wf._wake_tracker.num_turns,
+                          circumference=wf._wake_tracker.circumference,
                           )
 
 xo.assert_allclose(particles.weight.sum(),
