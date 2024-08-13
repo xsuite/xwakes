@@ -23,133 +23,135 @@ circumference = 26658.8832
 bucket_length_m = circumference / 35640
 num_slices = 100
 
-wake_table_name = xf.general._pkg_root.joinpath(
-    '../test_data/HLLHC_wake.dat')
-wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
-                     'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
-                     'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
-                     'constant_x', 'constant_y']
-wake_df = xw.read_headtail_file(wake_table_name,
-                                wake_file_columns)
-wf= xw.WakeFromTable(wake_df, columns=['dipolar_x', 'dipolar_y'],
-)
-wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m),
-                          num_slices=num_slices,
-                          bunch_spacing_zeta=circumference/3564,
-                          filling_scheme=filling_scheme,
-                          num_turns=n_turns_wake,
-                          circumference=circumference
-                          )
+def test_mpi():
 
-part_aux = xt.Particles(p0c=p0c)
+    wake_table_name = xf.general._pkg_root.joinpath(
+        '../test_data/HLLHC_wake.dat')
+    wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
+                        'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
+                        'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
+                        'constant_x', 'constant_y']
+    wake_df = xw.read_headtail_file(wake_table_name,
+                                    wake_file_columns)
+    wf= xw.WakeFromTable(wake_df, columns=['dipolar_x', 'dipolar_y'],
+    )
+    wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m),
+                            num_slices=num_slices,
+                            bunch_spacing_zeta=circumference/3564,
+                            filling_scheme=filling_scheme,
+                            num_turns=n_turns_wake,
+                            circumference=circumference
+                            )
 
-f_rev = part_aux.beta0[0]*c_light/circumference
-f_rf = f_rev*35640
+    part_aux = xt.Particles(p0c=p0c)
 
-one_turn_map = xt.LineSegmentMap(
-    length=circumference, betx=70., bety=80.,
-    qx=62.31, qy=60.32,
-    longitudinal_mode='nonlinear',
-    dqx=-10., dqy=-10.,  # <-- to see fast mode-0 instability
-    voltage_rf=16e6, frequency_rf=f_rf,
-    lag_rf=180, momentum_compaction_factor=53.86**-2
-)
+    f_rev = part_aux.beta0[0]*c_light/circumference
+    f_rf = f_rev*35640
 
-line = xt.Line(elements=[one_turn_map, wf],
-               element_names=['one_turn_map', 'wf'])
-line.particle_ref = xt.Particles(p0c=p0c)
-line.build_tracker()
+    one_turn_map = xt.LineSegmentMap(
+        length=circumference, betx=70., bety=80.,
+        qx=62.31, qy=60.32,
+        longitudinal_mode='nonlinear',
+        dqx=-10., dqy=-10.,  # <-- to see fast mode-0 instability
+        voltage_rf=16e6, frequency_rf=f_rf,
+        lag_rf=180, momentum_compaction_factor=53.86**-2
+    )
 
-# Only train of identical gaussian bunches for now...
-# Need to develop a way of assembling more complex train structures and
-# handling parallel simulation in that case
-particles = xp.generate_matched_gaussian_multibunch_beam(
-            filling_scheme=filling_scheme,
-            num_particles=100_000, # This needs to be renamed
-            total_intensity_particles=2.3e11, # This needs to be renamed
-            nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
-            line=line, bunch_spacing_buckets=10,
-            bucket_length=bucket_length_m,
-            particle_ref=line.particle_ref,
-            prepare_line_and_particles_for_mpi_wake_sim=True
-)
+    line = xt.Line(elements=[one_turn_map, wf],
+                element_names=['one_turn_map', 'wf'])
+    line.particle_ref = xt.Particles(p0c=p0c)
+    line.build_tracker()
 
-
-# xo.assert_allclose(particles.weight.sum(),
-#                    2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
-
-particles.x += 1e-3
-particles.y += 1e-3
-
-mean_x_xt = np.zeros(n_turns)
-mean_y_xt = np.zeros(n_turns)
-
-plt.ion()
-
-fig1 = plt.figure(figsize=(6.4*1.7, 4.8))
-ax_x = fig1.add_subplot(121)
-line1_x, = ax_x.plot(mean_x_xt, 'r-', label='average x-position')
-line2_x, = ax_x.plot(mean_x_xt, 'm-', label='exponential fit')
-ax_x.set_ylim(-3.5, -1)
-ax_x.set_xlim(0, n_turns)
-ax_y = fig1.add_subplot(122, sharex=ax_x)
-line1_y, = ax_y.plot(mean_y_xt, 'b-', label='average y-position')
-line2_y, = ax_y.plot(mean_y_xt, 'c-', label='exponential fit')
-ax_y.set_ylim(-3.5, -1)
-ax_y.set_xlim(0, n_turns)
-
-plt.xlabel('turn')
-plt.ylabel('log10(average x-position)')
-plt.legend()
+    # Only train of identical gaussian bunches for now...
+    # Need to develop a way of assembling more complex train structures and
+    # handling parallel simulation in that case
+    particles = xp.generate_matched_gaussian_multibunch_beam(
+                filling_scheme=filling_scheme,
+                num_particles=100_000, # This needs to be renamed
+                total_intensity_particles=2.3e11, # This needs to be renamed
+                nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
+                line=line, bunch_spacing_buckets=10,
+                bucket_length=bucket_length_m,
+                particle_ref=line.particle_ref,
+                prepare_line_and_particles_for_mpi_wake_sim=True
+    )
 
 
-turns = np.linspace(0, n_turns - 1, n_turns)
+    # xo.assert_allclose(particles.weight.sum(),
+    #                    2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
 
-for i_turn in range(n_turns):
-    line.track(particles, num_turns=1)
+    particles.x += 1e-3
+    particles.y += 1e-3
 
-    prof_num_part = wf._wake_tracker.moments_data.get_moment_profile(moment_name='num_particles', i_turn=0)
-    mask_nonzero = prof_num_part[1] > 0
-    prof_x = wf._wake_tracker.moments_data.get_moment_profile(moment_name='x', i_turn=0)[1]
-    prof_y = wf._wake_tracker.moments_data.get_moment_profile(moment_name='y', i_turn=0)[1]
-    mean_x_xt[i_turn] = np.average(prof_x[mask_nonzero], weights=prof_num_part[1][mask_nonzero])
-    mean_y_xt[i_turn] = np.average(prof_y[mask_nonzero], weights=prof_num_part[1][mask_nonzero])
+    mean_x_xt = np.zeros(n_turns)
+    mean_y_xt = np.zeros(n_turns)
 
-    if i_turn % 50 == 0:
-        print(f'Turn: {i_turn}')
+    plt.ion()
 
-    if i_turn % 50 == 0 and i_turn > 1:
-        i_fit_end = i_turn #np.argmax(mean_x_xt)
-        i_fit_start = int(i_fit_end * 0.9)
+    fig1 = plt.figure(figsize=(6.4*1.7, 4.8))
+    ax_x = fig1.add_subplot(121)
+    line1_x, = ax_x.plot(mean_x_xt, 'r-', label='average x-position')
+    line2_x, = ax_x.plot(mean_x_xt, 'm-', label='exponential fit')
+    ax_x.set_ylim(-3.5, -1)
+    ax_x.set_xlim(0, n_turns)
+    ax_y = fig1.add_subplot(122, sharex=ax_x)
+    line1_y, = ax_y.plot(mean_y_xt, 'b-', label='average y-position')
+    line2_y, = ax_y.plot(mean_y_xt, 'c-', label='exponential fit')
+    ax_y.set_ylim(-3.5, -1)
+    ax_y.set_xlim(0, n_turns)
 
-        # compute x instability growth rate
-        ampls_x_xt = np.abs(hilbert(mean_x_xt))
-        fit_x_xt = linregress(turns[i_fit_start: i_fit_end],
-                              np.log(ampls_x_xt[i_fit_start: i_fit_end]))
+    plt.xlabel('turn')
+    plt.ylabel('log10(average x-position)')
+    plt.legend()
 
-        # compute y instability growth rate
 
-        ampls_y_xt = np.abs(hilbert(mean_y_xt))
-        fit_y_xt = linregress(turns[i_fit_start: i_fit_end],
-                              np.log(ampls_y_xt[i_fit_start: i_fit_end]))
+    turns = np.linspace(0, n_turns - 1, n_turns)
 
-        line1_x.set_xdata(turns[:i_turn])
-        line1_x.set_ydata(np.log10(np.abs(mean_x_xt[:i_turn])))
-        line2_x.set_xdata(turns[:i_turn])
-        line2_x.set_ydata(np.log10(np.exp(fit_x_xt.intercept +
-                                          fit_x_xt.slope*turns[:i_turn])))
+    for i_turn in range(n_turns):
+        line.track(particles, num_turns=1)
 
-        line1_y.set_xdata(turns[:i_turn])
-        line1_y.set_ydata(np.log10(np.abs(mean_y_xt[:i_turn])))
-        line2_y.set_xdata(turns[:i_turn])
-        line2_y.set_ydata(np.log10(np.exp(fit_y_xt.intercept +
-                                          fit_y_xt.slope*turns[:i_turn])))
-        print(f'xtrack h growth rate: {fit_x_xt.slope}')
-        print(f'xtrack v growth rate: {fit_y_xt.slope}')
+        prof_num_part = wf._wake_tracker.moments_data.get_moment_profile(moment_name='num_particles', i_turn=0)
+        mask_nonzero = prof_num_part[1] > 0
+        prof_x = wf._wake_tracker.moments_data.get_moment_profile(moment_name='x', i_turn=0)[1]
+        prof_y = wf._wake_tracker.moments_data.get_moment_profile(moment_name='y', i_turn=0)[1]
+        mean_x_xt[i_turn] = np.average(prof_x[mask_nonzero], weights=prof_num_part[1][mask_nonzero])
+        mean_y_xt[i_turn] = np.average(prof_y[mask_nonzero], weights=prof_num_part[1][mask_nonzero])
 
-        fig1.canvas.draw()
-        fig1.canvas.flush_events()
+        if i_turn % 50 == 0:
+            print(f'Turn: {i_turn}')
 
-        #out_folder = '.'
-        #np.save(f'{out_folder}/mean_x.npy', mean_x_xt)
-        #np.save(f'{out_folder}/mean_y.npy', mean_y_xt)
+        if i_turn % 50 == 0 and i_turn > 1:
+            i_fit_end = i_turn #np.argmax(mean_x_xt)
+            i_fit_start = int(i_fit_end * 0.9)
+
+            # compute x instability growth rate
+            ampls_x_xt = np.abs(hilbert(mean_x_xt))
+            fit_x_xt = linregress(turns[i_fit_start: i_fit_end],
+                                np.log(ampls_x_xt[i_fit_start: i_fit_end]))
+
+            # compute y instability growth rate
+
+            ampls_y_xt = np.abs(hilbert(mean_y_xt))
+            fit_y_xt = linregress(turns[i_fit_start: i_fit_end],
+                                np.log(ampls_y_xt[i_fit_start: i_fit_end]))
+
+            line1_x.set_xdata(turns[:i_turn])
+            line1_x.set_ydata(np.log10(np.abs(mean_x_xt[:i_turn])))
+            line2_x.set_xdata(turns[:i_turn])
+            line2_x.set_ydata(np.log10(np.exp(fit_x_xt.intercept +
+                                            fit_x_xt.slope*turns[:i_turn])))
+
+            line1_y.set_xdata(turns[:i_turn])
+            line1_y.set_ydata(np.log10(np.abs(mean_y_xt[:i_turn])))
+            line2_y.set_xdata(turns[:i_turn])
+            line2_y.set_ydata(np.log10(np.exp(fit_y_xt.intercept +
+                                            fit_y_xt.slope*turns[:i_turn])))
+            print(f'xtrack h growth rate: {fit_x_xt.slope}')
+            print(f'xtrack v growth rate: {fit_y_xt.slope}')
+
+            fig1.canvas.draw()
+            fig1.canvas.flush_events()
+
+            #out_folder = '.'
+            #np.save(f'{out_folder}/mean_x.npy', mean_x_xt)
+            #np.save(f'{out_folder}/mean_y.npy', mean_y_xt)
