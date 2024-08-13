@@ -37,8 +37,24 @@ if buffer_round_trip:
     slicer1 = xf.UniformBinSlicer._from_npbuffer(slicer1._to_npbuffer())
     slicer2 = xf.UniformBinSlicer._from_npbuffer(slicer2._to_npbuffer())
 
+zeta = np.linspace(-20, 20, 1000000)
 particles = xt.Particles(p0c=7000e9,
-                         zeta=np.linspace(-20, 20, 1000000))
+                         zeta=zeta)
+
+# different weight for the different bunches
+zeta = particles.zeta
+mask_bunch0 = (zeta > -1) & (zeta < 1)
+particles.weight[mask_bunch0] = 1
+mask_bunch1 = (zeta > -6) & (zeta < -4)
+particles.weight[mask_bunch1] = 2
+mask_bunch2 = (zeta > -11) & (zeta < -9)
+particles.weight[mask_bunch2] = 3
+mask_bunch3 = (zeta > -16) & (zeta < -14)
+particles.weight[mask_bunch3] = 4
+
+# line density
+num_particles_bunch0 = np.sum(particles.weight[mask_bunch0])
+xo.assert_allclose(num_particles_bunch0, 50000.0, rtol=1e-5, atol=0)
 
 ele.track(particles)
 ele1.track(particles)
@@ -76,6 +92,7 @@ xo.assert_allclose(slicer.zeta_range[1], 1, rtol=0, atol=1e-12)
 xo.assert_allclose(slicer1.zeta_range[1], 1, rtol=0, atol=1e-12)
 xo.assert_allclose(slicer2.zeta_range[1], 1, rtol=0, atol=1e-12)
 
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
@@ -93,5 +110,19 @@ ax2.plot(slicer1.zeta_centers.T, slicer1.num_particles.T, '.-')
 ax3 = plt.subplot(313, sharex=ax1)
 ax3.plot(*ele2.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
 ax3.plot(slicer2.zeta_centers.T, slicer2.num_particles.T, '.-')
+
+ele1._add_slicer_moments_to_moments_data(ele2.slicer)
+ele2._add_slicer_moments_to_moments_data(ele1.slicer)
+
+plt.figure(2, figsize=(6.4, 4.8*1.4))
+ax1 = plt.subplot(311)
+ax1.plot(*ele.moments_data.get_moment_profile('num_particles', i_turn=0), 'x',
+         label='compressed profile')
+
+ax2 = plt.subplot(312, sharex=ax1)
+ax2.plot(*ele1.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
+
+ax3 = plt.subplot(313, sharex=ax1)
+ax3.plot(*ele2.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
 
 plt.show()
