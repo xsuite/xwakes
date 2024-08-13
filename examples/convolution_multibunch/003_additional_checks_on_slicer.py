@@ -124,36 +124,68 @@ z_prof2, prof2 = ele2.moments_data.get_moment_profile('num_particles', i_turn=0)
 xo.assert_allclose(z_prof, z_prof1, rtol=0, atol=1e-12)
 xo.assert_allclose(z_prof, z_prof2, rtol=0, atol=1e-12)
 
+xo.assert_allclose(prof,
+    np.array([20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000.,
+              20000., 20000., 15000., 15000., 15000., 15000., 15000., 15000.,
+              15000., 15000., 15000., 15000.,     0.,     0.,     0.,     0.,
+                  0.,     0.,     0.,     0.,     0.,     0.,  5000.,  5000.,
+               5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.]),
+    rtol=0, atol=1e-12)
+
+xo.assert_allclose(prof1,
+    np.array([20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000.,
+              20000., 20000., 15000., 15000., 15000., 15000., 15000., 15000.,
+              15000., 15000., 15000., 15000.,     0.,     0.,     0.,     0.,
+                  0.,     0.,     0.,     0.,     0.,     0.,     0.,     0.,
+                  0.,     0.,     0.,     0.,     0.,     0.,     0.,     0.]),
+    rtol=0, atol=1e-12)
+
+xo.assert_allclose(prof2,
+    np.array([   0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.,
+                 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.,
+                 0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.,    0.,
+                 0.,    0.,    0., 5000., 5000., 5000., 5000., 5000., 5000.,
+              5000., 5000., 5000., 5000.]),
+    rtol=0, atol=1e-12)
+
+ele1._add_slicer_moments_to_moments_data(ele2.slicer)
+ele2._add_slicer_moments_to_moments_data(ele1.slicer)
+
+z_prof1_sum, prof1_sum = ele1.moments_data.get_moment_profile('num_particles', i_turn=0)
+z_prof2_sum, prof2_sum = ele2.moments_data.get_moment_profile('num_particles', i_turn=0)
+
+xo.assert_allclose(z_prof1_sum, z_prof, rtol=0, atol=1e-12)
+xo.assert_allclose(z_prof2_sum, z_prof, rtol=0, atol=1e-12)
+xo.assert_allclose(prof1_sum, prof, rtol=0, atol=1e-12)
+xo.assert_allclose(prof2_sum, prof, rtol=0, atol=1e-12)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
 plt.figure(1, figsize=(6.4, 4.8*1.4))
 ax1 = plt.subplot(311)
-ax1.plot(*ele.moments_data.get_moment_profile('num_particles', i_turn=0), 'x',
+ax1.plot(z_prof, prof, 'x',
          label='compressed profile')
 ax1.plot(slicer.zeta_centers.T, slicer.num_particles.T, '.-', label='slicer')
 plt.legend(loc='lower left')
 
 ax2 = plt.subplot(312, sharex=ax1)
-ax2.plot(*ele1.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
+ax2.plot(z_prof1, prof1, 'x')
 ax2.plot(slicer1.zeta_centers.T, slicer1.num_particles.T, '.-')
 
 ax3 = plt.subplot(313, sharex=ax1)
-ax3.plot(*ele2.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
+ax3.plot(z_prof2, prof2, 'x')
 ax3.plot(slicer2.zeta_centers.T, slicer2.num_particles.T, '.-')
-
-ele1._add_slicer_moments_to_moments_data(ele2.slicer)
-ele2._add_slicer_moments_to_moments_data(ele1.slicer)
 
 plt.figure(2, figsize=(6.4, 4.8*1.4))
 ax1 = plt.subplot(311)
-ax1.plot(*ele.moments_data.get_moment_profile('num_particles', i_turn=0), 'x',
+ax1.plot(z_prof, prof, 'x',
          label='compressed profile')
 
 ax2 = plt.subplot(312, sharex=ax1)
-ax2.plot(*ele1.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
+ax2.plot(z_prof1_sum, prof1_sum, 'x')
 
 ax3 = plt.subplot(313, sharex=ax1)
-ax3.plot(*ele2.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
+ax3.plot(z_prof2_sum, prof2_sum, 'x')
 
 plt.show()
