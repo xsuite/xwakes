@@ -4,6 +4,8 @@ import numpy as np
 import xobjects as xo
 
 buffer_round_trip = True
+num_turns = 3
+
 from xfields.beam_elements.element_with_slicer import ElementWithSlicer
 
 ele = ElementWithSlicer(
@@ -11,6 +13,8 @@ ele = ElementWithSlicer(
     num_slices=10,
     filling_scheme=[1, 0, 1, 1],
     bunch_spacing_zeta=5,
+    num_turns=num_turns,
+    circumference=100,
     with_compressed_profile=True)
 slicer = ele.slicer
 
@@ -19,6 +23,8 @@ ele1 = ElementWithSlicer(
     num_slices=10,
     filling_scheme=[1, 0, 1, 1],
     bunch_spacing_zeta=5,
+    num_turns=num_turns,
+    circumference=100,
     bunch_numbers=[1, 2],
     with_compressed_profile=True)
 slicer1 = ele1.slicer
@@ -28,6 +34,8 @@ ele2 = ElementWithSlicer(
     num_slices=10,
     filling_scheme=[1, 0, 1, 1],
     bunch_spacing_zeta=5,
+    num_turns=num_turns,
+    circumference=100,
     bunch_numbers=[0],
     with_compressed_profile=True)
 slicer2 = ele2.slicer
@@ -158,6 +166,24 @@ xo.assert_allclose(z_prof1_sum, z_prof, rtol=0, atol=1e-12)
 xo.assert_allclose(z_prof2_sum, z_prof, rtol=0, atol=1e-12)
 xo.assert_allclose(prof1_sum, prof, rtol=0, atol=1e-12)
 xo.assert_allclose(prof2_sum, prof, rtol=0, atol=1e-12)
+
+for i_turn in range(1, num_turns):
+    particles.weight *= 2
+    ele.track(particles)
+    ele1.track(particles)
+    ele2.track(particles)
+    ele1._add_slicer_moments_to_moments_data(ele2.slicer)
+    ele2._add_slicer_moments_to_moments_data(ele1.slicer)
+
+for i_check in range(1, num_turns):
+    z_prof_turn,  prof_turn = ele.moments_data.get_moment_profile('num_particles', i_turn=i_check)
+    z_prof1_turn, prof1_turn = ele1.moments_data.get_moment_profile('num_particles', i_turn=i_check)
+    z_prof2_turn, prof2_turn = ele2.moments_data.get_moment_profile('num_particles', i_turn=i_check)
+    xo.assert_allclose(z_prof_turn, z_prof, rtol=0, atol=1e-12)
+    xo.assert_allclose(z_prof1_turn, z_prof, rtol=0, atol=1e-12)
+    xo.assert_allclose(z_prof2_turn, z_prof, rtol=0, atol=1e-12)
+
+    xo.assert_allclose(prof_turn, (2**(num_turns-1-i_check)) * prof, rtol=0, atol=1e-12)
 
 import matplotlib.pyplot as plt
 plt.close('all')
