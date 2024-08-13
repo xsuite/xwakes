@@ -16,6 +16,14 @@ slicer2 = xf.UniformBinSlicer(
     bunch_numbers=[1, 2])
 
 assert (slicer.filled_slots == np.array([0, 2, 3])).all()
+assert (slicer2.filled_slots == np.array([0, 2, 3])).all()
+assert (slicer.bunch_numbers == np.array([0, 1, 2])).all()
+assert (slicer2.bunch_numbers == np.array([1, 2])).all()
+assert slicer.num_bunches == 3
+assert slicer2.num_bunches == 2
+
+
+
 
 particles = xt.Particles(p0c=7000e9,
                          zeta=np.linspace(-20, 20, 1000000))
