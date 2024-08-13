@@ -79,6 +79,7 @@ ax1.plot(slicer.zeta_centers.T, slicer.num_particles.T, '.-')
 ax2 = plt.subplot(312, sharex=ax1)
 ax2.plot(slicer2.zeta_centers.T, slicer2.num_particles.T, '.-')
 
+ax3 = plt.subplot(313, sharex=ax1)
+ax3.plot(slicer3.zeta_centers.T, slicer3.num_particles.T, '.-')
 
 plt.show()
-
