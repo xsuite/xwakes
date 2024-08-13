@@ -92,6 +92,24 @@ xo.assert_allclose(slicer.zeta_range[1], 1, rtol=0, atol=1e-12)
 xo.assert_allclose(slicer1.zeta_range[1], 1, rtol=0, atol=1e-12)
 xo.assert_allclose(slicer2.zeta_range[1], 1, rtol=0, atol=1e-12)
 
+xo.assert_allclose(slicer.num_particles,
+    np.array([
+        [ 5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.],
+        [15000., 15000., 15000., 15000., 15000., 15000., 15000., 15000., 15000., 15000.],
+        [20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000.]]),
+    rtol=0, atol=1e-12)
+
+xo.assert_allclose(slicer1.num_particles,
+    np.array([
+        [15000., 15000., 15000., 15000., 15000., 15000., 15000., 15000., 15000., 15000.],
+        [20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000.]]),
+    rtol=0, atol=1e-12)
+
+xo.assert_allclose(slicer2.num_particles,
+    np.array([
+        [ 5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.,  5000.],
+        ]),
+    rtol=0, atol=1e-12)
 
 import matplotlib.pyplot as plt
 plt.close('all')
