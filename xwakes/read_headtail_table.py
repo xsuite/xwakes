@@ -4,8 +4,11 @@ import numpy as np
 def read_headtail_file(wake_file, wake_file_columns):
     valid_wake_components = ['constant_x', 'constant_y', 'dipolar_x',
                              'dipolar_y', 'dipolar_xy', 'dipolar_yx',
-                             'quadrupolar_x', 'quadrupolar_y',
+                             'dipole_x', 'dipole_y', 'dipole_xy',
+                             'dipole_yx', 'quadrupolar_x', 'quadrupolar_y',
                              'quadrupolar_xy', 'quadrupolar_yx',
+                             'quadrupole_x', 'quadrupole_y',
+                             'quadrupole_xy', 'quadrupole_yx',
                              'longitudinal']
 
     wake_data = np.loadtxt(wake_file)
