@@ -35,7 +35,8 @@ class BaseWake:
                         dtype=np.int64)
         scheme[filled_slots] = 1
 
-        bunch_numbers_rank = xp.split_scheme(filling_scheme=scheme,
+        split_scheme = xp.matched_gaussian.split_scheme
+        bunch_numbers_rank = split_scheme(filling_scheme=scheme,
                                              n_chunk=int(n_procs))
 
         self.configure_for_tracking(zeta_range=self._wake_tracker.zeta_range,

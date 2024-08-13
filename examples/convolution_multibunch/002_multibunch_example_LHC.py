@@ -67,14 +67,14 @@ line.build_tracker()
 # Need to develop a way of assembling more complex train structures and
 # handling parallel simulation in that case
 particles = xp.generate_matched_gaussian_multibunch_beam(
+            line=line,
             filling_scheme=filling_scheme,
             num_particles=100_000, # This needs to be renamed
             total_intensity_particles=2.3e11, # This needs to be renamed
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
-            line=line, bunch_spacing_buckets=10,
+            bunch_spacing_buckets=10,
             bucket_length=bucket_length_m,
-            particle_ref=line.particle_ref,
-            prepare_line_and_particles_for_mpi_wake_sim=True
+            # prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
 
