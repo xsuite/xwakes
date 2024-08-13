@@ -79,14 +79,19 @@ xo.assert_allclose(slicer2.zeta_range[1], 1, rtol=0, atol=1e-12)
 import matplotlib.pyplot as plt
 plt.close('all')
 
-plt.figure(1)
+plt.figure(1, figsize=(6.4, 4.8*1.4))
 ax1 = plt.subplot(311)
-ax1.plot(slicer.zeta_centers.T, slicer.num_particles.T, '.-')
+ax1.plot(*ele.moments_data.get_moment_profile('num_particles', i_turn=0), 'x',
+         label='compressed profile')
+ax1.plot(slicer.zeta_centers.T, slicer.num_particles.T, '.-', label='slicer')
+plt.legend(loc='lower left')
 
 ax2 = plt.subplot(312, sharex=ax1)
+ax2.plot(*ele1.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
 ax2.plot(slicer1.zeta_centers.T, slicer1.num_particles.T, '.-')
 
 ax3 = plt.subplot(313, sharex=ax1)
+ax3.plot(*ele2.moments_data.get_moment_profile('num_particles', i_turn=0), 'x')
 ax3.plot(slicer2.zeta_centers.T, slicer2.num_particles.T, '.-')
 
 plt.show()
