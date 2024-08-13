@@ -4,26 +4,33 @@ import numpy as np
 import xobjects as xo
 
 buffer_round_trip = True
+from xfields.beam_elements.element_with_slicer import ElementWithSlicer
 
-slicer = xf.UniformBinSlicer(
-    zeta_range=(-1, 1),
-    num_slices=10,
-    filling_scheme=[1, 0, 1, 1],
-    bunch_spacing_zeta=5)
-
-slicer2 = xf.UniformBinSlicer(
+ele = ElementWithSlicer(
     zeta_range=(-1, 1),
     num_slices=10,
     filling_scheme=[1, 0, 1, 1],
     bunch_spacing_zeta=5,
-    bunch_numbers=[1, 2])
+    with_compressed_profile=True)
+slicer = ele.slicer
 
-slicer3 = xf.UniformBinSlicer(
+ele2 = ElementWithSlicer(
     zeta_range=(-1, 1),
     num_slices=10,
     filling_scheme=[1, 0, 1, 1],
     bunch_spacing_zeta=5,
-    bunch_numbers=[0])
+    bunch_numbers=[1, 2],
+    with_compressed_profile=True)
+slicer2 = ele2.slicer
+
+ele3 = ElementWithSlicer(
+    zeta_range=(-1, 1),
+    num_slices=10,
+    filling_scheme=[1, 0, 1, 1],
+    bunch_spacing_zeta=5,
+    bunch_numbers=[0],
+    with_compressed_profile=True)
+slicer3 = ele3.slicer
 
 if buffer_round_trip:
     slicer = xf.UniformBinSlicer._from_npbuffer(slicer._to_npbuffer())
