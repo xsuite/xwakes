@@ -111,6 +111,19 @@ xo.assert_allclose(slicer2.num_particles,
         ]),
     rtol=0, atol=1e-12)
 
+z_prof, prof = ele.moments_data.get_moment_profile('num_particles', i_turn=0)
+xo.assert_allclose(z_prof,
+    np.array([-15.9, -15.7, -15.5, -15.3, -15.1, -14.9, -14.7, -14.5, -14.3,
+              -14.1, -10.9, -10.7, -10.5, -10.3, -10.1,  -9.9,  -9.7,  -9.5,
+               -9.3,  -9.1,  -5.9,  -5.7,  -5.5,  -5.3,  -5.1,  -4.9,  -4.7,
+               -4.5,  -4.3,  -4.1,  -0.9,  -0.7,  -0.5,  -0.3,  -0.1,   0.1,
+                0.3,   0.5,   0.7,   0.9]), rtol=0, atol=1e-12)
+z_prof1, prof1 = ele1.moments_data.get_moment_profile('num_particles', i_turn=0)
+z_prof2, prof2 = ele2.moments_data.get_moment_profile('num_particles', i_turn=0)
+
+xo.assert_allclose(z_prof, z_prof1, rtol=0, atol=1e-12)
+xo.assert_allclose(z_prof, z_prof2, rtol=0, atol=1e-12)
+
 import matplotlib.pyplot as plt
 plt.close('all')
 
