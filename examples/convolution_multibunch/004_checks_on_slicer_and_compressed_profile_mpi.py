@@ -38,6 +38,8 @@ particles_ref.weight[mask_bunch3] = 4
 mask_bunch4 = (zeta > -21) & (zeta < -19)
 particles_ref.weight[mask_bunch4] = 5
 
+particles_ref.x += 2e-3
+
 particles_mpi = particles_ref.copy()
 
 line_mpi = xt.Line(elements=[wake_mpi])
@@ -79,7 +81,7 @@ assert (slicer_mpi.bunch_numbers
         == np.array(expected_bunch_numbers)).all()
 assert (slicer_mpi.num_bunches
         == len(expected_bunch_numbers))
-assert (np.array(wake_mpi._wake_tracker.partners_names)
+assert (np.array(wake_mpi._wake_tracker.partner_names)
         == expected_partner_names).all()
 
 assert (slicer_mpi.filled_slots == [0, 2, 3, 4]).all()
@@ -87,3 +89,69 @@ assert (slicer_mpi.filled_slots == [0, 2, 3, 4]).all()
 
 line_mpi.track(particles_mpi)
 wake_ref.track(particles_ref)
+
+expected_num_particles = {
+    0: np.array([
+        [ 4000.,  4000.,  4000.,  4000.,  4000.,  4000.,  4000.,  4000.,  4000.,  4000.],
+        [12000., 12000., 12000., 12000., 12000., 12000., 12000., 12000., 12000., 12000.]],
+        dtype=np.float64),
+    1: np.array(
+        [16000., 16000., 16000., 16000., 16000., 16000., 16000., 16000., 16000., 16000.],
+        dtype=np.float64),
+    2: np.array(
+        [20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000., 20000.],
+        dtype=np.float64),
+}
+
+assert slicer_mpi.num_particles.shape == expected_num_particles[my_rank].shape
+xo.assert_allclose(slicer_mpi.num_particles, expected_num_particles[my_rank],
+                   rtol=1e-5, atol=1e-5)
+
+
+moments_data_mpi = wake_mpi._wake_tracker.moments_data
+moments_data_ref = wake_ref._wake_tracker.moments_data
+
+z_prof_mpi, prof_mpi = moments_data_mpi.get_moment_profile('num_particles', i_turn=0)
+z_prof_ref, prof_ref = moments_data_ref.get_moment_profile('num_particles', i_turn=0)
+
+assert z_prof_mpi.shape == z_prof_ref.shape
+assert prof_mpi.shape == prof_ref.shape
+xo.assert_allclose(z_prof_mpi, z_prof_ref, rtol=0, atol=1e-14)
+xo.assert_allclose(prof_mpi, prof_ref, rtol=0, atol=1e-14)
+
+for i_turn in range(1, num_turns):
+    particles_mpi.weight *= 2
+    particles_ref.weight *= 2
+    line_mpi.track(particles_mpi)
+    wake_ref.track(particles_ref)
+
+for i_check in range(1, num_turns):
+    z_prof_turn_mpi,  prof_turn_mpi = moments_data_mpi.get_moment_profile('num_particles', i_turn=i_check)
+    z_prof_turn_ref,  prof_turn_ref = moments_data_ref.get_moment_profile('num_particles', i_turn=i_check)
+    xo.assert_allclose(z_prof_turn_mpi, z_prof_turn_ref, rtol=0, atol=1e-12)
+
+    xo.assert_allclose(prof_turn_mpi, (2**(num_turns-1-i_check)) * prof_mpi, rtol=0, atol=1e-12)
+
+
+conv_data_mpi_dict = wake_mpi.components[0]._conv_data.__dict__
+conv_data_ref_dict = wake_mpi.components[0]._conv_data.__dict__
+
+for conv_data_mpi_key in conv_data_mpi_dict:
+    assert conv_data_mpi_key in conv_data_ref_dict
+    if conv_data_mpi_key == 'component' or conv_data_mpi_key == 'waketracker':
+        continue
+    xo.assert_allclose(conv_data_mpi_dict[conv_data_mpi_key],
+                       conv_data_ref_dict[conv_data_mpi_key],
+                       rtol=0, atol=1e-12)
+
+for conv_data_ref_key in conv_data_ref_dict:
+    assert conv_data_ref_key in conv_data_mpi_dict
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.figure(1)
+ax1 = plt.subplot(111)
+plt.plot(particles_ref.zeta, particles_ref.px, 'r.')
+plt.plot(particles_mpi.zeta, particles_mpi.px, 'bx')
+plt.suptitle(f'Rank {my_rank}')
+plt.show()
