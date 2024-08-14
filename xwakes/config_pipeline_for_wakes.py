@@ -37,7 +37,7 @@ def config_pipeline_for_wakes(particles, line, communicator,
         ee.init_pipeline(
             pipeline_manager=pipeline_manager,
             element_name=nn,
-            partners_names=[f'particles{rank}'
+            partner_names=[f'particles{rank}'
                             for rank in range(comm_size) if rank != my_rank])
 
     return pipeline_manager
