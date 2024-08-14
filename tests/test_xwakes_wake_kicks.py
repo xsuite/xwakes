@@ -502,7 +502,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 )
     wf_0._wake_tracker.init_pipeline(pipeline_manager=pipeline_manager,
                                         element_name='wake',
-                                        partners_names=['b1'])
+                                        partner_names=['b1'])
 
     wf_1 = xw.WakeFromTable(wake_df, columns=components)
     wf_1.configure_for_tracking(zeta_range=zeta_range,
@@ -515,7 +515,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 )
     wf_1._wake_tracker.init_pipeline(pipeline_manager=pipeline_manager,
                                         element_name='wake',
-                                        partners_names=['b0'])
+                                        partner_names=['b0'])
 
     dict_p_bef_0 = {}
     dict_p_bef_1 = {}
