@@ -167,23 +167,6 @@ xo.assert_allclose(z_prof2_sum, z_prof, rtol=0, atol=1e-12)
 xo.assert_allclose(prof1_sum, prof, rtol=0, atol=1e-12)
 xo.assert_allclose(prof2_sum, prof, rtol=0, atol=1e-12)
 
-for i_turn in range(1, num_turns):
-    particles.weight *= 2
-    ele.track(particles)
-    ele1.track(particles)
-    ele2.track(particles)
-    ele1._add_slicer_moments_to_moments_data(ele2.slicer)
-    ele2._add_slicer_moments_to_moments_data(ele1.slicer)
-
-for i_check in range(1, num_turns):
-    z_prof_turn,  prof_turn = ele.moments_data.get_moment_profile('num_particles', i_turn=i_check)
-    z_prof1_turn, prof1_turn = ele1.moments_data.get_moment_profile('num_particles', i_turn=i_check)
-    z_prof2_turn, prof2_turn = ele2.moments_data.get_moment_profile('num_particles', i_turn=i_check)
-    xo.assert_allclose(z_prof_turn, z_prof, rtol=0, atol=1e-12)
-    xo.assert_allclose(z_prof1_turn, z_prof, rtol=0, atol=1e-12)
-    xo.assert_allclose(z_prof2_turn, z_prof, rtol=0, atol=1e-12)
-
-    xo.assert_allclose(prof_turn, (2**(num_turns-1-i_check)) * prof, rtol=0, atol=1e-12)
 
 import matplotlib.pyplot as plt
 plt.close('all')
@@ -202,6 +185,27 @@ ax2.plot(slicer1.zeta_centers.T, slicer1.num_particles.T, '.-')
 ax3 = plt.subplot(313, sharex=ax1)
 ax3.plot(z_prof2, prof2, 'x')
 ax3.plot(slicer2.zeta_centers.T, slicer2.num_particles.T, '.-')
+
+
+for i_turn in range(1, num_turns):
+    particles.weight *= 2
+    ele.track(particles)
+    ele1.track(particles)
+    ele2.track(particles)
+    ele1._add_slicer_moments_to_moments_data(ele2.slicer)
+    ele2._add_slicer_moments_to_moments_data(ele1.slicer)
+
+for i_check in range(1, num_turns):
+    z_prof_turn,  prof_turn = ele.moments_data.get_moment_profile('num_particles', i_turn=i_check)
+    z_prof1_turn, prof1_turn = ele1.moments_data.get_moment_profile('num_particles', i_turn=i_check)
+    z_prof2_turn, prof2_turn = ele2.moments_data.get_moment_profile('num_particles', i_turn=i_check)
+    xo.assert_allclose(z_prof_turn, z_prof, rtol=0, atol=1e-12)
+    xo.assert_allclose(z_prof1_turn, z_prof, rtol=0, atol=1e-12)
+    xo.assert_allclose(z_prof2_turn, z_prof, rtol=0, atol=1e-12)
+
+    xo.assert_allclose(prof_turn, (2**(num_turns-1-i_check)) * prof, rtol=0, atol=1e-12)
+
+
 
 plt.figure(2, figsize=(6.4, 4.8*1.4))
 ax1 = plt.subplot(311)
