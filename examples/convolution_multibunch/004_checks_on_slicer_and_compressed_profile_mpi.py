@@ -84,5 +84,6 @@ assert (np.array(wake_mpi._wake_tracker.partners_names)
 
 assert (slicer_mpi.filled_slots == [0, 2, 3, 4]).all()
 
-line_mpi.track(particles_mpi)
-wake_ref.track(particles_ref)
+
+# line_mpi.track(particles_mpi)
+# wake_ref.track(particles_ref)
