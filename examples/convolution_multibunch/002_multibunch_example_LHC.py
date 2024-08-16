@@ -79,7 +79,7 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
 
 
 # xo.assert_allclose(particles.weight.sum(),
-#                    2.3e11 * len(bunch_numbers), rtol=1e-5, atol=1e-5)
+#                    2.3e11 * len(bunch_selection), rtol=1e-5, atol=1e-5)
 
 particles.x += 1e-3
 particles.y += 1e-3

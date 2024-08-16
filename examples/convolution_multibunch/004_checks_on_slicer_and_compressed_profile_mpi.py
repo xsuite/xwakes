@@ -9,8 +9,14 @@ import xwakes as xw
 
 num_turns = 3
 
-wake_ref = xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6)
-wake_mpi = xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6)
+fact_y = -2
+
+wake_ref = (xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6) +
+            xw.WakeResonator(kind='dipole_y', r=fact_y*1e9, q=5, f_r=20e6))
+wake_mpi = (xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6) +
+            xw.WakeResonator(kind='dipole_y', r=fact_y*1e9, q=5, f_r=20e6))
+
+
 
 for ww in [wake_ref, wake_mpi]:
     ww.configure_for_tracking(
@@ -39,6 +45,7 @@ mask_bunch4 = (zeta > -21) & (zeta < -19)
 particles_ref.weight[mask_bunch4] = 5
 
 particles_ref.x += 2e-3
+particles_ref.y += 2e-3
 
 particles_mpi = particles_ref.copy()
 
@@ -62,7 +69,7 @@ assert n_proc == 3
 my_rank = comm.Get_rank()
 assert my_rank in [0, 1, 2]
 
-expected_bunch_numbers = {
+expected_bunch_selection = {
     0: [0, 1],
     1: [2],
     2: [3]
@@ -77,10 +84,10 @@ expected_partner_names = {
 slicer_mpi = wake_mpi._wake_tracker.slicer
 slice_ref = wake_ref._wake_tracker.slicer
 
-assert (slicer_mpi.bunch_numbers
-        == np.array(expected_bunch_numbers)).all()
+assert (slicer_mpi.bunch_selection
+        == np.array(expected_bunch_selection)).all()
 assert (slicer_mpi.num_bunches
-        == len(expected_bunch_numbers))
+        == len(expected_bunch_selection))
 assert (np.array(wake_mpi._wake_tracker.partner_names)
         == expected_partner_names).all()
 
@@ -133,8 +140,9 @@ for i_check in range(1, num_turns):
     xo.assert_allclose(prof_turn_mpi, (2**(num_turns-1-i_check)) * prof_mpi, rtol=0, atol=1e-12)
 
 
-conv_data_mpi_dict = wake_mpi.components[0]._conv_data.__dict__
-conv_data_ref_dict = wake_mpi.components[0]._conv_data.__dict__
+
+conv_data_mpi_dict = wake_mpi.components[0].components[0]._conv_data.__dict__
+conv_data_ref_dict = wake_mpi.components[0].components[0]._conv_data.__dict__
 
 for conv_data_mpi_key in conv_data_mpi_dict:
     assert conv_data_mpi_key in conv_data_ref_dict
@@ -153,5 +161,6 @@ plt.figure(1)
 ax1 = plt.subplot(111)
 plt.plot(particles_ref.zeta, particles_ref.px, 'r.')
 plt.plot(particles_mpi.zeta, particles_mpi.px, 'bx')
+plt.plot(particles_mpi.zeta, particles_ref.py/fact_y, 'g*')
 plt.suptitle(f'Rank {my_rank}')
 plt.show()
