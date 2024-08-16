@@ -5,12 +5,12 @@ import xtrack as xt
 import numpy as np
 import xobjects as xo
 import xwakes as xw
-from mpi4py import MPI
 
-import xo.test_helpers.for_all_test_contexts
 
-@for_all_test_contexts
-def test_wakes_with_filling_scheme_mpi(test_context):
+def test_wakes_with_filling_scheme_mpi():
+
+    from mpi4py import MPI
+
     num_turns = 3
 
     fact_y = -2
@@ -31,8 +31,7 @@ def test_wakes_with_filling_scheme_mpi(test_context):
 
     zeta = np.linspace(-25, 25, 1000000)
     particles_ref = xt.Particles(p0c=7000e9,
-                                 zeta=zeta,
-                                  _context=test_context)
+                                 zeta=zeta)
 
     # different weight for the different bunches
     zeta = particles_ref.zeta
@@ -71,7 +70,7 @@ def test_wakes_with_filling_scheme_mpi(test_context):
     my_rank = comm.Get_rank()
     assert my_rank in [0, 1, 2]
 
-    expected_bunch_numbers = {
+    expected_bunch_selection = {
         0: [0, 1],
         1: [2],
         2: [3]
@@ -86,10 +85,10 @@ def test_wakes_with_filling_scheme_mpi(test_context):
     slicer_mpi = wake_mpi._wake_tracker.slicer
     slice_ref = wake_ref._wake_tracker.slicer
 
-    assert (slicer_mpi.bunch_numbers
-            == np.array(expected_bunch_numbers)).all()
+    assert (slicer_mpi.bunch_selection
+            == np.array(expected_bunch_selection)).all()
     assert (slicer_mpi.num_bunches
-            == len(expected_bunch_numbers))
+            == len(expected_bunch_selection))
     assert (np.array(wake_mpi._wake_tracker.partner_names)
             == expected_partner_names).all()
 
