@@ -28,7 +28,8 @@ kind_to_parameters = {
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
-@pytest.mark.parametrize('wake_type', ['WakeResonator', 'WakeTable'])
+@pytest.mark.parametrize('wake_type', ['WakeResonator', 'WakeTable'],
+                         ids=lambda x: x)
 @pytest.mark.parametrize('kind', [
     ['longitudinal'],
     ['constant_x', 'constant_y'],
@@ -36,7 +37,7 @@ kind_to_parameters = {
     ['dipolar_xy','dipolar_yx'],
     ['quadrupolar_x','quadrupolar_y'],
     ['quadrupolar_xy','quadrupolar_yx'],
-    ])
+    ], ids=lambda x: '_'.join(x))
 def test_wake_kick_single_bunch(test_context, kind, wake_type):
     # test single-bunch wake kick and check that the resonator wake definition
     # is consistent with the table wake definition.
@@ -148,7 +149,7 @@ def test_wake_kick_single_bunch(test_context, kind, wake_type):
     ['dipolar_xy','dipolar_yx'],
     ['quadrupolar_x','quadrupolar_y'],
     ['quadrupolar_xy','quadrupolar_yx'],
-    ])
+    ], ids=lambda x: '_'.join(x))
 def test_wake_kick_multi_bunch(test_context, kind):
     # test multi bunch wake kick.
     # in this test we place one particle in each slice (for two bunches),
@@ -164,7 +165,7 @@ def test_wake_kick_multi_bunch(test_context, kind):
     filling_scheme = np.zeros(h_bunch)
     filling_scheme[0] = 1
     filling_scheme[1] = 1
-    bunch_numbers = [0, 1]
+    bunch_selection = [0, 1]
 
     wf = xw.WakeResonator(
         kind=kind,
@@ -175,7 +176,7 @@ def test_wake_kick_multi_bunch(test_context, kind):
         num_slices=num_slices,
         filling_scheme=filling_scheme,
         bunch_spacing_zeta=circumference/h_bunch,
-        bunch_numbers=bunch_numbers,
+        bunch_selection=bunch_selection,
         circumference=circumference
         )
 
@@ -302,8 +303,8 @@ def test_beam_loading_theorem(test_context):
     ['dipolar_xy','dipolar_yx'],
     ['quadrupolar_x','quadrupolar_y'],
     ['quadrupolar_xy','quadrupolar_yx'],
-    ])
-def test_dipolar_wake_kick_multiturn(test_context, kind):
+    ], ids=lambda x: '_'.join(x))
+def test_wake_kick_multiturn(test_context, kind):
     # test multi-turn wake kick.
     # in this test we place one particle in each slice, we offset some of them
     # and check that the wake kicks are consistent with the definitions when
@@ -400,12 +401,82 @@ def test_dipolar_wake_kick_multiturn(test_context, kind):
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
+@pytest.mark.parametrize('kind', [
+    ['longitudinal'],
+    ['constant_x', 'constant_y'],
+    ['dipolar_x','dipolar_y'],
+    ['dipolar_xy','dipolar_yx'],
+    ['quadrupolar_x','quadrupolar_y'],
+    ['quadrupolar_xy','quadrupolar_yx'],
+    ], ids=lambda x: '_'.join(x))
+def test_wake_kick_multiturn_reset(test_context, kind):
+    # a more explicit test on multi-turn wake kick reset.
+    # we track for n_turns_wake, set the weights to zeor and track for
+    # n_turns_wake-1 after which we track for another turn checking that no
+    # kick is applied to the particles
+    num_turns_wake = 4
+    p0c = 1.2e9
+    h_RF = 600
+    n_slices = 100
+    circumference = 26658.883
+    bucket_length = circumference/h_RF
+    zeta_range = (-0.5*bucket_length, 0.5*bucket_length)
+
+    wf = xw.WakeResonator(kind=kind,
+                          r=1e8, q=1e7, f_r=1e3)
+    wf.configure_for_tracking(zeta_range=zeta_range, num_slices=n_slices,
+                              num_turns=num_turns_wake, circumference=circumference)
+
+
+    i_source = -10
+
+    particles = xt.Particles(
+        mass0=xt.PROTON_MASS_EV,
+        p0c=p0c,
+        zeta=wf.slicer.zeta_centers.flatten(),
+        weight=1e12,
+        _context=test_context
+    )
+
+    displace_x = 2e-3
+    displace_y = 3e-3
+
+    particles.x[i_source] += displace_x
+    particles.y[i_source] += displace_y
+
+    line = xt.Line(elements=[wf],
+                   element_names=['wf'])
+    line.build_tracker()
+    line.track(particles, num_turns=num_turns_wake)
+
+    particles.weight *= 0
+    line.track(particles, num_turns=num_turns_wake-1)
+
+    dict_p_bef = {}
+    for kk in kind:
+        if kk == 'longitudinal':
+            dict_p_bef[kk] = ('delta', particles.delta.copy())
+        elif kk.split('_')[1] == 'x' or kk.split('_')[1] == 'xy':
+            dict_p_bef[kk] = ('px', particles.px.copy())
+        elif kk.split('_')[1] == 'y' or kk.split('_')[1] == 'yx':
+            dict_p_bef[kk] = ('py', particles.py.copy())
+        else:
+            raise ValueError('Invalid kind')
+
+    line.track(particles, num_turns=1)
+
+    for kk in kind:
+        xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]),
+                           dict_p_bef[kk][1], rtol=1e-4, atol=1e-20)
+
+@for_all_test_contexts(excluding=exclude_contexts)
 @pytest.mark.parametrize('kind', [['longitudinal'],
                                   ['constant_x', 'constant_y'],
                                   ['dipolar_x','dipolar_y'],
                                   ['dipolar_xy','dipolar_yx'],
                                   ['quadrupolar_x','quadrupolar_y'],
-                                  ['quadrupolar_xy','quadrupolar_yx']])
+                                  ['quadrupolar_xy','quadrupolar_yx']],
+                                  ids=lambda x: '_'.join(x))
 def test_wake_kick_multibunch_pipeline(test_context, kind):
     # test multi-bunch wake kick with pipeline
     # in this test we place one particle in each slice for a random number of
@@ -423,8 +494,8 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     filled_slots = np.nonzero(filling_scheme)[0]
     n_bunches = len(filled_slots)
     n_bunches_0 = int(np.floor(n_bunches/2))
-    bunch_numbers_0 = np.arange(n_bunches_0, dtype=int)
-    bunch_numbers_1 = np.arange(n_bunches_0, n_bunches, dtype=int)
+    bunch_selection_0 = np.arange(n_bunches_0, dtype=int)
+    bunch_selection_1 = np.arange(n_bunches_0, n_bunches, dtype=int)
 
     print('initialising pipeline')
     comm = xt.pipeline.core.PipelineCommunicator()
@@ -442,7 +513,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     zeta_centers = zeta_slice_edges[:-1]+dzeta/2
 
     zeta_0 = []
-    for bunch_number in bunch_numbers_0:
+    for bunch_number in bunch_selection_0:
         zeta_0.append(zeta_centers-filled_slots[bunch_number]*bunch_spacing)
     zeta_0 = np.hstack(zeta_0)
 
@@ -454,7 +525,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     particles_0.init_pipeline('b0')
 
     zeta_1 = []
-    for bunch_number in bunch_numbers_1:
+    for bunch_number in bunch_selection_1:
         zeta_1.append(zeta_centers-filled_slots[bunch_number]*bunch_spacing)
     zeta_1 = np.hstack(zeta_1)
     particles_1 = xt.Particles(p0c=p0c, zeta=zeta_1,
@@ -496,7 +567,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 num_slices=num_slices,
                                 bunch_spacing_zeta=bunch_spacing,
                                 filling_scheme=filling_scheme,
-                                bunch_numbers=bunch_numbers_0,
+                                bunch_selection=bunch_selection_0,
                                 num_turns=n_turns_wake,
                                 circumference=circumference
                                 )
@@ -509,7 +580,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 num_slices=num_slices,
                                 bunch_spacing_zeta=bunch_spacing,
                                 filling_scheme=filling_scheme,
-                                bunch_numbers=bunch_numbers_1,
+                                bunch_selection=bunch_selection_1,
                                 num_turns=n_turns_wake,
                                 circumference=circumference
                                 )
@@ -577,3 +648,4 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
 
             xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1],
                     expected, rtol=1e-4, atol=1e-20)
+
