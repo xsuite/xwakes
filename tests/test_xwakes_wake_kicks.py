@@ -165,7 +165,7 @@ def test_wake_kick_multi_bunch(test_context, kind):
     filling_scheme = np.zeros(h_bunch)
     filling_scheme[0] = 1
     filling_scheme[1] = 1
-    bunch_numbers = [0, 1]
+    bunch_selection = [0, 1]
 
     wf = xw.WakeResonator(
         kind=kind,
@@ -176,7 +176,7 @@ def test_wake_kick_multi_bunch(test_context, kind):
         num_slices=num_slices,
         filling_scheme=filling_scheme,
         bunch_spacing_zeta=circumference/h_bunch,
-        bunch_numbers=bunch_numbers,
+        bunch_selection=bunch_selection,
         circumference=circumference
         )
 
@@ -494,8 +494,8 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     filled_slots = np.nonzero(filling_scheme)[0]
     n_bunches = len(filled_slots)
     n_bunches_0 = int(np.floor(n_bunches/2))
-    bunch_numbers_0 = np.arange(n_bunches_0, dtype=int)
-    bunch_numbers_1 = np.arange(n_bunches_0, n_bunches, dtype=int)
+    bunch_selection_0 = np.arange(n_bunches_0, dtype=int)
+    bunch_selection_1 = np.arange(n_bunches_0, n_bunches, dtype=int)
 
     print('initialising pipeline')
     comm = xt.pipeline.core.PipelineCommunicator()
@@ -513,7 +513,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     zeta_centers = zeta_slice_edges[:-1]+dzeta/2
 
     zeta_0 = []
-    for bunch_number in bunch_numbers_0:
+    for bunch_number in bunch_selection_0:
         zeta_0.append(zeta_centers-filled_slots[bunch_number]*bunch_spacing)
     zeta_0 = np.hstack(zeta_0)
 
@@ -525,7 +525,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     particles_0.init_pipeline('b0')
 
     zeta_1 = []
-    for bunch_number in bunch_numbers_1:
+    for bunch_number in bunch_selection_1:
         zeta_1.append(zeta_centers-filled_slots[bunch_number]*bunch_spacing)
     zeta_1 = np.hstack(zeta_1)
     particles_1 = xt.Particles(p0c=p0c, zeta=zeta_1,
@@ -567,7 +567,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 num_slices=num_slices,
                                 bunch_spacing_zeta=bunch_spacing,
                                 filling_scheme=filling_scheme,
-                                bunch_numbers=bunch_numbers_0,
+                                bunch_selection=bunch_selection_0,
                                 num_turns=n_turns_wake,
                                 circumference=circumference
                                 )
@@ -580,7 +580,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 num_slices=num_slices,
                                 bunch_spacing_zeta=bunch_spacing,
                                 filling_scheme=filling_scheme,
-                                bunch_numbers=bunch_numbers_1,
+                                bunch_selection=bunch_selection_1,
                                 num_turns=n_turns_wake,
                                 circumference=circumference
                                 )
