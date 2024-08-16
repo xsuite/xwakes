@@ -143,7 +143,8 @@ def test_impedances_vs_analytic_thick_res_wall_transverse(wake_type, plane):
     wake = xw.WakeThickResistiveWall(
         kind=f'{wake_type}_{plane}',
         resistivity=1e-7,
-        radius=1e-2
+        radius=1e-2,
+        length=2.
         )
 
     assert len(wake.components) == 1
@@ -204,7 +205,8 @@ def test_impedances_vs_analytic_thick_res_wall_longitudinal():
     wake = xw.WakeThickResistiveWall(
         kind='longitudinal',
         resistivity=1e-7,
-        radius=1e-2
+        radius=1e-2,
+        length=3.
         )
 
     assert len(wake.components) == 1
