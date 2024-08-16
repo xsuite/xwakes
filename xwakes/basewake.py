@@ -13,7 +13,7 @@ class BaseWake:
                                bunch_spacing_zeta=None,  # This is P in the paper
                                filling_scheme=None,
                                circumference=None,
-                               bunch_numbers=None,
+                               bunch_selection=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
         from xfields.beam_elements.waketracker import WakeTracker
@@ -25,7 +25,7 @@ class BaseWake:
             bunch_spacing_zeta=bunch_spacing_zeta,
             filling_scheme=filling_scheme,
             circumference=circumference,
-            bunch_numbers=bunch_numbers,
+            bunch_selection=bunch_selection,
             **kwargs)
 
     def _reconfigure_for_parallel(self, n_procs, my_rank) -> None:
@@ -36,14 +36,14 @@ class BaseWake:
         scheme[filled_slots] = 1
 
         split_scheme = xp.matched_gaussian.split_scheme
-        bunch_numbers_rank = split_scheme(filling_scheme=scheme,
+        bunch_selection_rank = split_scheme(filling_scheme=scheme,
                                              n_chunk=int(n_procs))
 
         self.configure_for_tracking(zeta_range=self._wake_tracker.zeta_range,
                           num_slices=self._wake_tracker.num_slices,
                           bunch_spacing_zeta=self._wake_tracker.bunch_spacing_zeta,
                           filling_scheme=scheme,
-                          bunch_numbers=bunch_numbers_rank[my_rank],
+                          bunch_selection=bunch_selection_rank[my_rank],
                           num_turns=self._wake_tracker.num_turns,
                           circumference=self._wake_tracker.circumference,
                           )
