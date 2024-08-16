@@ -69,8 +69,8 @@ line.build_tracker()
 particles = xp.generate_matched_gaussian_multibunch_beam(
             line=line,
             filling_scheme=filling_scheme,
-            num_particles=100_000, # This needs to be renamed
-            total_intensity_particles=2.3e11, # This needs to be renamed
+            bunch_num_particles=100_000, # This needs to be renamed
+            bunch_intensity_particles=2.3e11, # This needs to be renamed
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
             bunch_spacing_buckets=10,
             bucket_length=bucket_length_m,
