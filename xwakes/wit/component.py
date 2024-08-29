@@ -91,8 +91,9 @@ class Component:
         :param name: An optional user-specified name of the component
         """
 
-        assert kind in KIND_DEFINITIONS, f"Invalid kind specified: {kind}. Must
-                                           be one of {KIND_DEFINITIONS.keys()}"
+        if kind:
+            assert kind in KIND_DEFINITIONS, (f"Invalid kind specified: {kind}."
+                                            "Must be one of {KIND_DEFINITIONS.keys()}")
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=None,
