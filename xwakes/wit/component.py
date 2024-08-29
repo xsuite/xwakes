@@ -1490,7 +1490,6 @@ class ComponentIndirectSpaceCharge(Component):
         increase = 1
         N = 0
         while increase > stop_crit and N<max_iter:
-            print(increase)
             N_old = N
             N += n_step
             j1 = sp.jn_zeros(1, N)
@@ -1505,6 +1504,11 @@ class ComponentIndirectSpaceCharge(Component):
 
             increase = np.max(-np.real(factor*term_2)/np.real(result))
             result += factor*term_2
+
+        if N >= max_iter:
+            print("Warning: the sum in the indirect space charge wake did not"
+                  "converge within the maximum number of iterations. The result"
+                  "may be inaccurate.")
 
         if scalar_input:
             return self.factor*result.real[0]
@@ -1570,8 +1574,12 @@ class ComponentIndirectSpaceCharge(Component):
                 )
 
             increase = np.max(-np.real(factor*term_2)/np.real(result))
-            print(increase)
             result += factor*term_2
+
+        if N >= max_iter:
+            print("Warning: the sum in the indirect space charge wake did not"
+                  "converge within the maximum number of iterations. The result"
+                  "may be inaccurate.")
 
         if scalar_input:
             return self.factor*result.real[0]
