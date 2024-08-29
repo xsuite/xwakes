@@ -1391,3 +1391,271 @@ def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_ex
             "should not be specified.")
 
     return source_exponents, test_exponents, plane
+
+
+class ComponentIndirectSpaceCharge(Component):
+    def __init__(self, kind: str = None, plane: str = None,
+                 exponents: Tuple[int, int, int, int] = None,
+                 source_exponents: Tuple[int, int] | None = None,
+                 test_exponents: Tuple[int, int] | None = None,
+                 gamma: float = None,
+                 length: float = None,
+                 radius: float = None,
+                 stop_crit: float = 1e-14,
+                 min_zeta: float = 1e-4,
+                 max_iter: int = 10_000,
+                 n_step: int = 10,
+                 factor: float = 1.0):
+        """
+        Creates a single component object modeling an indirect space charge
+        impedance, based on the formulas by N. Mounet, C. Zannini, E. Dadiani,
+        E. Metral and A. Rahemtulla (see
+        https://inspirehep.net/files/757991d3651ada7c8b8c98557c30511f).
+        :param kind: the kind of impedance (e.g. 'dipolar_x', 'quadrupolar_y')
+        :param plane: the plane the component corresponds to (e.g. 'x', 'y'), to
+        be specified only if kind is not specified
+        :param source_exponents: a tuple of two integers (a, b) corresponding
+        to the source exponents (to be specified only if kind is not specified)
+        :param test_exponents: a tuple of two integers (c, d) corresponding to
+        the test exponents (to be specified only if kind is not specified)
+        :param gamma: the relativistic gamma factor
+        :param length: the length of the structure (in m)
+        :param radius: the radius of the structure (in m)
+        :param factor: a factor to multiply the impedance by (e.g. for geometric
+        factors)
+        """
+
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                            kind=kind, exponents=None,
+                            source_exponents=source_exponents,
+                            test_exponents=test_exponents,
+                            plane=plane)
+
+        self.gamma = gamma
+        self.length = length
+        self.radius = radius
+        self.factor = factor
+
+        self.stop_crit = stop_crit
+        self.min_zeta = min_zeta
+        self.max_iter = max_iter
+        self.n_step = n_step
+
+        # we set impedance and wake to a dummy callable because they will be
+        # overridden by methods
+        super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
+                         source_exponents=source_exponents,
+                         test_exponents=test_exponents,
+                         name="Indirect space charge")
+
+    def _wdip_wake_indirect_space_charge_analytic(
+            self,
+            zeta: float
+            ):
+        """
+        Function to compute the dipolar indirect space charge wake.
+        Since the formula contains an infinite sum we use a stopping
+        criterion to truncate the sum when the relative increase of the
+        term is below a given threshold, which is chosen to be 1e-4 by
+        default. The sum will converge very slowly when zeta approaches
+        zero, so we use an approximated formula for small zetas.
+        In the paper zeta has opposite sign, but it is not relevant since
+        the transverse wake turns out to be an even function.
+        """
+
+        scalar_input = np.isscalar(zeta)
+
+        gamma = self.gamma
+        length = self.length
+        radius = self.radius
+
+        min_zeta = self.min_zeta
+        stop_crit = self.stop_crit
+        max_iter = self.max_iter
+        n_step = self.n_step
+
+        zeta = zeta.copy()
+        # the formula has a singularity in z=0 and the convergence of the sum
+        # is very slow for small zetas, so we set a minimum value for zeta
+        zeta[np.abs(zeta) < min_zeta] = min_zeta
+        term_1 = ((np.sign(zeta)*length/
+                    (4*np.pi*eps0*gamma**4)*1/zeta**3) +
+                    1j*0)
+
+        factor = -1j*np.sign(zeta)*length/(2*np.pi*eps0*gamma*radius**3)
+        result = term_1
+        # we precompute this factor for performance
+        prefact = -gamma*np.abs(zeta)/radius
+
+        term_2 = 0
+        increase = 1
+        N = 0
+        while increase > stop_crit and N<max_iter:
+            print(increase)
+            N_old = N
+            N += n_step
+            j1 = sp.jn_zeros(1, N)
+
+            term_2 = 0
+
+            for k in range(N_old, N):
+                term_2 += (np.exp(j1[k]* prefact) *
+                        ((j1[k]**2)  * sp.kv(1, np.sign(zeta)*1j*j1[k])) /
+                        (sp.j0(j1[k]) - sp.jn(2, j1[k]))
+                )
+
+            increase = np.max(-np.real(factor*term_2)/np.real(result))
+            result += factor*term_2
+
+        if scalar_input:
+            return self.factor*result.real[0]
+        else:
+            return self.factor*result.real
+
+
+    def _wlong_wake_indirect_space_charge_analytic(
+            self,
+            zeta: float,
+            stop_crit: float = 1e-14,
+            min_zeta: float = 1e-4,
+            max_iter: int = 10_000,
+            n_step: int = 10
+            ):
+        """
+        Function to compute the longitudinal indirect space charge wake.
+        Since the formula contains an infinite sum we use a stopping
+        criterion to truncate the sum when the relative increase of the
+        term is below a given threshold, which is chosen to be 1e-4 by
+        default. The sum will converge very slowly when zeta approaches
+        zero, so we use an approximated formula for small zetas.
+        In the paper zeta has opposite sign, so we change the its sign within 
+        the function.
+        """
+        gamma = self.gamma
+        length = self.length
+        radius = self.radius
+
+        scalar_input = np.isscalar(zeta)
+
+        zeta = np.atleast_1d(zeta)
+
+        # here we change the sign of zeta to keep the compatibility with our
+        # convention
+        zeta = -zeta
+        # the formula has a singularity in z=0 and the convergence of the sum
+        # is very slow for small zetas, so we set a minimum value for zeta
+        zeta[np.abs(zeta) < min_zeta] = min_zeta
+        term_1 = -((np.sign(zeta)*length/
+                    (4*np.pi*eps0*gamma**2)*1/zeta**2) +
+                    1j*0)
+
+        factor = -np.sign(zeta)*length/(2*np.pi*eps0*radius**2)
+        result = term_1
+        # we precompute this factor for performance
+        prefact = -gamma*np.abs(zeta)/radius
+
+        term_2 = 0
+        increase = 1
+        N = 0
+        while increase > stop_crit and N<max_iter:
+            N_old = N
+            N += n_step
+            j0 = sp.jn_zeros(0, N)
+
+            term_2 = 0
+
+            for k in range(N_old, N):
+                term_2 += (np.exp(j0[k]* prefact) *
+                        (j0[k]  * sp.kv(0, np.sign(zeta)*1j*j0[k])) /
+                            sp.j1(j0[k])
+                )
+
+            increase = np.max(-np.real(factor*term_2)/np.real(result))
+            print(increase)
+            result += factor*term_2
+
+        if scalar_input:
+            return self.factor*result.real[0]
+        else:
+            return self.factor*result.real
+
+
+    def zdip_impedance(self, freq):
+        """
+        Function to compute the dipolar indirect space charge impedance.
+        """
+        scalar_input = np.isscalar(freq)
+
+        gamma = self.gamma
+        length = self.length
+        radius = self.radius
+
+        beta = np.sqrt(1 - 1 / gamma**2)
+
+        omega = 2*np.pi*freq
+        k = omega/(beta*c_light)
+
+        impedance = length*(
+            1j*k**2*Z0/(4*np.pi*beta*gamma**4) *
+            sp.k1(np.abs(k)*radius/gamma) /
+            sp.i1(np.abs(k)*radius/gamma))
+
+        if scalar_input:
+            return self.factor*impedance.real[0]
+        else:
+            return self.factor*impedance
+
+    def zlong_impedance(self, freq):
+        """
+        Function to compute the longitudinal indirect space charge impedance.
+        """
+        scalar_input = np.isscalar(freq)
+        gamma = self.gamma
+        length = self.length
+        radius = self.radius
+
+        beta = np.sqrt(1 - 1 / gamma**2)
+
+        omega = 2*np.pi*freq
+        k = omega/(beta*c_light)
+
+        impedance = (1j*omega*mu0*length/(2*np.pi*beta**2*gamma**2) *
+                     sp.k0(np.abs(k)*radius/gamma) /
+                     sp.i0(np.abs(k)*radius/gamma))
+
+        if scalar_input:
+            return self.factor*impedance.real[0]
+        else:
+            return self.factor*impedance
+
+
+    def impedance(self, f):
+        if self.plane == 'x' and self.source_exponents == (1, 0) and self.test_exponents == (0, 0):
+            return self.zdip_impedance(f)
+        elif self.plane == 'y' and self.source_exponents == (0, 1) and self.test_exponents == (0, 0):
+            return self.zdip_impedance(f)
+        elif self.plane == 'z' and self.source_exponents == (0, 0) and self.test_exponents == (0, 0):
+            return self.zlong_impedance(f)
+        else:
+            return np.zeros_like(f)
+
+
+    def wake(self, t):
+        if self.plane == 'x' and self.source_exponents == (1, 0) and self.test_exponents == (0, 0):
+            return self._wdip_wake_indirect_space_charge_analytic(t)
+        elif self.plane == 'y' and self.source_exponents == (0, 1) and self.test_exponents == (0, 0):
+            return self._wdip_wake_indirect_space_charge_analytic(t)
+        elif self.plane == 'z' and self.source_exponents == (0, 0) and self.test_exponents == (0, 0):
+            return self._wlong_wake_indirect_space_charge_analytic(t)
+        else:
+            return np.zeros_like(t)
+
+
+    def function_vs_t(self, t, beta0, dt):
+        out = self.function_vs_zeta(-t*beta0*c_light, beta0, dt)
+        return out
+
+
+    def function_vs_zeta(self, zeta, beta0, dzeta):
+        out = self.wake(zeta)
+        return out
