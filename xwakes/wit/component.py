@@ -1395,7 +1395,6 @@ def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_ex
 
 class ComponentIndirectSpaceCharge(Component):
     def __init__(self, kind: str = None, plane: str = None,
-                 exponents: Tuple[int, int, int, int] = None,
                  source_exponents: Tuple[int, int] | None = None,
                  test_exponents: Tuple[int, int] | None = None,
                  gamma: float = None,
