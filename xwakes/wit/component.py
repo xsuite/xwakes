@@ -1520,10 +1520,6 @@ class ComponentIndirectSpaceCharge(Component):
     def _wlong_wake_indirect_space_charge_analytic(
             self,
             zeta: float,
-            stop_crit: float = 1e-14,
-            min_zeta: float = 1e-4,
-            max_iter: int = 10_000,
-            n_step: int = 10
             ):
         """
         Function to compute the longitudinal indirect space charge wake.
@@ -1538,6 +1534,11 @@ class ComponentIndirectSpaceCharge(Component):
         gamma = self.gamma
         length = self.length
         radius = self.radius
+
+        min_zeta = self.min_zeta
+        stop_crit = self.stop_crit
+        max_iter = self.max_iter
+        n_step = self.n_step
 
         scalar_input = np.isscalar(zeta)
 
@@ -1579,8 +1580,8 @@ class ComponentIndirectSpaceCharge(Component):
 
         if N >= max_iter:
             print("Warning: the sum in the indirect space charge wake did not"
-                  "converge within the maximum number of iterations. The result"
-                  "may be inaccurate.")
+                  "converge within the maximum number of iterations. The result "
+                  "may be inaccurate. Last relative increase: ", increase)
 
         if scalar_input:
             return self.factor*result.real[0]
