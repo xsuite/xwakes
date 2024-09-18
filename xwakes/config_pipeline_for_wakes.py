@@ -20,16 +20,28 @@ def config_pipeline_for_wakes(particles, line, communicator,
 
     if elements_to_configure is None:
         from xfields.beam_elements.element_with_slicer import ElementWithSlicer
+        from xfields.beam_elements.transverse_damper import TransverseDamper
+        from xfields.beam_elements.collective_monitor import CollectiveMonitor
+
         elements_to_configure = []
         for nn in line.element_names:
             if hasattr(line[nn], '_wake_tracker'):
                 elements_to_configure.append(nn)
             elif isinstance(line[nn], ElementWithSlicer):
                 elements_to_configure.append(nn)
+            elif isinstance(line[nn], TransverseDamper):
+                elements_to_configure.append(nn)
+            elif isinstance(line[nn], CollectiveMonitor):
+                elements_to_configure.append(nn)
 
     for nn in elements_to_configure:
         ee = line[nn]
         pipeline_manager.add_element(nn)
+        if (isinstance(line[nn], TransverseDamper) or
+            isinstance(line[nn], CollectiveMonitor)):
+            line[nn]._reconfigure_for_parallel(comm_size, my_rank)
+            continue
+
         if hasattr(ee, '_wake_tracker'):
             ee._reconfigure_for_parallel(comm_size, my_rank)
             ee = ee._wake_tracker
