@@ -11,7 +11,8 @@ wake_type = 'dipolar'
 wake = xw.WakeThickResistiveWall(
     kind=f'{wake_type}_{plane}',
     resistivity=1e-7,
-    radius=1e-2
+    radius=1e-2,
+    length=2.
     )
 
 assert len(wake.components) == 1

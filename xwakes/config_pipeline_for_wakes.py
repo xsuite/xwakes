@@ -1,9 +1,12 @@
 from xtrack.pipeline.manager import PipelineManager
 from xtrack.pipeline.multitracker import PipelineBranch, PipelineMultiTracker
 
-def config_pipeline_manager_and_multitracker_for_wakes(particles, line,
-                                                       wakes_dict,
-                                                       communicator):
+import xfields as xf
+
+def config_pipeline_for_wakes(particles, line, communicator,
+                              elements_to_configure=None):
+
+    assert communicator is not None, 'communicator must be provided'
 
     pipeline_manager=PipelineManager(communicator)
 
@@ -15,24 +18,26 @@ def config_pipeline_manager_and_multitracker_for_wakes(particles, line,
 
     particles.init_pipeline(f'particles{my_rank}')
 
-    for wf_name, wf in wakes_dict.items():
-        pipeline_manager.add_element(wf_name)
-        if hasattr(wf, '_wake_tracker'):
-            #for wake elements
-            wf._wake_tracker.init_pipeline(
-                pipeline_manager=pipeline_manager,
-                element_name=wf_name,
-                partners_names=[f'particles{rank}'
-                                for rank in range(comm_size) if rank != my_rank])
-        else:
-            #for other elements with slicer, e.g. collective monitor
-            wf.init_pipeline(
-                pipeline_manager=pipeline_manager,
-                element_name=wf_name,
-                partners_names=[f'particles{rank}'
-                                for rank in range(comm_size) if rank != my_rank])
+    if elements_to_configure is None:
+        from xfields.beam_elements.element_with_slicer import ElementWithSlicer
+        elements_to_configure = []
+        for nn in line.element_names:
+            if hasattr(line[nn], '_wake_tracker'):
+                elements_to_configure.append(nn)
+            elif isinstance(line[nn], ElementWithSlicer):
+                elements_to_configure.append(nn)
 
-    branch = PipelineBranch(line=line, particles=particles)
-    multitracker = PipelineMultiTracker(branches=[branch])
+    for nn in elements_to_configure:
+        ee = line[nn]
+        pipeline_manager.add_element(nn)
+        if hasattr(ee, '_wake_tracker'):
+            ee._reconfigure_for_parallel(comm_size, my_rank)
+            ee = ee._wake_tracker
 
-    return pipeline_manager, multitracker
+        ee.init_pipeline(
+            pipeline_manager=pipeline_manager,
+            element_name=nn,
+            partner_names=[f'particles{rank}'
+                            for rank in range(comm_size) if rank != my_rank])
+
+    return pipeline_manager

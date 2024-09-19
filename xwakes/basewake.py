@@ -1,18 +1,52 @@
 from typing import Tuple
-import xtrack as xt
+import xpart as xp
+
+
+import numpy as np
 
 class BaseWake:
     pass
 
     def configure_for_tracking(self, zeta_range: Tuple[float, float],
                                num_slices: int,
+                               num_turns=1,
+                               bunch_spacing_zeta=None,  # This is P in the paper
+                               filling_scheme=None,
+                               circumference=None,
+                               bunch_selection=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
         from xfields.beam_elements.waketracker import WakeTracker
         self._wake_tracker = WakeTracker(
             components=_expand_components(self.components),
             zeta_range=zeta_range,
-            num_slices=num_slices, **kwargs)
+            num_slices=num_slices,
+            num_turns=num_turns,
+            bunch_spacing_zeta=bunch_spacing_zeta,
+            filling_scheme=filling_scheme,
+            circumference=circumference,
+            bunch_selection=bunch_selection,
+            **kwargs)
+
+    def _reconfigure_for_parallel(self, n_procs, my_rank) -> None:
+
+        filled_slots = self._wake_tracker.slicer.filled_slots
+        scheme = np.zeros(np.max(filled_slots) + 1,
+                        dtype=np.int64)
+        scheme[filled_slots] = 1
+
+        split_scheme = xp.matched_gaussian.split_scheme
+        bunch_selection_rank = split_scheme(filling_scheme=scheme,
+                                             n_chunk=int(n_procs))
+
+        self.configure_for_tracking(zeta_range=self._wake_tracker.zeta_range,
+                          num_slices=self._wake_tracker.num_slices,
+                          bunch_spacing_zeta=self._wake_tracker.bunch_spacing_zeta,
+                          filling_scheme=scheme,
+                          bunch_selection=bunch_selection_rank[my_rank],
+                          num_turns=self._wake_tracker.num_turns,
+                          circumference=self._wake_tracker.circumference,
+                          )
 
     def track(self, particles) -> None:
         if not hasattr(self, '_wake_tracker') or self._wake_tracker is None:

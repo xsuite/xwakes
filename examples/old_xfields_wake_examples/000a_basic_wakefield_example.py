@@ -1,71 +1,67 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from scipy.signal import hilbert
+from scipy.stats import linregress
+
 import xtrack as xt
 import xpart as xp
 import xfields as xf
 import xwakes as xw
-import xobjects as xo
-from scipy.constants import e as qe, c as c_light
-from scipy.signal import hilbert
-from scipy.stats import linregress
-import numpy as np
-import matplotlib.pyplot as plt
-import pandas as pd
 
-n_turns = 10000
-p0c = 7000e9
+# Simulation settings
+n_turns = 10_000
 
-
-# Filling scheme
-n_turns_wake = 1
 circumference = 26658.8832
 bucket_length_m = circumference / 35640
-num_slices = 100
 
-wake_table_name = xf.general._pkg_root.joinpath(
+wake_table_filename = xf.general._pkg_root.joinpath(
     '../test_data/HLLHC_wake.dat')
 wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
                      'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
                      'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
                      'constant_x', 'constant_y']
-wake_df = xw.read_headtail_file(wake_table_name,
-                                wake_file_columns)
-wf= xw.WakeFromTable(wake_df, columns=['dipolar_x', 'dipolar_y'],
+mytable = xw.read_headtail_file(
+    wake_file=wake_table_filename,
+    wake_file_columns=wake_file_columns
 )
-wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m),
-                          num_slices=num_slices,
-                          bunch_spacing_zeta=circumference/3564,
-                          num_turns=n_turns_wake,
-                          )
+wf = xw.WakeFromTable(
+    table=mytable,
+    columns=['dipolar_x', 'dipolar_y'],
+)
 
-part_aux = xt.Particles(p0c=p0c)
-
-f_rev = part_aux.beta0[0]*c_light/circumference
-f_rf = f_rev*35640
+wf.configure_for_tracking(
+    zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m),
+    num_slices=20,
+    num_turns=1.,
+    circumference=circumference)
 
 one_turn_map = xt.LineSegmentMap(
     length=circumference, betx=70., bety=80.,
     qx=62.31, qy=60.32,
-    longitudinal_mode='nonlinear',
+    longitudinal_mode='linear_fixed_qs',
     dqx=-10., dqy=-10.,  # <-- to see fast mode-0 instability
-    voltage_rf=16e6, frequency_rf=f_rf,
-    lag_rf=180, momentum_compaction_factor=53.86**-2
+    qs=2e-3, bets=731.27
 )
 
+# Generate line
 line = xt.Line(elements=[one_turn_map, wf],
                element_names=['one_turn_map', 'wf'])
-line.particle_ref = xt.Particles(p0c=p0c)
+
+
+line.particle_ref = xt.Particles(p0c=7e12)
 line.build_tracker()
 
-particles = xp.generate_matched_gaussian_bunch(
-            num_particles=100_000,
-            total_intensity_particles=2.3e11,
-            nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
-            line=line,
-            particle_ref=line.particle_ref
-)
+# Generate particles
+particles = xp.generate_matched_gaussian_bunch(line=line,
+                    num_particles=100_000, total_intensity_particles=2.3e11,
+                    nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075)
 
+# Apply a distortion to the bunch to trigger an instability
+amplitude = 1e-3
+particles.x += amplitude
+particles.y += amplitude
 
-particles.x += 1e-3
-particles.y += 1e-3
+flag_plot = True
 
 mean_x_xt = np.zeros(n_turns)
 mean_y_xt = np.zeros(n_turns)
@@ -88,7 +84,6 @@ plt.xlabel('turn')
 plt.ylabel('log10(average x-position)')
 plt.legend()
 
-
 turns = np.linspace(0, n_turns - 1, n_turns)
 
 for i_turn in range(n_turns):
@@ -101,7 +96,7 @@ for i_turn in range(n_turns):
         print(f'Turn: {i_turn}')
 
     if i_turn % 50 == 0 and i_turn > 1:
-        i_fit_end = i_turn #np.argmax(mean_x_xt)
+        i_fit_end = np.argmax(mean_x_xt)  # i_turn
         i_fit_start = int(i_fit_end * 0.9)
 
         # compute x instability growth rate
@@ -132,6 +127,6 @@ for i_turn in range(n_turns):
         fig1.canvas.draw()
         fig1.canvas.flush_events()
 
-        #out_folder = '.'
-        #np.save(f'{out_folder}/mean_x.npy', mean_x_xt)
-        #np.save(f'{out_folder}/mean_y.npy', mean_y_xt)
+        out_folder = '.'
+        np.save(f'{out_folder}/mean_x.npy', mean_x_xt)
+        np.save(f'{out_folder}/mean_y.npy', mean_y_xt)

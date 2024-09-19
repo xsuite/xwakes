@@ -144,7 +144,8 @@ def test_impedances_vs_analytic_thick_res_wall_transverse(wake_type, plane):
     wake = xw.WakeThickResistiveWall(
         kind=f'{wake_type}_{plane}',
         resistivity=1e-7,
-        radius=1e-2
+        radius=1e-2,
+        length=2.
         )
 
     assert len(wake.components) == 1
@@ -198,6 +199,18 @@ def test_impedances_vs_analytic_thick_res_wall_transverse(wake_type, plane):
         Z_from_t, Z_analytical, rtol=0, atol=0.1 * np.max(np.abs(Z_analytical)))
 
 
+    # Check that it scales with the length
+    wake_len_default = xw.WakeThickResistiveWall(
+        kind=f'{wake_type}_{plane}',
+        resistivity=1e-7,
+        radius=1e-2,
+        )
+
+    xo.assert_allclose(wake.components[0].wake(10.),
+                       2 * wake_len_default.components[0].wake(10.),
+                       rtol=0, atol=1e-10)
+
+
 def test_impedances_vs_analytic_thick_res_wall_longitudinal():
 
     beta0 = 0.1
@@ -205,7 +218,8 @@ def test_impedances_vs_analytic_thick_res_wall_longitudinal():
     wake = xw.WakeThickResistiveWall(
         kind='longitudinal',
         resistivity=1e-7,
-        radius=1e-2
+        radius=1e-2,
+        length=2.
         )
 
     assert len(wake.components) == 1
@@ -260,6 +274,17 @@ def test_impedances_vs_analytic_thick_res_wall_longitudinal():
         Z_from_zeta, Z_analytical, rtol=0, atol=0.1 * np.max(np.abs(Z_analytical)))
     xo.assert_allclose(
         Z_from_t, Z_analytical, rtol=0, atol=0.1 * np.max(np.abs(Z_analytical)))
+
+    # check that it scales with the length
+    wake_len_default = xw.WakeThickResistiveWall(
+        kind='longitudinal',
+        resistivity=1e-7,
+        radius=1e-2,
+        )
+
+    xo.assert_allclose(wake.components[0].wake(10.),
+                          2 * wake_len_default.components[0].wake(10.),
+                          rtol=0, atol=1e-10)
 
 def test_impedances_vs_iw2d_vertical():
 

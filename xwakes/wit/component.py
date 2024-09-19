@@ -633,6 +633,7 @@ class ComponentClassicThickWall(Component):
                  radius: float = None,
                  resistivity: float = None,
                  factor: float = 1.0,
+                 length: float = 1.0,
                  zero_rel_tol: float = 0.01
                  ) -> ComponentClassicThickWall:
         """
@@ -663,6 +664,7 @@ class ComponentClassicThickWall(Component):
         self.radius = radius
         self.plane = plane
         self.factor = factor
+        self.length = length
         self.resistivity = resistivity
         self.zero_rel_tol = zero_rel_tol
 
@@ -692,17 +694,18 @@ class ComponentClassicThickWall(Component):
         radius = self.radius
         plane = self.plane
         factor = self.factor
+        length = self.length
         exponents = tuple(self.source_exponents + self.test_exponents)
 
         if plane == 'z' and exponents == (0, 0, 0, 0):
-            out = factor * ((1 + np.sign(f)*1j) * material_resistivity
+            out = factor * length * ((1 + np.sign(f)*1j) * material_resistivity
                             / (2* np.pi * radius)
                             / self.delta_skin(f, material_resistivity,
                                               material_magnetic_permeability))
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = factor * ((1 + np.sign(f)*1j) * material_resistivity
+            out = factor * length * ((1 + np.sign(f)*1j) * material_resistivity
                             / (np.pi * radius**3 * (2 * np.pi * f * np.sqrt(eps0 * mu0)))
                             / self.delta_skin(f, material_resistivity,
                                               material_magnetic_permeability))
@@ -723,6 +726,7 @@ class ComponentClassicThickWall(Component):
         radius = self.radius
         plane = self.plane
         factor = self.factor
+        length = self.length
         exponents = tuple(self.source_exponents + self.test_exponents)
 
         beta0 = beta0 if beta0 is not None else 1
@@ -734,13 +738,13 @@ class ComponentClassicThickWall(Component):
 
         # Longitudinal
         if plane == 'z' and exponents == (0, 0, 0, 0):
-            out[mask_positive] = factor * (-1. / (4 * np.pi * radius)
+            out[mask_positive] = factor * length * (-1. / (4 * np.pi * radius)
                             * np.sqrt(Z0 * material_resistivity / np.pi / c_light)
                             * 1/(t[mask_positive]**(3/2)))
         # Transverse dipolar
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out[mask_positive] = factor * (
+            out[mask_positive] = factor * length * (
                         1. / (np.pi * radius**3)
                         * np.sqrt(c_light * Z0 * material_resistivity / np.pi)
                         * 1/(t[mask_positive]**(1/2)))

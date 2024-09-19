@@ -11,6 +11,7 @@ class WakeThickResistiveWall(BaseWake):
                 source_exponents: Tuple[int, int] | None = None,
                 test_exponents: Tuple[int, int] | None = None,
                 radius: float = None,
+                length: float = 1.0,
                 resistivity: float = None):
 
         if kind is not None:
@@ -25,14 +26,14 @@ class WakeThickResistiveWall(BaseWake):
                 cc = ComponentClassicThickWall(
                         radius=radius, resistivity=resistivity,
                         kind=kk,
-                        factor=ff, plane=plane)
+                        factor=ff, plane=plane, length=length)
                 components.append(cc)
         else:
             cc = ComponentClassicThickWall(
                         radius=radius, resistivity=resistivity,
                         plane=plane, source_exponents=source_exponents,
                         test_exponents=test_exponents,
-                        factor=ff)
+                        factor=ff, length=length)
             components = [cc]
 
         self.components = components

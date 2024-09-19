@@ -8,4 +8,4 @@ from .thick_resistive_wall import WakeThickResistiveWall
 from .indirect_space_charge import WakeIndirectSpaceCharge
 from .yokoya import Yokoya
 from .read_headtail_table import read_headtail_file
-from .config_pipeline_for_wakes import config_pipeline_manager_and_multitracker_for_wakes
+from .config_pipeline_for_wakes import config_pipeline_for_wakes
