@@ -1,7 +1,5 @@
 from typing import Tuple
 import xpart as xp
-
-
 import numpy as np
 
 class BaseWake:

@@ -1,7 +1,6 @@
 from xtrack.pipeline.manager import PipelineManager
 from xtrack.pipeline.multitracker import PipelineBranch, PipelineMultiTracker
 
-import xfields as xf
 
 def config_pipeline_for_wakes(particles, line, communicator,
                               elements_to_configure=None):
