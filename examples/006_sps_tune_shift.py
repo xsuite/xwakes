@@ -36,14 +36,14 @@ one_turn_map = xt.LineSegmentMap(
 
 # initialize the wakes
 test_data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
-wake_table_name_kickers = test_data_folder.joinpath('sps_wake_2022/wall_wake.dat')
+wake_table_name_kickers = test_data_folder.joinpath('sps_wake_2022/MKP_wake.dat')
 wake_file_columns = ['time', 'dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y']
 components = ['dipole_x', 'dipole_y', 'quadrupole_x', 'quadrupole_y']
 wake_df_kickers = xw.read_headtail_file(wake_table_name_kickers,
                                         wake_file_columns)
 wf_kickers = xw.WakeFromTable(table=wake_df_kickers, columns=components)
 
-wake_table_name_wall = test_data_folder.joinpath('sps_wake_2022/MKP_wake.dat')
+wake_table_name_wall = test_data_folder.joinpath('sps_wake_2022/wall_wake.dat')
 wake_df_wall = xw.read_headtail_file(wake_table_name_wall,
                                      wake_file_columns)
 wf_wall = xw.WakeFromTable(table=wake_df_wall, columns=components)
