@@ -13,8 +13,8 @@ import nafflib
 p0c = 26e9
 circumference = 6911.5662
 
-h_RF = [ 4620, 4*4620 ]
-V_RF = [ 4.5e6, 0.45e6 ]
+h_RF = [4620, 4*4620]
+V_RF = [4.5e6, 0.45e6]
 dphi_RF = [180, 0]
 f_rev = 43347.25733575443
 f_RF = [f_rev*h for h in h_RF]
