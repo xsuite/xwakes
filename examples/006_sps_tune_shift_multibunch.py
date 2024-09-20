@@ -120,7 +120,7 @@ for i_turn in range(200):
     if i_turn%10 == 0:
         print(f'Turn: {i_turn}')
 
-# open the monitor file
+# read mean positions from the monitor file
 with h5py.File(monitor.base_file_name + '_bunches.h5', 'r') as h5file:
     for bunch in h5file.keys():
         mean_x = h5file[bunch]['mean_x'][:]
