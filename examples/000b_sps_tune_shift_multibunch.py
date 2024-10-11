@@ -115,7 +115,7 @@ particles.px += 1e-3
 particles.py += 1e-3
 
 # track the particles
-line.track(particles, num_turns=201, with_progress=1)
+line.track(particles, num_turns=101, with_progress=1)
 
 qx_bunch = []
 qy_bunch = []
