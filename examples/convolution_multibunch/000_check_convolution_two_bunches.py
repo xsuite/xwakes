@@ -23,6 +23,7 @@ bunch_selection = [0, 1]
 wake = xw.WakeResonator(
     kind='dipolar_x',
     r=1e8, q=1e5, f_r=600e6)
+
 wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=500,
     filling_scheme=filling_scheme,
     bunch_spacing_zeta=26000/3564,
