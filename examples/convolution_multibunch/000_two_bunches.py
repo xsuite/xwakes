@@ -36,8 +36,8 @@ line.particle_ref=xp.Particles(p0c=7000e9)
 particles = xp.generate_matched_gaussian_multibunch_beam(
     particle_ref=line.particle_ref,
     filling_scheme=filling_scheme,
-    num_particles=100000,
-    total_intensity_particles=1e11,
+    bunch_num_particles=100000,
+    bunch_intensity_particles=1e11,
     nemitt_x=1e-6, nemitt_y=2e-6,
     sigma_z=0.08,
     line=line,
