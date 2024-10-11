@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pathlib
 import h5py
-from mpi4py import MPI
 
 import xwakes as xw
 import xtrack as xt
@@ -29,7 +28,7 @@ xi = 0.05
 
 # prepare the filling scheme
 filling_scheme = np.zeros(int(h_RF[0]/bunch_spacing_buckets))
-n_bunches = 2
+n_bunches = 12
 filling_scheme[0:n_bunches] = 1
 
 # initialize the one turn map
@@ -77,9 +76,8 @@ transverse_damper = xf.TransverseDamper(
 )
 
 # initialize a monitor for the average transverse positions
-my_rank = MPI.COMM_WORLD.Get_rank()
 monitor = xf.CollectiveMonitor(
-    base_file_name=f'sps_tune_shift_rank{my_rank}',
+    base_file_name=f'sps_tune_shift',
     monitor_bunches=True,
     monitor_slices=False,
     monitor_particles=False,
@@ -91,7 +89,7 @@ monitor = xf.CollectiveMonitor(
     bunch_spacing_zeta=5*bucket_length,
     filling_scheme=filling_scheme
 )
-print(monitor.base_file_name + '_bunches.h5')
+
 elements = [one_turn_map, wf_sps, transverse_damper, monitor]
 element_names = ['one_turn_map', 'wake', 'transverse_damper', 'monitor']
 line = xt.Line(elements, element_names=element_names)
@@ -110,18 +108,17 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
     bunch_spacing_buckets=bunch_spacing_buckets,
     circumference=circumference,
     line=line,
-    prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
 # apply a kick to the particles
 particles.px += 1e-3
 particles.py += 1e-3
-for i_turn in range(201):
 
-    line.track(particles)
+# track the particles
+line.track(particles, num_turns=201, with_progress=1)
 
-    if i_turn%10 == 0:
-        print(f'Turn: {i_turn}')
+qx_bunch = []
+qy_bunch = []
 
 # read mean positions from the monitor file
 with h5py.File(monitor.base_file_name + '_bunches.h5', 'r') as h5file:
@@ -129,5 +126,12 @@ with h5py.File(monitor.base_file_name + '_bunches.h5', 'r') as h5file:
         mean_x = h5file[bunch]['mean_x'][:]
         mean_y = h5file[bunch]['mean_y'][:]
 
-        print(f'Q_x bunch {bunch}:', nafflib.tune(mean_x))
-        print(f'Q_y bunch {bunch}:', nafflib.tune(mean_y))
+
+import matplotlib.pyplot as plt
+plt.close('all')
+plt.plot(qx_bunch, 'rx', label='Q_x')
+plt.plot(qx_bunch, 'bo', label='Q_x')
+plt.xlabel('Bunch number')
+plt.ylabel('Tune')
+plt.legend()
+plt.show()

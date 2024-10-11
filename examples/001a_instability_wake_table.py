@@ -9,7 +9,7 @@ import xwakes as xw
 import xfields as xf
 
 # Simulation settings
-n_turns = 10_000
+n_turns = 10000
 
 wake_table_filename = xf.general._pkg_root.joinpath(
     '../test_data/HLLHC_wake.dat')

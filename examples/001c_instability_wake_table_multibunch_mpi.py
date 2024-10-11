@@ -77,10 +77,6 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             # prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
-
-# xo.assert_allclose(particles.weight.sum(),
-#                    2.3e11 * len(bunch_selection), rtol=1e-5, atol=1e-5)
-
 particles.x += 1e-3
 particles.y += 1e-3
 
@@ -152,7 +148,3 @@ for i_turn in range(n_turns):
 
         fig1.canvas.draw()
         fig1.canvas.flush_events()
-
-        #out_folder = '.'
-        #np.save(f'{out_folder}/mean_x.npy', mean_x_xt)
-        #np.save(f'{out_folder}/mean_y.npy', mean_y_xt)

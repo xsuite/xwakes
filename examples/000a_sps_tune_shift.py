@@ -100,12 +100,9 @@ particles = xp.generate_matched_gaussian_bunch(
 # apply a small kick to the particles
 particles.px += 1e-3
 particles.py += 1e-3
-for i_turn in range(200):
 
-    line.track(particles)
-
-    if i_turn%10 == 0:
-        print(f'Turn: {i_turn}')
+# track the particles
+line.track(particles, num_turns=200, with_progress=1)
 
 # read mean positions from the monitor file
 with h5py.File(monitor.base_file_name + '_bunches.h5', 'r') as h5file:
