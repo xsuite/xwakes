@@ -126,11 +126,13 @@ with h5py.File(monitor.base_file_name + '_bunches.h5', 'r') as h5file:
         mean_x = h5file[bunch]['mean_x'][:]
         mean_y = h5file[bunch]['mean_y'][:]
 
+        qx_bunch.append(nafflib.tune(mean_x))
+        qy_bunch.append(nafflib.tune(mean_y))
 
 import matplotlib.pyplot as plt
 plt.close('all')
 plt.plot(qx_bunch, 'rx', label='Q_x')
-plt.plot(qx_bunch, 'bo', label='Q_x')
+plt.plot(qy_bunch, 'bo', label='Q_y')
 plt.xlabel('Bunch number')
 plt.ylabel('Tune')
 plt.legend()

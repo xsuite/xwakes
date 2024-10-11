@@ -1,3 +1,4 @@
+# mpirun -n 2 python 000c_sps_tune_shift_multibunch_mpi.py
 import numpy as np
 import pathlib
 import h5py
@@ -8,6 +9,11 @@ import xtrack as xt
 import xfields as xf
 import xpart as xp
 import nafflib
+
+n_procs = MPI.COMM_WORLD.Get_size()
+
+if n_procs < 2:
+    raise ValueError('Run with at least 2 MPI processes')
 
 # a few machine parameters
 p0c = 26e9
@@ -28,7 +34,7 @@ xi = 0.05
 
 # prepare the filling scheme
 filling_scheme = np.zeros(int(h_RF[0]/bunch_spacing_buckets))
-n_bunches = 2
+n_bunches = 12
 filling_scheme[0:n_bunches] = 1
 
 # initialize the one turn map
@@ -82,7 +88,7 @@ monitor = xf.CollectiveMonitor(
     monitor_bunches=True,
     monitor_slices=False,
     monitor_particles=False,
-    flush_data_every=100,
+    flush_data_every=10,
     stats_to_store=['mean_x', 'mean_y'],
     backend='hdf5',
     zeta_range=(-0.5*bucket_length, 0.5*bucket_length),
@@ -90,7 +96,7 @@ monitor = xf.CollectiveMonitor(
     bunch_spacing_zeta=5*bucket_length,
     filling_scheme=filling_scheme
 )
-print(monitor.base_file_name + '_bunches.h5')
+
 elements = [one_turn_map, wf_sps, transverse_damper, monitor]
 element_names = ['one_turn_map', 'wake', 'transverse_damper', 'monitor']
 line = xt.Line(elements, element_names=element_names)
@@ -117,25 +123,43 @@ particles.px += 1e-3
 particles.py += 1e-3
 
 # track the particles
-line.track(particles, num_turns=101, with_progress=1)
+n_turns = 101
+for i_turn in range(n_turns):
+    line.track(particles)
+
+    if my_rank == 0 and i_turn % 10 == 0:
+        print(f'Turn {i_turn}')
 
 qx_bunch = []
 qy_bunch = []
 
-# read mean positions from the monitor file
-with h5py.File(monitor.base_file_name + '_bunches.h5', 'r') as h5file:
-    for bunch in h5file.keys():
-        mean_x = h5file[bunch]['mean_x'][:]
-        mean_y = h5file[bunch]['mean_y'][:]
+# read mean positions from the monitor files of the different ranks
+dict_ts = {'x': {}, 'y': {}}
 
-        qx_bunch.append(nafflib.tune(mean_x))
-        qy_bunch.append(nafflib.tune(mean_y))
+if my_rank == 0:
+    for rank in range(n_procs):
+        with h5py.File(f'sps_tune_shift_rank{rank}_bunches.h5') as f:
+            for bunch in f.keys():
+                for plane in ['x', 'y']:
+                    dict_ts[plane][int(bunch)] = nafflib.tune(f[bunch][f'mean_{plane}'][:n_turns])
 
-import matplotlib.pyplot as plt
-plt.close('all')
-plt.plot(qx_bunch, 'rx', label='Q_x')
-plt.plot(qx_bunch, 'bo', label='Q_x')
-plt.xlabel('Bunch number')
-plt.ylabel('Tune')
-plt.legend()
-plt.show()
+    import matplotlib.pyplot as plt
+
+    fig, ax_x = plt.subplots()
+    ax_y = ax_x.twinx()
+    ax_x.plot(dict_ts['x'].keys(), [dict_ts['x'][bunch] for bunch in dict_ts['x'].keys()], 'bx', label='xsuite x')
+
+    ax_y.plot(dict_ts['y'].keys(), [dict_ts['y'][bunch] for bunch in dict_ts['y'].keys()], 'rx', label='xsuite y')
+
+    color='blue'
+    ax_x.set_ylabel('tune x', color=color)
+    ax_x.tick_params(axis='y', labelcolor=color)
+    color='red'
+    ax_y.set_ylabel('tune y', color=color)
+    ax_y.tick_params(axis='y', labelcolor=color)
+
+    ax_x.set_xlabel('bunch')
+
+    fig.legend()
+    plt.tight_layout()
+    plt.show()
