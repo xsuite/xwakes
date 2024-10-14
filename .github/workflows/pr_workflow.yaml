@@ -17,13 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install xtrack xpart xfields nafflib
-          cd ..
-          git clone https://github.com/PyCOMPLETE/PyHEADTAIL.git
-          cd PyHEADTAIL
-          git checkout fix/longitudinal_wake
-          pip install -e .
-          cd ../xwakes
+          pip install xtrack xpart xfields nafflib PyHEADTAIL
           pip install .[tests]
       - name: Run tests
         run: |
