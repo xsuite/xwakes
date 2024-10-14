@@ -2,7 +2,6 @@ import xtrack as xt
 import xpart as xp
 import xwakes as xw
 import xobjects as xo
-import xfields as xf
 from xobjects.test_helpers import for_all_test_contexts
 
 import pytest
@@ -553,7 +552,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     print('Initialising wake')
     n_turns_wake = 1
     circumference = n_slots * bunch_spacing
-    wake_table_name = xf.general._pkg_root.joinpath(
+    wake_table_name = xw.general._pkg_root.joinpath(
         '../test_data/HLLHC_wake.dat')
     wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
                             'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',

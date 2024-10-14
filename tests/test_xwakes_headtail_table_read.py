@@ -1,11 +1,10 @@
-import xfields as xf
 import xobjects as xo
 import xwakes as xw
 
 import numpy as np
 
 def test_headail_table_read():
-    wake_table_name = xf.general._pkg_root.joinpath(
+    wake_table_name = xw.general._pkg_root.joinpath(
         '../test_data/HLLHC_wake.dat')
     wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
                         'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
