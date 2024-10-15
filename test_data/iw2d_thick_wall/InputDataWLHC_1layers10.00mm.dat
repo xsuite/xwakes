@@ -1,0 +1,33 @@
+Machine:	LHC
+Relativistic Gamma:	7247.36475755887
+Impedance Length in m: 1
+Number of layers:	1
+Layer 1 inner radius in mm:	10
+Layer 1 DC resistivity (Ohm.m):	1.7e-8
+Layer 1 relaxation time for resistivity (ps):	0
+Layer 1 real part of dielectric constant:	1.0
+Layer 1 magnetic susceptibility:	0.0
+Layer 1 relaxation frequency of permeability (MHz):	inf
+Layer 1 thickness in mm:	5cm
+start frequency exponent (10^) in Hz:	1.0
+stop frequency exponent (10^) in Hz:	13.0
+linear (1) or logarithmic (0) or both (2) frequency scan:	0
+sampling frequency exponent (10^) in Hz (for linear):	8.0
+Number of points per decade (for log):	10
+when both, fmin of the refinement (in THz):	0.1
+when both, fmax of the refinement (in THz):	5.0
+when both, number of points in the refinement:	5000
+added frequencies (Hz):	1.e-02 1.e-01 1.e+00 1.e+15
+linear (1) or logarithmic (0) or both (2) scan in z for the wake:	2
+sampling distance in m for the linear sampling:	5e-07
+zmin in m of the linear sampling:	5e-07
+zmax in m of the linear sampling:	0.001
+Number of points per decade for the logarithmic sampling:	100
+exponent (10^) of zmin (in m) of the logarithmic sampling:	-2.0
+exponent (10^) of zmax (in m) of the logarithmic sampling:	6.0
+added z [m]:	 
+Yokoya factors long, xdip, ydip, xquad, yquad:	1. 1. 1. 0. 0.
+factor weighting the longitudinal impedance error:	100.0
+tolerance (in wake units) to achieve:	1e+12
+frequency above which the mesh bisecting is linear [Hz]:	1e+11
+Comments for the output files names:	
