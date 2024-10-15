@@ -47,6 +47,6 @@ setup(
         'pandas'
         ],
     extras_require={
-        'tests': ['pytest'],
+        'tests': ['pytest', 'PyHEADTAIL'],
         },
     )
