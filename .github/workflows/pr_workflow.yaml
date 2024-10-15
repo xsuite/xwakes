@@ -17,8 +17,7 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install numpy
-          pip install xtrack xpart xfields nafflib PyHEADTAIL
+          pip install xtrack xpart xfields nafflib
           pip install .[tests]
       - name: Run tests
         run: |
