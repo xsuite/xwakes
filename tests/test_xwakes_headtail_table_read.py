@@ -2,10 +2,12 @@ import xobjects as xo
 import xwakes as xw
 
 import numpy as np
+import pathlib
+
+data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
 
 def test_headail_table_read():
-    wake_table_name = xw.general._pkg_root.joinpath(
-        '../test_data/HLLHC_wake.dat')
+    wake_table_name = data_folder / 'HLLHC_wake.dat'
     wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
                         'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
                         'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
