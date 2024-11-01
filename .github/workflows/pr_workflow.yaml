@@ -23,5 +23,4 @@ jobs:
           pip install --no-build-isolation .[tests]
       - name: Run tests
         run: |
-          cd tests
-          pytest -v
+          pytest -v tests
