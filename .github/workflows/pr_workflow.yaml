@@ -23,4 +23,4 @@ jobs:
           pip install --no-build-isolation .[tests]
       - name: Run tests
         run: |
-          pytest -v tests
+          pytest -v -x tests
