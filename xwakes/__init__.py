@@ -8,3 +8,6 @@ from .thick_resistive_wall import WakeThickResistiveWall
 from .yokoya import Yokoya
 from .read_headtail_table import read_headtail_file
 from .config_pipeline_for_wakes import config_pipeline_for_wakes
+from .beam_elements.transverse_damper import TransverseDamper
+from .beam_elements.collective_monitor import CollectiveMonitor
+
