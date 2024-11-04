@@ -8,8 +8,8 @@ import xwakes as xw
 import xtrack as xt
 import xobjects as xo
 
-test_data_folder = xw.general._pkg_root.joinpath(
-        '../test_data')
+test_data_folder = pathlib.Path(__file__).parent.joinpath(
+    '../test_data').absolute()
 
 def test_xwakes_kick_vs_pyheadtail_table_dipolar():
 
