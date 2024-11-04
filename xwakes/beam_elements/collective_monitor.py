@@ -1,6 +1,6 @@
 import numpy as np
 
-from xfields import ElementWithSlicer
+from xfields.beam_elements.element_with_slicer import ElementWithSlicer
 import json
 import os
 import xfields as xf
