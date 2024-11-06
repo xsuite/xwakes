@@ -8,6 +8,10 @@ import pytest
 from scipy.constants import e as qe, c as c_light
 import pandas as pd
 import numpy as np
+import pathlib
+
+test_data_folder = pathlib.Path(__file__).parent.joinpath(
+    '../test_data').absolute()
 
 exclude_contexts = ['ContextPyopencl', 'ContextCupy']
 
@@ -552,8 +556,9 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     print('Initialising wake')
     n_turns_wake = 1
     circumference = n_slots * bunch_spacing
-    wake_table_name = xw.general._pkg_root.joinpath(
-        '../test_data/HLLHC_wake.dat')
+    wake_table_name = (test_data_folder /
+                    'headtail_format_table_hllhc/HLLHC_wake_flattop_nocrab.dat')
+
     wake_file_columns = ['time', 'longitudinal', 'dipolar_x', 'dipolar_y',
                             'quadrupolar_x', 'quadrupolar_y', 'dipolar_xy',
                             'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
