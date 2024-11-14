@@ -381,6 +381,8 @@ class CollectiveMonitor(ElementWithSlicer):
                 raise ValueError('The length of the particle monitor mask is '
                                  'different from the number of particles being tracked')
             val = getattr(particles, stat)[self.particle_monitor_mask]
+            # here we need to use self.i_turn - 1 because the turn is
+            # incremented before calling this method
             self.particle_buffer[stat][(self.i_turn - 1) %
                                        self.flush_data_every, :] = val
 
