@@ -96,9 +96,10 @@ class Component:
         sampling of the wake function. If not specified, the wake function will be sampled uniformly on a logarithmic scale.
         """
 
-        assert kind in KIND_DEFINITIONS, ("Invalid kind specified: {kind}."
-                                          "Must be one of"
-                                          f"{KIND_DEFINITIONS.keys()}")
+        if kind is not None:
+            assert kind in KIND_DEFINITIONS, (f"Invalid kind specified: {kind}."
+                                            "Must be one of"
+                                            f"{KIND_DEFINITIONS.keys()}")
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=None,
