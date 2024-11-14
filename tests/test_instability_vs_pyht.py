@@ -61,10 +61,9 @@ def test_instability_cpu_gpu(test_context):
 
     n_slices_wakes = 200
     limit_z = 3 * sigma_z
-    wake_folder = pathlib.Path(
-        __file__).parent.joinpath('../../xtrack/examples/pyheadtail_interface/wakes').absolute()
-    wakefile = wake_folder.joinpath(
-        "wakeforhdtl_PyZbase_Allthemachine_7000GeV_B1_2021_TeleIndex1_wake.dat")
+    data_folder = pathlib.Path(__file__).parent.joinpath('../test_data').absolute()
+    wakefile = (data_folder / 'headtail_format_table_hllhc' /
+                'HLLHC_wake_dip_quad.dat')
     slicer_for_wakefields = UniformBinSlicer(n_slices_wakes, z_cuts=(-limit_z, limit_z))
     waketable = WakeTable(
         wakefile, ["time", "dipole_x", "dipole_y", "quadrupole_x", "quadrupole_y"]
