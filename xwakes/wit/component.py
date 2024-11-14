@@ -89,10 +89,16 @@ class Component:
         :param test_exponents: The exponents in the x and y planes experienced by the source particle. Also
         referred to as 'a' and 'b'. Must be specified for valid initialization
         :param name: An optional user-specified name of the component
+        :param f_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
+        sampling of the impedance function. If not specified, the impedance function will be sampled uniformly on a
+        logarithmic scale.
+        :param t_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
+        sampling of the wake function. If not specified, the wake function will be sampled uniformly on a logarithmic scale.
         """
 
-        assert (kind in KIND_DEFINITIONS,
-                f"Invalid kind specified: {kind}. Must be one of {KIND_DEFINITIONS.keys()}")
+        assert kind in KIND_DEFINITIONS, ("Invalid kind specified: {kind}."
+                                          "Must be one of"
+                                          f"{KIND_DEFINITIONS.keys()}")
 
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                                     kind=kind, exponents=None,
@@ -101,7 +107,7 @@ class Component:
                                     plane=plane)
 
         # Enforces that either impedance or wake is defined.
-        assert impedance or wake, "The impedance- and wake functions cannot both be undefined."
+        assert impedance or wake, "The impedance and wake functions cannot both be undefined."
         # The impedance- and wake functions as callable objects, e.g lambda functions
         self._impedance = impedance
         self._wake = wake
