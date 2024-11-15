@@ -9,25 +9,12 @@ from scipy.constants import e as qe, c as c_light
 import pandas as pd
 import numpy as np
 import pathlib
+from xwakes.wit.component import KIND_DEFINITIONS as kind_to_parameters
 
 test_data_folder = pathlib.Path(__file__).parent.joinpath(
     '../test_data').absolute()
 
 exclude_contexts = ['ContextPyopencl', 'ContextCupy']
-
-kind_to_parameters = {
-    'longitudinal': {'plane': 'z', 'source_exponents': (0, 0), 'test_exponents': (0, 0)},
-    'constant_x': {'plane': 'x', 'source_exponents': (0, 0), 'test_exponents': (0, 0)},
-    'constant_y': {'plane': 'y', 'source_exponents': (0, 0), 'test_exponents': (0, 0)},
-    'dipolar_x': {'plane': 'x', 'source_exponents': (1, 0), 'test_exponents': (0, 0)},
-    'dipolar_xy': {'plane': 'x', 'source_exponents': (0, 1), 'test_exponents': (0, 0)},
-    'dipolar_yx': {'plane': 'y', 'source_exponents': (1, 0), 'test_exponents': (0, 0)},
-    'dipolar_y': {'plane': 'y', 'source_exponents': (0, 1), 'test_exponents': (0, 0)},
-    'quadrupolar_x': {'plane': 'x', 'source_exponents': (0, 0), 'test_exponents': (1, 0)},
-    'quadrupolar_y': {'plane': 'y', 'source_exponents': (0, 0), 'test_exponents': (0, 1)},
-    'quadrupolar_xy': {'plane': 'x', 'source_exponents': (0, 0), 'test_exponents': (0, 1)},
-    'quadrupolar_yx': {'plane': 'y', 'source_exponents': (0, 0), 'test_exponents': (1, 0)},
-}
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
@@ -414,7 +401,7 @@ def test_wake_kick_multiturn(test_context, kind):
     ], ids=lambda x: '_'.join(x))
 def test_wake_kick_multiturn_reset(test_context, kind):
     # a more explicit test on multi-turn wake kick reset.
-    # we track for n_turns_wake, set the weights to zeor and track for
+    # we track for n_turns_wake, set the weights to zero and track for
     # n_turns_wake-1 after which we track for another turn checking that no
     # kick is applied to the particles
     num_turns_wake = 4
