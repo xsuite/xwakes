@@ -90,10 +90,11 @@ class Component:
         referred to as 'a' and 'b'. Must be specified for valid initialization
         :param name: An optional user-specified name of the component
         :param f_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
-        sampling of the impedance function. If not specified, the impedance function will be sampled uniformly on a
-        logarithmic scale.
+        sampling of the impedance function. If not specified, upon discretization the impedance function will be
+        sampled uniformly on a logarithmic scale.
         :param t_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
-        sampling of the wake function. If not specified, the wake function will be sampled uniformly on a logarithmic scale.
+        sampling of the wake function. If not specified, upon discretization the wake function will be sampled
+        uniformly on a logarithmic scale.
         """
 
         if kind is not None:
