@@ -1,5 +1,5 @@
 
-# Run with: mpiexec -n 2 python 001c_instability_wake_table_multibunch_mpi.py
+# Run with: mpiexec -n 2 python 001c_hllhc_instability_wake_table_multibunch_mpi.py
 
 import xtrack as xt
 import xpart as xp
