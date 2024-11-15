@@ -1,6 +1,3 @@
-
-# Run with: mpiexec -n 2 python 001b_instability_wake_table_multibunch.py
-
 import xtrack as xt
 import xpart as xp
 import xfields as xf
