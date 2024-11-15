@@ -1,4 +1,4 @@
-# mpiexec -n 3 pytetst test_slicer_with_filling_scheme_mpi.py
+# mpiexec -n 3 pytest test_wakefield_mpi.py
 
 import xfields as xf
 import xtrack as xt
