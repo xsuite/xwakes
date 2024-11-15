@@ -317,7 +317,9 @@ class CollectiveMonitor(ElementWithSlicer):
                     else:
                         raise ValueError('Unknown statistics f{stat}')
 
-                self.bunch_buffer[bid][stat][self.i_turn %
+                # here we need to use self.i_turn - 1 because the turn is
+                # incremented before calling this method
+                self.bunch_buffer[bid][stat][(self.i_turn - 1) %
                                              self.flush_data_every] = val
 
     def _update_slice_buffer(self, particles):
@@ -367,7 +369,9 @@ class CollectiveMonitor(ElementWithSlicer):
                 else:
                     raise ValueError('Unknown statistics f{stat}')
 
-                self.slice_buffer[bid][stat][self.i_turn %
+                # here we need to use self.i_turn - 1 because the turn is
+                # incremented before calling this method
+                self.slice_buffer[bid][stat][(self.i_turn - 1) %
                                              self.flush_data_every, :] = val
 
     def _update_particle_buffer(self, particles):
@@ -377,7 +381,9 @@ class CollectiveMonitor(ElementWithSlicer):
                 raise ValueError('The length of the particle monitor mask is '
                                  'different from the number of particles being tracked')
             val = getattr(particles, stat)[self.particle_monitor_mask]
-            self.particle_buffer[stat][self.i_turn %
+            # here we need to use self.i_turn - 1 because the turn is
+            # incremented before calling this method
+            self.particle_buffer[stat][(self.i_turn - 1) %
                                        self.flush_data_every, :] = val
 
 

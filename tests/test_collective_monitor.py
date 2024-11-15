@@ -649,3 +649,90 @@ def test_particle_monitor_json(test_context):
         for turn in range(2*flush_data_every):
             assert np.allclose(getattr(particles, stat)[particle_monitor_mask],
                                saved_data[turn][:])
+
+
+@for_all_test_contexts
+def test_flush_every(test_context):
+    n_macroparticles = int(1e6)
+    zeta_range = (-1, 1)
+
+    energy = 7e12
+
+    offs_x = 1e-3
+    offs_px = 2e-3
+    offs_y = 3e-3
+    offs_py = 4e-3
+    offs_zeta = 5e-3
+    offs_delta = 6e-3
+
+    sigma_x = 1e-3
+    sigma_px = 2e-3
+    sigma_y = 3e-3
+    sigma_py = 4e-3
+    sigma_zeta = 5e-3
+    sigma_delta = 6e-3
+
+    # base coordinates
+    x_coord = sigma_x * np.random.random(n_macroparticles) + offs_x
+    px_coord = sigma_px * np.random.random(n_macroparticles) + offs_px
+    y_coord = sigma_y * np.random.random(n_macroparticles) + offs_y
+    py_coord = sigma_py * np.random.random(n_macroparticles) + offs_py
+    zeta_coord = sigma_zeta * np.random.random(n_macroparticles) + offs_zeta
+    delta_coord = sigma_delta * np.random.random(n_macroparticles) + offs_delta
+
+    # n_bunches bunches with n_macroparticles each with different coordinates
+    particles = xt.Particles(
+        _context=test_context, p0c=energy,
+        x=x_coord,
+        px=px_coord,
+        y=y_coord,
+        py=py_coord,
+        zeta=zeta_coord,
+        delta=delta_coord,
+    )
+
+    flush_data_every = 10
+
+    monitor_10 = xw.CollectiveMonitor(
+        base_file_name='test_monitor_10',
+        backend='hdf5',
+        monitor_bunches=True,
+        monitor_slices=False,
+        monitor_particles=False,
+        flush_data_every=flush_data_every,
+        zeta_range=zeta_range,
+    )
+
+    flush_data_every = 1
+
+    monitor_1 = xw.CollectiveMonitor(
+        base_file_name='test_monitor_1',
+        backend='hdf5',
+        monitor_bunches=True,
+        monitor_slices=False,
+        monitor_particles=False,
+        flush_data_every=flush_data_every,
+        zeta_range=zeta_range,
+    )
+
+    # track for twice flush_data_every turns so that we test the reshaping
+    for _ in range(20):
+        particles.x += 1
+        monitor_10.track(particles)
+        monitor_1.track(particles)
+
+    dict_10 = {}
+    dict_1 = {}
+
+    with h5py.File(monitor_10._bunches_filename, 'r') as h5file:
+        group_10 = h5file[str(0)]
+        for kk in group_10.keys():
+            dict_10[kk] = group_10[kk][:]
+
+    with h5py.File(monitor_1._bunches_filename, 'r') as h5file:
+        group_1 = h5file[str(0)]
+        for kk in group_1.keys():
+            dict_1[kk] = group_1[kk][:]
+
+    for kk in dict_10.keys():
+        assert np.allclose(dict_10[kk], dict_1[kk])
