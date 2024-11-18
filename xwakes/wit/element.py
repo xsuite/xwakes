@@ -230,7 +230,7 @@ class Element:
         Implements the __rad__ method for the Element class. This is only done to facilitate the syntactically
         practical use of the sum() method for Elements. sum(iterable) works by adding all of the elements of the
         iterable to 0 sequentially. Thus, the behavior of the initial 0 + iterable[0] needs to be defined. In the case
-        that the left addend of any addition involving an Element is not itself an Element, the resulting sum
+        that the left addend of any addition involving an Element is 0, the resulting sum
         is simply defined to be the right addend.
         :param other: The left addend of an addition
         :return: The sum of self and other if other is an Element, otherwise just self.
