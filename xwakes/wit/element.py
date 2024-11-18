@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .component import Component, Union
+from .component import Component, Union, KIND_DEFINITIONS
 
 from typing import List
 from collections import defaultdict
@@ -236,7 +236,7 @@ class Element:
         :return: The sum of self and other if other is an Element, otherwise just self.
         """
         # Checks if the left addend, other, is not an Element
-        if not other == 0:
+        if other == 0:
             # In which case, the right addend is simply returned
             return self
 
@@ -312,18 +312,7 @@ class Element:
 
 
 class ElementFromTable(Element):
-    components_dict = {'longitudinal': ('z', (0, 0, 0, 0)),
-                       'constant_x': ('x', (0, 0, 0, 0)),
-                       'constant_y': ('y', (0, 0, 0, 0)),
-                       'dipole_x': ('x', (1, 0, 0, 0)),
-                       'dipole_y': ('y', (0, 1, 0, 0)),
-                       'dipole_xy': ('x', (0, 1, 0, 0)),
-                       'dipole_yx': ('y', (1, 0, 0, 0)),
-                       'quadrupole_x': ('x', (0, 0, 1, 0)),
-                       'quadrupole_y': ('y', (0, 0, 0, 1)),
-                       'quadrupole_xy': ('x', (0, 0, 0, 1)),
-                       'quadrupole_yx': ('y', (0, 0, 1, 0)),
-    }
+    components_dict = KIND_DEFINITIONS
     '''
     An element whose components are defined point-by-point in a wake table
     and/or an impedance table. The tables are given as pandas dataframes and
