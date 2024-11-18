@@ -9,6 +9,7 @@ import numpy as np
 from scipy.constants import c as c_light, mu_0 as mu0, epsilon_0 as eps0
 from numpy.typing import ArrayLike
 from scipy import special as sp
+from scipy.interpolate import interp1d
 
 if hasattr(np, 'trapezoid'):
     trapz = np.trapezoid # numpy 2.0
@@ -1348,6 +1349,54 @@ class ComponentInterpolated(Component):
         else:
             return np.zeros_like(t)
 
+
+class ComponentFromArrays(Component):
+    def __init__(self,
+                 interpolation_frequencies: ArrayLike = None,
+                 impedance_samples: ArrayLike = None,
+                 interpolation_times: ArrayLike = None,
+                 wake_samples: ArrayLike = None,
+                 kind: str = None,
+                 plane: str = None,
+                 source_exponents: Tuple[int, int] = None,
+                 test_exponents: Tuple[int, int] = None,
+                 name: str = "Interpolated Component",
+                 f_rois: Optional[List[Tuple[float, float]]] = None,
+                 t_rois: Optional[List[Tuple[float, float]]] = None):
+
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                            kind=kind, exponents=None,
+                            source_exponents=source_exponents,
+                            test_exponents=test_exponents,
+                            plane=plane)
+
+        self.interpolation_frequencies = interpolation_frequencies
+        self.impedance_samples = impedance_samples
+
+        self.interpolation_times = interpolation_times
+        self.wake_samples = wake_samples
+
+        if self.interpolation_frequencies is not None:
+            impedance = interp1d(self.interpolation_frequencies,
+                                 self.impedance_samples)
+        else:
+            impedance = lambda f: 0
+
+        if self.interpolation_times is not None:
+            wake = interp1d(self.interpolation_times,
+                            self.wake_samples,
+                            # pad with zeros outside the range
+                            fill_value=0, bounds_error=False
+                            )
+        else:
+            wake = lambda t: 0
+
+        super().__init__(impedance=impedance, wake=wake, plane=plane,
+                         source_exponents=source_exponents,
+                         test_exponents=test_exponents,
+                         f_rois=f_rois, t_rois=t_rois,
+                         name=name)
+
     def function_vs_t(self, t, beta0, dt):
 
         assert dt > 0
@@ -1360,14 +1409,15 @@ class ComponentInterpolated(Component):
 
         # Handle discontinuity at edges (consistently with beam loading theorem)
         mask_left_edge = np.abs(t - self.interpolation_times[0]) < dt / 2
-        out[mask_left_edge] = self.wake_input[0] / 2.
+        out[mask_left_edge] = self.wake_samples[0] / 2.
         mask_right_edge = np.abs(t - self.interpolation_times[-1]) < dt / 2
-        out[mask_right_edge] = self.wake_input[-1] / 2.
+        out[mask_right_edge] = self.wake_samples[-1] / 2.
 
         if isscalar:
             out = out[0]
 
         return out
+
 
 
 def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_exponents, plane):

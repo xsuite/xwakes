@@ -4,7 +4,8 @@ from pywit.utilities import (create_resonator_component, create_resonator_elemen
                              create_resistive_wall_single_layer_approx_element,
                              create_taper_RW_approx_component,
                              create_element_from_table,
-                             create_interpolated_component)
+                             create_interpolated_component,
+                             create_component_from_arrays)
 
 from xwakes.wit.component import ComponentSingleLayerResistiveWall
 from xwakes.wit.interface_dataclasses import _IW2DInputBase
@@ -652,9 +653,6 @@ def test_element_from_impedance_table_wrong_columns():
                                             description='description')
 
 def test_interpolated_component():
-    wake_callable = lambda t: 2*t
-    impedance_callable = lambda f: 3*f
-
     interpolation_frequencies = np.linspace(0, 1, 10)
     interpolation_times = np.linspace(10, 100, 10)
 
@@ -663,8 +661,8 @@ def test_interpolated_component():
         plane='z',
         source_exponents=(0, 0),
         test_exponents=(0, 0),
-        wake=wake_callable,
-        impedance=impedance_callable,
+        wake=lambda t: 2*t,
+        impedance=lambda f: 3*f,
         interpolation_frequencies=interpolation_frequencies,
         interpolation_times=interpolation_times)
 
@@ -677,6 +675,36 @@ def test_interpolated_component():
                                         100)
 
     xo.assert_allclose(component.wake(test_points_wake),
-            wake_callable(test_points_wake))
+            test_points_wake*2)
     xo.assert_allclose(component.impedance(test_points_impedance),
-            impedance_callable(test_points_impedance))
+            test_points_impedance*3)
+
+
+def test_component_from_arrays():
+    interpolation_frequencies = np.linspace(0, 1, 10)
+    interpolation_times = np.linspace(10, 100, 10)
+
+    impedance_samples = interpolation_frequencies*2
+    wake_samples = interpolation_times*3
+
+    component = create_component_from_arrays(
+        plane='z',
+        source_exponents=(0, 0),
+        test_exponents=(0, 0),
+        wake_samples=wake_samples,
+        impedance_samples=impedance_samples,
+        interpolation_frequencies=interpolation_frequencies,
+        interpolation_times=interpolation_times)
+
+    test_points_wake = np.linspace(np.min(interpolation_times),
+                                   np.max(interpolation_times),
+                                   100)
+
+    test_points_impedance = np.linspace(np.min(interpolation_frequencies),
+                                        np.max(interpolation_frequencies),
+                                        100)
+
+    xo.assert_allclose(component.impedance(test_points_impedance),
+            test_points_impedance*2)
+    xo.assert_allclose(component.wake(test_points_wake),
+            test_points_wake*3)

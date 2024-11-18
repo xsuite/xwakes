@@ -2,7 +2,8 @@ from .component import (Component, ComponentResonator,
                         ComponentClassicThickWall,
                         ComponentSingleLayerResistiveWall,
                         ComponentTaperSingleLayerRestsistiveWall,
-                        ComponentInterpolated)
+                        ComponentInterpolated,
+                        ComponentFromArrays)
 from .element import Element, ElementFromTable
 from .interface_dataclasses import FlatIW2DInput, RoundIW2DInput
 from .interface import component_names
@@ -417,6 +418,50 @@ def create_interpolated_component(interpolation_frequencies: ArrayLike,
                                  interpolation_frequencies=interpolation_frequencies,
                                  interpolation_times=interpolation_times,
                                  f_rois=f_rois, t_rois=t_rois)
+
+
+def create_component_from_arrays(interpolation_frequencies: ArrayLike = None,
+                                 impedance_samples: ArrayLike = None,
+                                 interpolation_times: ArrayLike = None,
+                                 wake_samples: ArrayLike = None,
+                                 plane: str = None,
+                                 source_exponents: Tuple[int, int] = None,
+                                 test_exponents: Tuple[int, int] = None,
+                                 name: str = "Interpolated Component",
+                                 f_rois: Optional[List[Tuple[float, float]]] = None,
+                                 t_rois: Optional[List[Tuple[float, float]]] = None):
+    """
+    Creates a component from impedance and/or wake functions defined discretely
+    through arrays
+    :param interpolation_frequencies: the frequencies where the impedance
+    function is evaluated for the interpolation
+    :param impedance: A callable function representing the impedance function of
+    the Component. Can be undefined if
+    the wake function is defined.
+    :param interpolation_times: the times where the wake function is evaluated
+    for the interpolation
+    :param wake: A callable function representing the wake function of the
+    Component. Can be undefined if the impedance function is defined.
+    :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
+    specified for valid initialization
+    :param source_exponents: The exponents in the x and y planes experienced by
+    the source particle. Also
+    referred to as 'a' and 'b'. Must be specified for valid initialization
+    :param test_exponents: The exponents in the x and y planes experienced by
+    the source particle. Also
+    referred to as 'a' and 'b'. Must be specified for valid initialization
+    :param name: An optional user-specified name of the component
+    :param f_rois: a list of frequency regions of interest
+    :param t_rois: a list of time regions of interest
+    """
+    return ComponentFromArrays(impedance_samples=impedance_samples,
+                               wake_samples=wake_samples,
+                               plane=plane, source_exponents=source_exponents,
+                               test_exponents=test_exponents, name=name,
+                               interpolation_frequencies=interpolation_frequencies,
+                               interpolation_times=interpolation_times,
+                               f_rois=f_rois, t_rois=t_rois)
+
 
 def create_element_from_table(wake_table: pd.DataFrame = None,
                               impedance_table: pd.DataFrame = None,
