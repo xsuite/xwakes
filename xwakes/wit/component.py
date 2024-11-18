@@ -582,20 +582,19 @@ class ComponentResonator(Component):
         plane = self.plane
         omega_r = 2 * np.pi * f_r
         root_term = np.sqrt(1 - 1 / (4 * q ** 2) + 0J)
+        omega_bar = omega_r * root_term
+        alpha = omega_r / (2 * q)
         if plane == 'z':
-            omega_bar = omega_r * root_term
-            alpha = omega_r / (2 * q)
             out = np.zeros_like(t)
             mask = t >= 0
             out[mask] = factor * (omega_r * r * np.exp(-alpha * t[mask]) * (
                    np.cos(omega_bar * t[mask]) -
                    alpha * np.sin(omega_bar * t[mask]) / omega_bar) / q).real
         else:
-            omega_bar = omega_r * root_term
             out = np.zeros_like(t)
             mask = t >= 0
-            out[mask] = factor * (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
-                   np.sin(omega_r * root_term * t[mask]) /
+            out[mask] = factor * (omega_r * r * np.exp(-alpha * t[mask]) *
+                   np.sin(omega_bar * t[mask]) /
                    (q * root_term)).real
         return out
 
