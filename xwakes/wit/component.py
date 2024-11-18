@@ -1374,14 +1374,14 @@ def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_ex
 
     if kind is not None:
         assert exponents is None, (
-            "If kind is specified, `exponents` should not be specified.")
+            "If `kind` is specified, `exponents` should not be specified.")
         assert source_exponents is None and test_exponents is None, (
-            "If kind is specified, `source_exponents` and test_exponents should "
+            "If `kind` is specified, `source_exponents` and `test_exponents` should "
             "not be specified.")
         assert test_exponents is None, (
-            "If kind is specified, `test_exponents` should not be specified.")
+            "If `kind` is specified, `test_exponents` should not be specified.")
         assert plane is None, (
-            "If kind is specified, `plane` should not be specified.")
+            "If `kind` is specified, `plane` should not be specified.")
         assert kind in KIND_DEFINITIONS, f'Unknown kind {kind}'
         source_exponents, test_exponents, plane = (
             KIND_DEFINITIONS[kind]['source_exponents'],
