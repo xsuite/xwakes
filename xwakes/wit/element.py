@@ -236,7 +236,7 @@ class Element:
         :return: The sum of self and other if other is an Element, otherwise just self.
         """
         # Checks if the left addend, other, is not an Element
-        if not isinstance(other, Element):
+        if not other == 0:
             # In which case, the right addend is simply returned
             return self
 
