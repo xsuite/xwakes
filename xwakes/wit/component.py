@@ -1336,13 +1336,13 @@ class ComponentInterpolated(Component):
     def impedance(self, f):
         if self.impedance_input is not None:
             return np.interp(f, self.interpolation_frequencies,
-                             self.impedance_input)
+                             self.impedance_input(self.interpolation_frequencies))
         else:
             return np.zeros_like(f)
 
     def wake(self, t):
         if self.wake_input is not None:
-            return np.interp(t, self.interpolation_times, self.wake_input,
+            return np.interp(t, self.interpolation_times, self.wake_input(self.interpolation_times),
                              left=0, right=0 # pad with zeros outside the range
             )
         else:
