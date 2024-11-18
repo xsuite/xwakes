@@ -312,15 +312,15 @@ class Element:
 
 
 class ElementFromTable(Element):
-    components_dict = KIND_DEFINITIONS
     '''
     An element whose components are defined point-by-point in a wake table
     and/or an impedance table. The tables are given as pandas dataframes and
     they must specify the time and frequency columns respectively and all the
-    components specified in the use_components list.
+    components specified in the use_components list. If both the wake and
+    impedance tables are given, the tables must contain the same components.
     '''
-    def __init__(self, wake_table: pd.dataframe = None,
-                 impedance_table: pd.dataframe = None,
+    def __init__(self, wake_table: pd.DataFrame = None,
+                 impedance_table: pd.DataFrame = None,
                  use_components: List['str'] = None,
                  length: float = 0,
                  beta_x: float = 0, beta_y: float = 0,
@@ -347,23 +347,62 @@ class ElementFromTable(Element):
             longitudinal, constant_x, constant_y, dipole_x, dipole_y,
             dipole_xy, dipole_yx, quadrupole_x, quadrupole_y, quadrupole_xy,
             quadrupole_yx.
+        length : float
+            The length of the element in meters
+        beta_x : float
+            The beta function in the x-plane at the position of the element in meters
+        beta_y : float
+            The beta function in the y-plane at the position of the element in meters
+        name : str
+            An optional user-specified name of the element
+        tag : str
+            A string to tag the element
+        description : str
+            A description for the element
         '''
         self.wake_table = wake_table
         self.impedance_table = impedance_table
 
-        for component in use_components:
-            if component not in self.component_names:
-                raise ValueError(
-                    f"Invalid wake component: {component}. "
-                    f"Valid wake components are: {self.component_names.keys()}")
+        if wake_table is not None and impedance_table is not None:
+            wake_table_columns = wake_table.columns.tolist()
+            wake_table_columns.remove('time')
+            impedance_table_columns = impedance_table.columns.tolist()
+            impedance_table_columns.remove('frequency')
+            assert wake_table_columns == impedance_table_columns, \
+                "The columns of the wake and impedance tables must be the same."
+            self.component_names = wake_table_columns
+        elif wake_table is not None:
+            wake_table_columns = wake_table.columns.tolist()
+            wake_table_columns.remove('time')
+            self.component_names = wake_table_columns
+        elif impedance_table is not None:
+            impedance_table_columns = impedance_table.columns.tolist()
+            impedance_table_columns.remove('frequency')
+            self.component_names = impedance_table_columns
+        else:
+            raise ValueError("At least one of wake_table or impedance_table "
+                             "must be specified.")
 
-        if 'time' not in list(wake_table.keys()):
-                    raise ValueError("No wake_table column with name 'time'" +
-                                    "has been specified. \n")
+        if wake_table is not None:
+            for component in use_components:
+                if component not in self.component_names:
+                    raise ValueError(
+                        f"Invalid wake component: {component}. "
+                        f"Valid wake components are: {self.component_names}")
+            if 'time' not in list(wake_table.keys()):
+                        raise ValueError("No wake_table column with name 'time'" +
+                                        "has been specified. \n")
 
-        if 'frequency' not in list(impedance_table.keys()):
-                    raise ValueError("No impedance_table column with name " +
-                                     "'frequency' has been specified. \n")
+        if impedance_table is not None:
+            for component in use_components:
+                if component not in self.component_names:
+                    raise ValueError(
+                        f"Invalid impedance component: {component}. "
+                        f"Valid impedance components are: {self.component_names}")
+
+            if 'frequency' not in list(impedance_table.keys()):
+                        raise ValueError("No impedance_table column with name " +
+                                        "'frequency' has been specified. \n")
 
         components = []
 
@@ -391,10 +430,9 @@ class ElementFromTable(Element):
             else:
                 impedance_function = lambda f: 0
 
-            plane, exponents = self.components_dict[component_str]
-
-            source_exponents = exponents[:2]
-            test_exponents = exponents[2:]
+            plane = KIND_DEFINITIONS[component_str]['plane']
+            source_exponents = KIND_DEFINITIONS[component_str]['source_exponents']
+            test_exponents = KIND_DEFINITIONS[component_str]['test_exponents']
 
             components.append(Component(impedance=impedance_function,
                                         wake=wake_function,

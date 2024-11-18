@@ -1325,7 +1325,7 @@ class ComponentInterpolated(Component):
                 "and the interpolation times must be given")
 
         self.interpolation_times = interpolation_times
-        self.wake_samples = wake_input(self.wake_samples)
+        self.wake_samples = wake_input(self.interpolation_times)
 
         super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
                        source_exponents=source_exponents,
@@ -1334,15 +1334,15 @@ class ComponentInterpolated(Component):
                        name=name)
 
     def impedance(self, f):
-        if self.impedance_input is not None:
+        if hasattr(self, 'impedance_samples') is not None:
             return np.interp(f, self.interpolation_frequencies,
                              self.impedance_samples)
         else:
             return np.zeros_like(f)
 
     def wake(self, t):
-        if self.wake_input is not None:
-            return np.interp(t, self.interpolation_times, self.wake_input,
+        if hasattr(self, 'wake_samples'):
+            return np.interp(t, self.interpolation_times, self.wake_samples,
                              left=0, right=0 # pad with zeros outside the range
             )
         else:
