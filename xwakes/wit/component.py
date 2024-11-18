@@ -305,7 +305,7 @@ class Component:
         """
 
         # Checks if the left addend, other, is not a Component
-        if  other == 0:
+        if other == 0:
             # In which case, the right addend is simply returned
             return self
         elif not isinstance(other, Component):
