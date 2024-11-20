@@ -1,8 +1,3 @@
-# copyright ############################### #
-# This file is part of the Xwakes Package.  #
-# Copyright (c) CERN, 2021.                 #
-# ######################################### #
-
 from setuptools import setup, find_packages, Extension
 from pathlib import Path
 
