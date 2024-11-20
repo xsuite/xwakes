@@ -712,10 +712,11 @@ class ComponentClassicThickWall(Component):
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = factor * length * ((1 + np.sign(f)*1j) * material_resistivity
-                            / (np.pi * radius**3 * (2 * np.pi * f * np.sqrt(eps0 * mu0)))
-                            / self.delta_skin(f, material_resistivity,
-                                              material_magnetic_permeability))
+            out = factor * c_light * length * ((1 + np.sign(f)*1j)
+                * material_resistivity
+                / (np.pi * radius**3 * (2 * np.pi * f ))
+                / self.delta_skin(f, material_resistivity,
+                                    material_magnetic_permeability))
         else:
             raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
