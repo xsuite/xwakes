@@ -3,14 +3,20 @@ from pywit.utilities import (create_resonator_component, create_resonator_elemen
                              create_resistive_wall_single_layer_approx_component,
                              create_resistive_wall_single_layer_approx_element,
                              create_taper_RW_approx_component,
-                             create_taper_RW_approx_element)
-from xwakes.wit.utilities import (_zlong_round_single_layer_approx,
-                                  _zdip_round_single_layer_approx)
+                             create_element_from_table,
+                             create_interpolated_component,
+                             create_component_from_arrays)
+
+from xwakes.wit.component import ComponentSingleLayerResistiveWall
+from xwakes.wit.interface_dataclasses import _IW2DInputBase
+from xwakes.wit.component import KIND_DEFINITIONS
+
+import xobjects as xo
+
 from test_common import relative_error
 from pywit.parameters import *
 from pywit.interface import (FlatIW2DInput, RoundIW2DInput, Sampling,
                              component_names)
-from xwakes.wit.interface import _IW2DInputBase
 from pywit.materials import layer_from_json_material_library, copper_at_temperature
 
 from typing import Dict
@@ -19,7 +25,7 @@ from pathlib import Path
 from pytest import raises, mark, fixture
 import numpy as np
 from numpy import testing as npt
-
+import pandas as pd
 
 def test_incompatible_dictionaries():
     rs = {"z0000": 2}
@@ -450,15 +456,259 @@ def test_taper_RW_algorithm(freq, component_id, round_single_layer_input):
 
     for radius in radii:
         if component_id == 'zlong':
-            z_steps += _zlong_round_single_layer_approx(freq,
+            z_steps += ComponentSingleLayerResistiveWall._zlong_round_single_layer_approx(freq,
                             round_single_layer_input.relativistic_gamma,
                             round_single_layer_input.layers[0], radius,
                             round_single_layer_input.length/float(npts))
         else:
-            z_steps += _zdip_round_single_layer_approx(freq,
+            z_steps += ComponentSingleLayerResistiveWall._zdip_round_single_layer_approx(freq,
                             round_single_layer_input.relativistic_gamma,
                             round_single_layer_input.layers[0], radius,
                             round_single_layer_input.length/float(npts))
 
     npt.assert_allclose(comp_taper_trapz.impedance(freq), z_steps, rtol=1e-3)
 
+def test_element_from_wake_table():
+    wake_table = pd.DataFrame.from_dict({
+        'time': np.linspace(0, 1, 100),
+        'longitudinal': np.random.rand(100),
+        'dipolar_x': np.random.rand(100),
+        'dipolar_y': np.random.rand(100),
+        'quadrupolar_x': np.random.rand(100),
+        'quadrupolar_y': np.random.rand(100)
+    })
+
+    test_points = np.linspace(np.min(wake_table['time']),
+                              np.max(wake_table['time']),
+                              100)
+
+    element = create_element_from_table(wake_table=wake_table,
+                                        use_components=wake_table.columns[1:].to_list(),
+                                        length=1,
+                                        beta_x=1,
+                                        beta_y=1,
+                                        name="test element",
+                                        tag="Tag",
+                                        description='description')
+
+    for component in element.components:
+        for component_kind in KIND_DEFINITIONS:
+            kind_definition = KIND_DEFINITIONS[component_kind]
+            component_found = False
+            if (kind_definition['plane'] == component.plane and
+                kind_definition['test_exponents'] == component.test_exponents and
+                kind_definition['source_exponents'] == component.source_exponents):
+                component_found = True
+                break
+
+        assert component_found
+
+        test_wake = np.interp(test_points, wake_table['time'], wake_table[component_kind])
+
+        xo.assert_allclose(component.wake(test_points), test_wake, rtol=1e-3)
+
+def test_element_from_impedance_table():
+    impedance_table = pd.DataFrame.from_dict({
+        'frequency': np.linspace(1e9, 1e10, 100),
+        'longitudinal': np.random.rand(100),
+        'dipolar_x': np.random.rand(100),
+        'dipolar_y': np.random.rand(100),
+        'quadrupolar_x': np.random.rand(100),
+        'quadrupolar_y': np.random.rand(100)
+    })
+
+    test_points = np.linspace(np.min(impedance_table['frequency']),
+                              np.max(impedance_table['frequency']),
+                              100)
+
+    element = create_element_from_table(impedance_table=impedance_table,
+                                        use_components=impedance_table.columns[1:].to_list(),
+                                        length=1,
+                                        beta_x=1,
+                                        beta_y=1,
+                                        name="test element",
+                                        tag="Tag",
+                                        description='description')
+
+    for component in element.components:
+        for component_kind in KIND_DEFINITIONS:
+            kind_definition = KIND_DEFINITIONS[component_kind]
+            component_found = False
+            if (kind_definition['plane'] == component.plane and
+                kind_definition['test_exponents'] == component.test_exponents and
+                kind_definition['source_exponents'] == component.source_exponents):
+                component_found = True
+                break
+
+        assert component_found
+
+        test_impedance = np.interp(test_points, impedance_table['frequency'],
+                                   impedance_table[component_kind])
+
+        xo.assert_allclose(component.impedance(test_points), test_impedance, rtol=1e-3)
+
+def test_element_from_wake_and_impedance_table():
+    wake_table = pd.DataFrame.from_dict({
+        'time': np.linspace(0, 1, 100),
+        'longitudinal': np.random.rand(100),
+        'dipolar_x': np.random.rand(100),
+        'dipolar_y': np.random.rand(100),
+        'quadrupolar_x': np.random.rand(100),
+        'quadrupolar_y': np.random.rand(100)
+    })
+
+    impedance_table = pd.DataFrame.from_dict({
+        'frequency': np.linspace(1e9, 1e10, 100),
+        'longitudinal': np.random.rand(100),
+        'dipolar_x': np.random.rand(100),
+        'dipolar_y': np.random.rand(100),
+        'quadrupolar_x': np.random.rand(100),
+        'quadrupolar_y': np.random.rand(100)
+    })
+
+    test_points_wake = np.linspace(np.min(wake_table['time']),
+                                   np.max(wake_table['time']),
+                                   100)
+
+    test_points_impedance = np.linspace(np.min(impedance_table['frequency']),
+                                        np.max(impedance_table['frequency']),
+                                        100)
+
+    element = create_element_from_table(wake_table=wake_table,
+                                        impedance_table=impedance_table,
+                                        use_components=wake_table.columns[1:].to_list(),
+                                        length=1,
+                                        beta_x=1,
+                                        beta_y=1,
+                                        name="test element",
+                                        tag="Tag",
+                                        description='description')
+
+    for component in element.components:
+        for component_kind in KIND_DEFINITIONS:
+            kind_definition = KIND_DEFINITIONS[component_kind]
+            component_found = False
+            if (kind_definition['plane'] == component.plane and
+                kind_definition['test_exponents'] == component.test_exponents and
+                kind_definition['source_exponents'] == component.source_exponents):
+                component_found = True
+                break
+
+        assert component_found
+
+        assert hasattr(component, 'wake')
+
+        if hasattr(component, 'wake'):
+            test_wake = np.interp(test_points_wake, wake_table['time'],
+                                  wake_table[component_kind])
+
+            xo.assert_allclose(component.wake(test_points_wake), test_wake,
+                               rtol=1e-3)
+
+        assert hasattr(component, 'impedance')
+
+        if hasattr(component, 'impedance'):
+            test_impedance = np.interp(test_points_impedance,
+                                       impedance_table['frequency'],
+                                       impedance_table[component_kind])
+
+            xo.assert_allclose(component.impedance(test_points_impedance),
+                               test_impedance, rtol=1e-3)
+
+
+def test_element_from_wake_table_wrong_columns():
+    wake_table = pd.DataFrame.from_dict({
+        'time': np.linspace(0, 1, 100),
+        'longitudinal': np.random.rand(100),
+        'dipolar_x': np.random.rand(100),
+        'dipolar_y': np.random.rand(100),
+        'quadrupolar_x': np.random.rand(100),
+        'quadrupolar_y': np.random.rand(100)
+    })
+
+    with raises(ValueError):
+        element = create_element_from_table(wake_table=wake_table,
+                                            use_components=['wrong_column'],
+                                            length=1,
+                                            beta_x=1,
+                                            beta_y=1,
+                                            name="test element",
+                                            tag="Tag",
+                                            description='description')
+
+def test_element_from_impedance_table_wrong_columns():
+    impedance_table = pd.DataFrame.from_dict({
+        'frequency': np.linspace(1e9, 1e10, 100),
+        'longitudinal': np.random.rand(100),
+        'dipolar_x': np.random.rand(100),
+        'dipolar_y': np.random.rand(100),
+        'quadrupolar_x': np.random.rand(100),
+        'quadrupolar_y': np.random.rand(100)
+    })
+
+    with raises(ValueError):
+        element = create_element_from_table(impedance_table=impedance_table,
+                                            use_components=['wrong_column'],
+                                            length=1,
+                                            beta_x=1,
+                                            beta_y=1,
+                                            name="test element",
+                                            tag="Tag",
+                                            description='description')
+
+def test_interpolated_component():
+    interpolation_frequencies = np.linspace(0, 1, 10)
+    interpolation_times = np.linspace(10, 100, 10)
+
+
+    component = create_interpolated_component(
+        plane='z',
+        source_exponents=(0, 0),
+        test_exponents=(0, 0),
+        wake_input=lambda t: 2*t,
+        impedance_input=lambda f: 3*f,
+        interpolation_frequencies=interpolation_frequencies,
+        interpolation_times=interpolation_times)
+
+    test_points_wake = np.linspace(np.min(interpolation_times),
+                                   np.max(interpolation_times),
+                                   100)
+
+    test_points_impedance = np.linspace(np.min(interpolation_frequencies),
+                                        np.max(interpolation_frequencies),
+                                        100)
+
+    xo.assert_allclose(component.wake(test_points_wake),
+            test_points_wake*2)
+    xo.assert_allclose(component.impedance(test_points_impedance),
+            test_points_impedance*3)
+
+
+def test_component_from_arrays():
+    interpolation_frequencies = np.linspace(0, 1, 10)
+    interpolation_times = np.linspace(10, 100, 10)
+
+    impedance_samples = interpolation_frequencies*2
+    wake_samples = interpolation_times*3
+
+    component = create_component_from_arrays(
+        plane='z',
+        source_exponents=(0, 0),
+        test_exponents=(0, 0),
+        wake_samples=wake_samples,
+        impedance_samples=impedance_samples,
+        interpolation_frequencies=interpolation_frequencies,
+        interpolation_times=interpolation_times)
+
+    test_points_wake = np.linspace(np.min(interpolation_times),
+                                   np.max(interpolation_times),
+                                   100)
+
+    test_points_impedance = np.linspace(np.min(interpolation_frequencies),
+                                        np.max(interpolation_frequencies),
+                                        100)
+
+    xo.assert_allclose(component.impedance(test_points_impedance),
+            test_points_impedance*2)
+    xo.assert_allclose(component.wake(test_points_wake),
+            test_points_wake*3)

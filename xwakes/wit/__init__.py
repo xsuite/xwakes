@@ -11,3 +11,11 @@ from . import plot
 from . import sacherer_formula
 from . import utilities
 from . import utils
+
+from .component import (Component, ComponentClassicThickWall, ComponentResonator,
+                        ComponentTaperSingleLayerRestsistiveWall,
+                        ComponentSingleLayerResistiveWall,
+                        ComponentInterpolated,
+                        ComponentFromArrays)
+from .interface_dataclasses import Layer
+from .element import Element

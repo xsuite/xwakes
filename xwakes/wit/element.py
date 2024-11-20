@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from .component import Component, Union
+from .component import Component, Union, KIND_DEFINITIONS
 
 from typing import List
 from collections import defaultdict
-
+from scipy.interpolate import interp1d
 from scipy.special import comb
 import numpy as np
+import pandas as pd
 import copy
 
 class Element:
@@ -229,13 +230,13 @@ class Element:
         Implements the __rad__ method for the Element class. This is only done to facilitate the syntactically
         practical use of the sum() method for Elements. sum(iterable) works by adding all of the elements of the
         iterable to 0 sequentially. Thus, the behavior of the initial 0 + iterable[0] needs to be defined. In the case
-        that the left addend of any addition involving an Element is not itself an Element, the resulting sum
+        that the left addend of any addition involving an Element is 0, the resulting sum
         is simply defined to be the right addend.
         :param other: The left addend of an addition
         :return: The sum of self and other if other is an Element, otherwise just self.
         """
         # Checks if the left addend, other, is not an Element
-        if not isinstance(other, Element):
+        if other == 0:
             # In which case, the right addend is simply returned
             return self
 
@@ -308,3 +309,136 @@ class Element:
                 return comp
 
         raise KeyError(f"'{self.name}' has no component of the type '{type_string}'.")
+
+
+class ElementFromTable(Element):
+    '''
+    An element whose components are defined point-by-point in a wake table
+    and/or an impedance table. The tables are given as pandas dataframes and
+    they must specify the time and frequency columns respectively and all the
+    components specified in the use_components list. If both the wake and
+    impedance tables are given, the tables must contain the same components.
+    '''
+    def __init__(self, wake_table: pd.DataFrame = None,
+                 impedance_table: pd.DataFrame = None,
+                 use_components: List['str'] = None,
+                 length: float = 0,
+                 beta_x: float = 0, beta_y: float = 0,
+                 name: str = "Unnamed Element",
+                 tag: str = "", description: str = ""):
+        '''
+        Initializes an ElementFromTable object.
+
+        Parameters
+        ----------
+        wake_table : pd.dataframe
+            A pandas dataframe containing the wake function values at least for
+            all the components specified in use_components. The dataframe must
+            contain a column named 'time' which specifies the times at which the
+            components are evaluated.
+        impedance_table : pd.dataframe
+            A pandas dataframe containing the impedance function values at least
+            for all the components specified in use_components. The dataframe must
+            contain a column named 'frequency' which specifies the frequencies at
+            which the components are evaluated.
+        use_components : List[str]
+            A list of strings specifying the components to be used in the
+            ElementFromTable object. The following components are allowed:
+            longitudinal, constant_x, constant_y, dipole_x, dipole_y,
+            dipole_xy, dipole_yx, quadrupole_x, quadrupole_y, quadrupole_xy,
+            quadrupole_yx.
+        length : float
+            The length of the element in meters
+        beta_x : float
+            The beta function in the x-plane at the position of the element in meters
+        beta_y : float
+            The beta function in the y-plane at the position of the element in meters
+        name : str
+            An optional user-specified name of the element
+        tag : str
+            A string to tag the element
+        description : str
+            A description for the element
+        '''
+        self.wake_table = wake_table
+        self.impedance_table = impedance_table
+
+        if wake_table is not None and impedance_table is not None:
+            wake_table_columns = wake_table.columns.tolist()
+            wake_table_columns.remove('time')
+            impedance_table_columns = impedance_table.columns.tolist()
+            impedance_table_columns.remove('frequency')
+            assert wake_table_columns == impedance_table_columns, \
+                "The columns of the wake and impedance tables must be the same."
+            self.component_names = wake_table_columns
+        elif wake_table is not None:
+            wake_table_columns = wake_table.columns.tolist()
+            wake_table_columns.remove('time')
+            self.component_names = wake_table_columns
+        elif impedance_table is not None:
+            impedance_table_columns = impedance_table.columns.tolist()
+            impedance_table_columns.remove('frequency')
+            self.component_names = impedance_table_columns
+        else:
+            raise ValueError("At least one of wake_table or impedance_table "
+                             "must be specified.")
+
+        if wake_table is not None:
+            for component in use_components:
+                if component not in self.component_names:
+                    raise ValueError(
+                        f"Invalid wake component: {component}. "
+                        f"Valid wake components are: {self.component_names}")
+            if 'time' not in list(wake_table.keys()):
+                        raise ValueError("No wake_table column with name 'time'" +
+                                        "has been specified. \n")
+
+        if impedance_table is not None:
+            for component in use_components:
+                if component not in self.component_names:
+                    raise ValueError(
+                        f"Invalid impedance component: {component}. "
+                        f"Valid impedance components are: {self.component_names}")
+
+            if 'frequency' not in list(impedance_table.keys()):
+                        raise ValueError("No impedance_table column with name " +
+                                        "'frequency' has been specified. \n")
+
+        components = []
+
+        for component_str in use_components:
+
+            if wake_table is not None:
+                if not component_str in wake_table.keys():
+                    raise ValueError(f"{component_str} not in wake_table keys")
+
+                wake_function = interp1d(wake_table['time'],
+                                         wake_table[component_str],
+                                         bounds_error=False,
+                                         fill_value=0.0)
+            else:
+                wake_function = lambda t: 0
+
+            if impedance_table is not None:
+                if not component_str in impedance_table.keys():
+                    raise ValueError(f"{component_str} not in impedance_table keys")
+
+                impedance_function = interp1d(impedance_table['frequency'],
+                                              impedance_table[component_str],
+                                              bounds_error=False,
+                                              fill_value=0.0)
+            else:
+                impedance_function = lambda f: 0
+
+            plane = KIND_DEFINITIONS[component_str]['plane']
+            source_exponents = KIND_DEFINITIONS[component_str]['source_exponents']
+            test_exponents = KIND_DEFINITIONS[component_str]['test_exponents']
+
+            components.append(Component(impedance=impedance_function,
+                                        wake=wake_function,
+                                        plane=plane,
+                                        source_exponents=source_exponents,
+                                        test_exponents=test_exponents))
+
+        super().__init__(length, beta_x, beta_y, components, name, tag,
+                         description)
