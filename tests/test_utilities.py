@@ -596,12 +596,16 @@ def test_element_from_wake_and_impedance_table():
 
         assert component_found
 
+        assert hasattr(component, 'wake')
+
         if hasattr(component, 'wake'):
             test_wake = np.interp(test_points_wake, wake_table['time'],
                                   wake_table[component_kind])
 
             xo.assert_allclose(component.wake(test_points_wake), test_wake,
                                rtol=1e-3)
+
+        hasattr(component, 'impedance')
 
         if hasattr(component, 'impedance'):
             test_impedance = np.interp(test_points_impedance,
