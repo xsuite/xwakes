@@ -784,8 +784,8 @@ class ComponentClassicThickWall(Component):
         assert dt > 0
         mask_zero = np.abs(t) < dt * self.zero_rel_tol
         out = np.zeros_like(t)
-        out[mask_zero] = self.wake(dt * self.zero_rel_tol, beta0=beta0)
-        out[~mask_zero] = self.wake(t[~mask_zero], beta0=beta0)
+        out[mask_zero] = self.wake(dt * self.zero_rel_tol)
+        out[~mask_zero] = self.wake(t[~mask_zero])
 
         if isscalar:
             out = out[0]
