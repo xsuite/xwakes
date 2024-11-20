@@ -723,7 +723,7 @@ class ComponentClassicThickWall(Component):
 
         return out
 
-    def wake(self, t, beta0=None):
+    def wake(self, t):
         layer = self.layer
         if layer is not None:
             self._check_layer(layer) # Checks that there are no unsupported layer properties
