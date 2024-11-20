@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 # mpirun -n 2 python 000c_sps_tune_shift_multibunch_mpi.py
 import numpy as np
 import pathlib

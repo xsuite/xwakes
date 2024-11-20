@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 REL_TOL = 1e-8
 ABS_TOL = 1e-8
 PRECISION_FACTOR = 100.

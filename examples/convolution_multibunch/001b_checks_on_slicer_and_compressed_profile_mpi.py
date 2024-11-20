@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 # mpiexec -n 3 xterm -e ipython
 # mpiexec -n 3 /Applications/iTerm.app/Contents/MacOS/iTerm2
 

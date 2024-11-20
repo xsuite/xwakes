@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from .component import (Component, ComponentResonator,
                         ComponentClassicThickWall,
                         ComponentSingleLayerResistiveWall,

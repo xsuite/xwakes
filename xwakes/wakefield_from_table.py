@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import pandas as pd
 from .basewake import BaseWake
 from .wit import ComponentFromArrays

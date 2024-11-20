@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 """
 This file generates a headtail formatted table with dipolar and quadrupolar
 wakefields only

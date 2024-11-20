@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import xwakes as xw
 import xtrack as xt
 from xobjects.test_helpers import for_all_test_contexts
