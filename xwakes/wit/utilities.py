@@ -377,8 +377,8 @@ def create_taper_RW_approx_element(
 
 
 def create_interpolated_component(interpolation_frequencies: ArrayLike,
-                                  impedance: Optional[Callable] = None,
-                                  wake: Optional[Callable] = None,
+                                  impedance_input: Optional[Callable] = None,
+                                  wake_input: Optional[Callable] = None,
                                   interpolation_times: ArrayLike = None,
                                   plane: str = '',
                                   source_exponents: Tuple[int, int] = (-1, -1),
@@ -393,27 +393,25 @@ def create_interpolated_component(interpolation_frequencies: ArrayLike,
     evaluate.
     :param interpolation_frequencies: the frequencies where the impedance
     function is evaluated for the interpolation
-    :param impedance: A callable function representing the impedance function of
-    the Component. Can be undefined if
-    the wake function is defined.
+    :param impedance_input: A callable function representing the impedance
+    function of the Component
     :param interpolation_times: the times where the wake function is evaluated
     for the interpolation
-    :param wake: A callable function representing the wake function of the
-    Component. Can be undefined if the impedance function is defined.
+    :param wake_input: A callable function representing the wake function of the
+    Component
     :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
     specified for valid initialization
     :param source_exponents: The exponents in the x and y planes experienced by
-    the source particle. Also
-    referred to as 'a' and 'b'. Must be specified for valid initialization
+    the source particle.
     :param test_exponents: The exponents in the x and y planes experienced by
-    the source particle. Also
-    referred to as 'a' and 'b'. Must be specified for valid initialization
+    the test particle.
     :param name: An optional user-specified name of the component
     :param f_rois: a list of frequency regions of interest
     :param t_rois: a list of time regions of interest
     """
-    return ComponentInterpolated(impedance_input=impedance, wake_input=wake,
-                                 plane=plane, source_exponents=source_exponents,
+    return ComponentInterpolated(impedance_input=impedance_input,
+                                 wake_input=wake_input, plane=plane,
+                                 source_exponents=source_exponents,
                                  test_exponents=test_exponents, name=name,
                                  interpolation_frequencies=interpolation_frequencies,
                                  interpolation_times=interpolation_times,
@@ -435,21 +433,19 @@ def create_component_from_arrays(interpolation_frequencies: ArrayLike = None,
     through arrays
     :param interpolation_frequencies: the frequencies where the impedance
     function is evaluated for the interpolation
-    :param impedance: A callable function representing the impedance function of
-    the Component. Can be undefined if
+    :param impedance_samples: Aan array of impedance values at the interpolation
+    frequencies
     the wake function is defined.
     :param interpolation_times: the times where the wake function is evaluated
     for the interpolation
-    :param wake: A callable function representing the wake function of the
+    :param wake_samples: an array of wake values at the interpolation times
     Component. Can be undefined if the impedance function is defined.
     :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
     specified for valid initialization
     :param source_exponents: The exponents in the x and y planes experienced by
-    the source particle. Also
-    referred to as 'a' and 'b'. Must be specified for valid initialization
+    the source particle
     :param test_exponents: The exponents in the x and y planes experienced by
-    the source particle. Also
-    referred to as 'a' and 'b'. Must be specified for valid initialization
+    the test particle
     :param name: An optional user-specified name of the component
     :param f_rois: a list of frequency regions of interest
     :param t_rois: a list of time regions of interest

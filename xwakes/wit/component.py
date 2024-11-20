@@ -1294,6 +1294,11 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
 
 
 class ComponentInterpolated(Component):
+    """
+    Creates a component in which the impedance function is evaluated directly
+    only on few points and it is interpolated everywhere else. This helps when
+    the impedance function is very slow to evaluate.
+    """
     def __init__(self,
                 interpolation_frequencies: ArrayLike = None,
                 impedance_input: Optional[Callable] = None,
@@ -1306,7 +1311,27 @@ class ComponentInterpolated(Component):
                 name: str = "Interpolated Component",
                 f_rois: Optional[List[Tuple[float, float]]] = None,
                 t_rois: Optional[List[Tuple[float, float]]] = None):
+        """
+        The init of the ComponentInterpolated class
 
+        :param interpolation_frequencies: the frequencies where the impedance
+        function is evaluated for the interpolation
+        :param impedance_input: A callable function representing the impedance
+        function of the Component. Can be undefined if the wake function is defined
+        :param interpolation_times: the times where the wake function is evaluated
+        for the interpolation
+        :param wake_input: A callable function representing the wake function of the
+        Component. Can be undefined if the impedance function is defined.
+        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
+        specified for valid initialization
+        :param source_exponents: The exponents in the x and y planes experienced by
+        the source particle
+        :param test_exponents: The exponents in the x and y planes experienced by
+        the test particle
+        :param name: An optional user-specified name of the component
+        :param f_rois: a list of frequency regions of interest
+        :param t_rois: a list of time regions of interest
+        """
         assert ((interpolation_frequencies is not None) ==
                 (impedance_input is not None)), ("Either both or none of the "
                 "impedance and the interpolation frequencies must be given")
@@ -1350,6 +1375,10 @@ class ComponentInterpolated(Component):
 
 
 class ComponentFromArrays(Component):
+    """
+    A component from impedance and/or wake functions defined discretely
+    through arrays
+    """
     def __init__(self,
                  interpolation_frequencies: ArrayLike = None,
                  impedance_samples: ArrayLike = None,
@@ -1362,7 +1391,28 @@ class ComponentFromArrays(Component):
                  name: str = "Interpolated Component",
                  f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None):
+        """
+        The init of the ComponentFromArrays class
 
+        :param interpolation_frequencies: the frequencies where the impedance
+        function is evaluated for the interpolation
+        :param impedance_samples: Aan array of impedance values at the interpolation
+        frequencies
+        the wake function is defined.
+        :param interpolation_times: the times where the wake function is evaluated
+        for the interpolation
+        :param wake_samples: an array of wake values at the interpolation times
+        Component. Can be undefined if the impedance function is defined.
+        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
+        specified for valid initialization
+        :param source_exponents: The exponents in the x and y planes experienced by
+        the source particle
+        :param test_exponents: The exponents in the x and y planes experienced by
+        the test particle
+        :param name: An optional user-specified name of the component
+        :param f_rois: a list of frequency regions of interest
+        :param t_rois: a list of time regions of interest
+        """
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                             kind=kind, exponents=None,
                             source_exponents=source_exponents,

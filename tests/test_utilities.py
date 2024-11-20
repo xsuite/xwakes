@@ -661,8 +661,8 @@ def test_interpolated_component():
         plane='z',
         source_exponents=(0, 0),
         test_exponents=(0, 0),
-        wake=lambda t: 2*t,
-        impedance=lambda f: 3*f,
+        wake_input=lambda t: 2*t,
+        impedance_input=lambda f: 3*f,
         interpolation_frequencies=interpolation_frequencies,
         interpolation_times=interpolation_times)
 
