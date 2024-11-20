@@ -737,8 +737,6 @@ class ComponentClassicThickWall(Component):
         length = self.length
         exponents = tuple(self.source_exponents + self.test_exponents)
 
-        beta0 = beta0 if beta0 is not None else 1
-
         isscalar = np.isscalar(t)
         t = np.atleast_1d(t)
         mask_positive = t > 1e-20
