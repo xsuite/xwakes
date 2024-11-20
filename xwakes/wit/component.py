@@ -1455,7 +1455,13 @@ class ComponentFromArrays(Component):
 
         out = self.wake(t)
 
-        # Handle discontinuity at edges (consistently with beam loading theorem)
+        # At the edges of the provided wake table we take half the provided
+        # value. This is equivalent to assume the next sample (not provided) is
+        # zero. The advantage is that for longitudinal ultra-relativistic wakes
+        # that have a discontinuity in zero, it provides a kick consistent with
+        # the fundamental theorem of beam loading (see A. Chao, Physics of
+        # Collective Beam Instabilities in High Energy Accelerators, Wiley, 
+        # 1993, Fig.2.6)
         mask_left_edge = np.abs(t - self.interpolation_times[0]) < dt / 2
         out[mask_left_edge] = self.wake_samples[0] / 2.
         mask_right_edge = np.abs(t - self.interpolation_times[-1]) < dt / 2
