@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from pywit import materials
 
 from numpy import testing

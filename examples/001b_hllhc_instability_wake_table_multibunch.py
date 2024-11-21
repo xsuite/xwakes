@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import xtrack as xt
 import xpart as xp
 import xfields as xf

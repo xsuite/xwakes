@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from pywit.devices import create_tesla_cavity_component, shunt_impedance_flat_taper_stupakov_formula
 
 import numpy as np

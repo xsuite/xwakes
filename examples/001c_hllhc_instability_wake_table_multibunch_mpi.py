@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 
 # Run with: mpiexec -n 2 python 001c_hllhc_instability_wake_table_multibunch_mpi.py
 

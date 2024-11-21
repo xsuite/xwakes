@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from __future__ import annotations
 
 from .interface_dataclasses import Layer, FlatIW2DInput, RoundIW2DInput

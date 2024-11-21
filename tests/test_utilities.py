@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from pywit.utilities import (create_resonator_component, create_resonator_element,
                              create_many_resonators_element,
                              create_resistive_wall_single_layer_approx_component,
