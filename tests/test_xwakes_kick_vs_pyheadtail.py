@@ -12,15 +12,18 @@ from scipy.constants import c as clight
 import xwakes as xw
 import xtrack as xt
 import xobjects as xo
+from xobjects.test_helpers import for_all_test_contexts
 
 test_data_folder = pathlib.Path(__file__).parent.joinpath(
     '../test_data').absolute()
 
-def test_xwakes_kick_vs_pyheadtail_table_dipolar():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_xwakes_kick_vs_pyheadtail_table_dipolar(test_context):
 
     from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
-    p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000))
+    p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
+                    _context=test_context)
     p.x[p.zeta > 0] += 1e-3
     p.y[p.zeta > 0] += 1e-3
     p_table = p.copy()
@@ -36,7 +39,8 @@ def test_xwakes_kick_vs_pyheadtail_table_dipolar():
                         'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
                         'constant_x', 'constant_y'])
     wake_from_table = xw.WakeFromTable(table, columns=['dipolar_x', 'dipolar_y'])
-    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
+    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100,
+                                           _context=test_context)
 
     # Zotter convention
     assert table['dipolar_x'].values[1] > 0
@@ -77,11 +81,13 @@ def test_xwakes_kick_vs_pyheadtail_table_dipolar():
     xo.assert_allclose(p_table.px, p_ref.px, atol=1e-30, rtol=2e-3)
     xo.assert_allclose(p_table.py, p_ref.py, atol=1e-30, rtol=2e-3)
 
-def test_xwakes_kick_vs_pyheadtail_table_quadrupolar():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_xwakes_kick_vs_pyheadtail_table_quadrupolar(test_context):
 
     from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
-    p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000))
+    p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
+                     _context=test_context)
     p.x[p.zeta > 0] += 1e-3
     p.y[p.zeta > 0] += 1e-3
     p_table = p.copy()
@@ -98,7 +104,8 @@ def test_xwakes_kick_vs_pyheadtail_table_quadrupolar():
                         'constant_x', 'constant_y'])
 
     wake_from_table = xw.WakeFromTable(table, columns=['quadrupolar_x', 'quadrupolar_y'])
-    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
+    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100,
+                                           _context=test_context)
 
     # This is specific of this table
     assert table['quadrupolar_x'].values[1] < 0
@@ -141,13 +148,16 @@ def test_xwakes_kick_vs_pyheadtail_table_quadrupolar():
     xo.assert_allclose(p_table.py, p_ref.py, atol=1e-30, rtol=2e-3)
 
 
-def test_xwakes_kick_vs_pyheadtail_table_longitudinal():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_xwakes_kick_vs_pyheadtail_table_longitudinal(test_context):
 
     from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
     p = xt.Particles.merge([
-        xt.Particles(p0c=7e12, zeta=np.linspace(-1e-3, 1e-3, 100000)),
-        xt.Particles(p0c=7e12, zeta=1e-6+np.zeros(100000))
+        xt.Particles(p0c=7e12, zeta=np.linspace(-1e-3, 1e-3, 100000),
+                     _context=test_context),
+        xt.Particles(p0c=7e12, zeta=1e-6+np.zeros(100000),
+                     _context=test_context),
     ])
 
     p_table = p.copy()
@@ -163,7 +173,9 @@ def test_xwakes_kick_vs_pyheadtail_table_longitudinal():
                         'quadrupolar_xy', 'dipolar_yx', 'quadrupolar_yx',
                         'constant_x', 'constant_y'])
     wake_from_table = xw.WakeFromTable(table, columns=['time', 'longitudinal'])
-    wake_from_table.configure_for_tracking(zeta_range=(-2e-3, 2e-3), num_slices=1000)
+    wake_from_table.configure_for_tracking(zeta_range=(-2e-3, 2e-3),
+                                           num_slices=1000,
+                                           _context=test_context)
 
     assert len(wake_from_table.components) == 1
     assert wake_from_table.components[0].plane == 'z'
@@ -196,12 +208,13 @@ def test_xwakes_kick_vs_pyheadtail_table_longitudinal():
     assert np.max(p_ref.delta) > 1e-12
     xo.assert_allclose(p_table.delta, p_ref.delta, atol=1e-14, rtol=0)
 
-def test_xwakes_kick_vs_pyheadtail_resonator_dipolar():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_xwakes_kick_vs_pyheadtail_resonator_dipolar(test_context):
 
     from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
     p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
-                    weight=1e14)
+                    weight=1e14, _context=test_context)
     p.x[p.zeta > 0] += 1e-3
     p.y[p.zeta > 0] += 1e-3
     p_table = p.copy()
@@ -212,7 +225,8 @@ def test_xwakes_kick_vs_pyheadtail_resonator_dipolar():
         r=1e8, q=1e7, f_r=1e9,
         kind=xw.Yokoya('circular'), # equivalent to: kind=['dipolar_x', 'dipolar_y'],
     )
-    wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
+    wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50,
+                                _context=test_context)
 
     assert len(wake.components) == 2
     assert wake.components[0].plane == 'x'
@@ -242,7 +256,8 @@ def test_xwakes_kick_vs_pyheadtail_resonator_dipolar():
     table = pd.DataFrame({'time': t_samples, 'dipolar_x': w_dipole_x_samples,
                             'dipolar_y': w_dipole_y_samples})
     wake_from_table = xw.WakeFromTable(table)
-    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
+    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50,
+                                           _context=test_context)
 
     assert len(wake_from_table.components) == 2
     assert wake_from_table.components[0].plane == 'x'
@@ -282,12 +297,13 @@ def test_xwakes_kick_vs_pyheadtail_resonator_dipolar():
     xo.assert_allclose(p_table.px, p_ref.px, rtol=0, atol=2e-3*np.max(np.abs(p_ref.px)))
     xo.assert_allclose(p_table.py, p_ref.py, rtol=0, atol=2e-3*np.max(np.abs(p_ref.py)))
 
-def test_xwakes_kick_vs_pyheadtail_resonator_quadrupolar():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_xwakes_kick_vs_pyheadtail_resonator_quadrupolar(test_context):
 
     from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
     p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
-                    weight=1e14)
+                    weight=1e14, _context=test_context)
     p.x[p.zeta > 0] += 1e-3
     p.y[p.zeta > 0] += 1e-3
     p_table = p.copy()
@@ -298,7 +314,8 @@ def test_xwakes_kick_vs_pyheadtail_resonator_quadrupolar():
         r=1e8, q=1e7, f_r=1e9,
         kind=['quadrupolar_x', 'quadrupolar_y'],
     )
-    wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
+    wake.configure_for_tracking(zeta_range=(-1, 1), num_slices=50,
+                                _context=test_context)
 
     assert len(wake.components) == 2
     assert wake.components[0].plane == 'x'
@@ -327,7 +344,8 @@ def test_xwakes_kick_vs_pyheadtail_resonator_quadrupolar():
     table = pd.DataFrame({'time': t_samples, 'quadrupolar_x': w_quadrupole_x_samples,
                             'quadrupolar_y': w_quadrupole_y_samples})
     wake_from_table = xw.WakeFromTable(table)
-    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50)
+    wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=50,
+                                           _context=test_context)
 
     assert len(wake_from_table.components) == 2
     assert wake_from_table.components[0].plane == 'x'
@@ -370,12 +388,13 @@ def test_xwakes_kick_vs_pyheadtail_resonator_quadrupolar():
     xo.assert_allclose(p_table.px, p_ref.px, rtol=0, atol=2e-3*np.max(np.abs(p_ref.px)))
     xo.assert_allclose(p_table.py, p_ref.py, rtol=0, atol=2e-3*np.max(np.abs(p_ref.py)))
 
-def test_xwakes_kick_vs_pyheadtail_resonator_longitudinal():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_xwakes_kick_vs_pyheadtail_resonator_longitudinal(test_context):
 
     from xpart.pyheadtail_interface.pyhtxtparticles import PyHtXtParticles
 
     p = xt.Particles(p0c=7e12, zeta=np.linspace(-1, 1, 100000),
-                    weight=1e14)
+                     weight=1e14, _context=test_context)
     p.x[p.zeta > 0] += 1e-3
     p.y[p.zeta > 0] += 1e-3
     p_table = p.copy()
@@ -386,7 +405,8 @@ def test_xwakes_kick_vs_pyheadtail_resonator_longitudinal():
         r=1e8, q=1e7, f_r=1e9,
         kind='longitudinal'
     )
-    wake.configure_for_tracking(zeta_range=(-1.01, 1.01), num_slices=50)
+    wake.configure_for_tracking(zeta_range=(-1.01, 1.01), num_slices=50,
+                                _context=test_context)
 
     assert len(wake.components) == 1
     assert wake.components[0].plane == 'z'
@@ -407,7 +427,8 @@ def test_xwakes_kick_vs_pyheadtail_resonator_longitudinal():
     w_longitudinal_x_samples[0] *= 2 # Undo sampling weight
     table = pd.DataFrame({'time': t_samples, 'longitudinal': w_longitudinal_x_samples})
     wake_from_table = xw.WakeFromTable(table)
-    wake_from_table.configure_for_tracking(zeta_range=(-1.01, 1.01), num_slices=50)
+    wake_from_table.configure_for_tracking(zeta_range=(-1.01, 1.01), num_slices=50,
+                                           _context=test_context)
 
     assert len(wake_from_table.components) == 1
     assert wake_from_table.components[0].plane == 'z'
