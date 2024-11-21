@@ -7,16 +7,19 @@ import xtrack as xt
 import xpart as xp
 import xwakes as xw
 import xobjects as xo
+from xobjects.test_helpers import for_all_test_contexts
 
+@for_all_test_contexts(excluding="ContextPyopencl")
 @pytest.mark.parametrize('wake_type', ['dipolar', 'quadrupolar'])
 @pytest.mark.parametrize('plane', ['x', 'y'])
-def test_tune_shift_transverse(wake_type, plane):
+def test_tune_shift_transverse(wake_type, plane, test_context):
 
     table = pd.DataFrame({'time': [0, 10],
                         f'{wake_type}_{plane}': [6e15, 6e15]})
 
     wake = xw.WakeFromTable(table)
-    wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=100)
+    wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=100,
+                                _context=test_context)
 
     assert len(wake.components) == 1
     assert wake.components[0].plane == plane
@@ -49,15 +52,15 @@ def test_tune_shift_transverse(wake_type, plane):
     line_no_wake = xt.Line(elements=[one_turn_map])
     line_with_wake = xt.Line(elements=[one_turn_map, wake])
 
-    line_no_wake.particle_ref = xt.Particles(p0c=2e9)
-    line_with_wake.particle_ref = xt.Particles(p0c=2e9)
+    line_no_wake.particle_ref = xt.Particles(p0c=2e9, _context=test_context)
+    line_with_wake.particle_ref = xt.Particles(p0c=2e9, _context=test_context)
 
-    line_no_wake.build_tracker()
-    line_with_wake.build_tracker()
+    line_no_wake.build_tracker(_context=test_context)
+    line_with_wake.build_tracker(_context=test_context)
 
     p = xp.generate_matched_gaussian_bunch(line=line_no_wake,
                 num_particles=1000, nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=0.07,
-                total_intensity_particles=1e11)
+                total_intensity_particles=1e11, _context=test_context)
     p.x += 1e-3
     p.y += 1e-3
 
@@ -67,8 +70,8 @@ def test_tune_shift_transverse(wake_type, plane):
                 mean_y=lambda line, part: part.y.mean())
 
     line_no_wake.track(p0, num_turns=100,
-                    log=mylog,
-                    with_progress=10)
+                       log=mylog,
+                       with_progress=10)
     log_no_wake = line_no_wake.log_last_track
 
     line_with_wake.track(p, num_turns=100,
@@ -78,8 +81,15 @@ def test_tune_shift_transverse(wake_type, plane):
 
     import nafflib as nl
 
-    tune_no_wake = nl.get_tune(log_no_wake[f'mean_{plane}'])
-    tune_with_wake = nl.get_tune(log_with_wake[f'mean_{plane}'])
+    mean_no_wake = test_context.nplike_lib.array(log_no_wake[f'mean_{plane}'])
+    mean_with_wake = test_context.nplike_lib.array(log_with_wake[f'mean_{plane}'])
+
+    if hasattr(mean_no_wake, 'get'):
+        tune_no_wake = nl.get_tune(mean_no_wake.get())
+        tune_with_wake = nl.get_tune(mean_with_wake.get())
+    else:
+        tune_no_wake = nl.get_tune(mean_no_wake)
+        tune_with_wake = nl.get_tune(mean_with_wake)
 
     print(f'Tune without wake: {tune_no_wake}')
     print(f'Tune with wake: {tune_with_wake}')
@@ -89,13 +99,15 @@ def test_tune_shift_transverse(wake_type, plane):
     xo.assert_allclose(tune_no_wake, {'x': 0.28, 'y': 0.31}[plane], atol=1e-6, rtol=0)
     xo.assert_allclose(tune_with_wake, tune_no_wake - 2e-3, atol=0.3e-3, rtol=0)
 
-def test_tune_shift_longitudinal():
+@for_all_test_contexts(excluding="ContextPyopencl")
+def test_tune_shift_longitudinal(test_context):
 
     table = pd.DataFrame({'time': [0, 10],
                         'longitudinal': [1e13, 1e13]})
 
     wake = xw.WakeFromTable(table)
-    wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=100)
+    wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=100,
+                                _context=test_context)
 
     assert len(wake.components) == 1
     assert wake.components[0].plane == 'z'
@@ -124,19 +136,20 @@ def test_tune_shift_longitudinal():
     line_no_wake = xt.Line(elements=[one_turn_map])
     line_with_wake = xt.Line(elements=[one_turn_map, wake])
 
-    line_no_wake.particle_ref = xt.Particles(p0c=2e9)
-    line_with_wake.particle_ref = xt.Particles(p0c=2e9)
+    line_no_wake.particle_ref = xt.Particles(p0c=2e9, _context=test_context)
+    line_with_wake.particle_ref = xt.Particles(p0c=2e9, _context=test_context)
 
-    line_no_wake.build_tracker()
-    line_with_wake.build_tracker()
+    line_no_wake.build_tracker(_context=test_context)
+    line_with_wake.build_tracker(_context=test_context)
 
     p = xp.generate_matched_gaussian_bunch(line=line_no_wake,
                 num_particles=1000, nemitt_x=1e-6, nemitt_y=1e-6, sigma_z=0.07,
-                total_intensity_particles=1e11)
+                total_intensity_particles=1e11,
+                _context=test_context)
     p.zeta += 5e-3
 
     p0 = p.copy()
-
+    
     mylog = xt.Log(mean_zeta=lambda line, part: part.zeta.mean(),
                 mean_delta=lambda line, part: part.delta.mean())
 
@@ -146,14 +159,23 @@ def test_tune_shift_longitudinal():
     log_no_wake = line_no_wake.log_last_track
 
     line_with_wake.track(p, num_turns=3000,
-                            log=mylog,
-                            with_progress=10)
+                         log=mylog,
+                         with_progress=10)
     log_with_wake = line_with_wake.log_last_track
 
     import nafflib as nl
 
-    tune_no_wake = nl.get_tune(log_no_wake[f'mean_zeta'])
-    tune_with_wake = nl.get_tune(log_with_wake[f'mean_zeta']-np.mean(log_with_wake[f'mean_zeta']))
+    mean_zeta_no_wake = test_context.nplike_lib.array(log_no_wake[f'mean_zeta'])
+    mean_zeta_with_wake = test_context.nplike_lib.array(log_with_wake[f'mean_zeta'])
+
+    if hasattr(mean_zeta_no_wake, 'get'):
+        tune_no_wake = nl.get_tune(mean_zeta_no_wake.get())
+        tune_with_wake = nl.get_tune(mean_zeta_with_wake.get() -
+                                     np.mean(mean_zeta_with_wake.mean().get()))
+    else:
+        tune_no_wake = nl.get_tune(mean_zeta_no_wake)
+        tune_with_wake = nl.get_tune(mean_zeta_with_wake -
+                                     np.mean(mean_zeta_with_wake))
 
     print(f'Tune without wake: {tune_no_wake}')
     print(f'Tune with wake: {tune_with_wake}')
