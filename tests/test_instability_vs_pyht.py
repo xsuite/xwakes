@@ -1,6 +1,6 @@
 # copyright ############################### #
-# This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import pathlib

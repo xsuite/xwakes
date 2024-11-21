@@ -1,6 +1,11 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 import pandas as pd
 from .basewake import BaseWake
-from .wit import ComponentInterpolated
+from .wit import ComponentFromArrays
 from .wit.component import KIND_DEFINITIONS
 
 
@@ -25,11 +30,11 @@ class WakeFromTable(BaseWake):
             assert cc in table.columns, f'Column {cc} not in table'
             assert cc in KIND_DEFINITIONS, f'Invalid component {cc}'
 
-            cc = ComponentInterpolated(
+            component = ComponentFromArrays(
                 interpolation_times=table['time'].values,
-                wake_input=table[cc].values,
+                wake_samples=table[cc].values,
                 kind=cc)
-            components.append(cc)
+            components.append(component)
 
         self.components = components
         self.columns = columns

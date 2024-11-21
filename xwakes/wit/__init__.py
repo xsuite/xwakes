@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from . import component
 from . import devices
 from . import element
@@ -15,6 +20,7 @@ from . import utils
 from .component import (Component, ComponentClassicThickWall, ComponentResonator,
                         ComponentTaperSingleLayerRestsistiveWall,
                         ComponentSingleLayerResistiveWall,
-                        ComponentInterpolated)
+                        ComponentInterpolated,
+                        ComponentFromArrays)
 from .interface_dataclasses import Layer
 from .element import Element

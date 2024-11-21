@@ -1,9 +1,15 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from .component import (Component, ComponentResonator,
                         ComponentClassicThickWall,
                         ComponentSingleLayerResistiveWall,
                         ComponentTaperSingleLayerRestsistiveWall,
-                        ComponentInterpolated)
-from .element import Element
+                        ComponentInterpolated,
+                        ComponentFromArrays)
+from .element import Element, ElementFromTable
 from .interface_dataclasses import FlatIW2DInput, RoundIW2DInput
 from .interface import component_names
 from .materials import Layer
@@ -375,16 +381,16 @@ def create_taper_RW_approx_element(
                    description=description)
 
 
-def create_interpolated_impedance_component(interpolation_frequencies: ArrayLike,
-                                            impedance: Optional[Callable] = None,
-                                            wake: Optional[Callable] = None,
-                                            interpolation_times: ArrayLike = None,
-                                            plane: str = '',
-                                            source_exponents: Tuple[int, int] = (-1, -1),
-                                            test_exponents: Tuple[int, int] = (-1, -1),
-                                            name: str = "Unnamed Component",
-                                            f_rois: Optional[List[Tuple[float, float]]] = None,
-                                            t_rois: Optional[List[Tuple[float, float]]] = None):
+def create_interpolated_component(interpolation_frequencies: ArrayLike,
+                                  impedance_input: Optional[Callable] = None,
+                                  wake_input: Optional[Callable] = None,
+                                  interpolation_times: ArrayLike = None,
+                                  plane: str = '',
+                                  source_exponents: Tuple[int, int] = (-1, -1),
+                                  test_exponents: Tuple[int, int] = (-1, -1),
+                                  name: str = "Unnamed Component",
+                                  f_rois: Optional[List[Tuple[float, float]]] = None,
+                                  t_rois: Optional[List[Tuple[float, float]]] = None):
     """
     Creates a component in which the impedance function is evaluated directly
     only on few points and it is interpolated
@@ -392,27 +398,119 @@ def create_interpolated_impedance_component(interpolation_frequencies: ArrayLike
     evaluate.
     :param interpolation_frequencies: the frequencies where the impedance
     function is evaluated for the interpolation
-    :param impedance: A callable function representing the impedance function of
-    the Component. Can be undefined if
-    the wake function is defined.
+    :param impedance_input: A callable function representing the impedance
+    function of the Component
     :param interpolation_times: the times where the wake function is evaluated
     for the interpolation
-    :param wake: A callable function representing the wake function of the
-    Component. Can be undefined if the impedance function is defined.
+    :param wake_input: A callable function representing the wake function of the
+    Component
     :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
     specified for valid initialization
     :param source_exponents: The exponents in the x and y planes experienced by
-    the source particle. Also
-    referred to as 'a' and 'b'. Must be specified for valid initialization
+    the source particle.
     :param test_exponents: The exponents in the x and y planes experienced by
-    the source particle. Also
-    referred to as 'a' and 'b'. Must be specified for valid initialization
+    the test particle.
     :param name: An optional user-specified name of the component
     :param f_rois: a list of frequency regions of interest
     :param t_rois: a list of time regions of interest
     """
-    return ComponentInterpolated(impedance_input=impedance, wake_input=wake,
-                                 plane=plane, source_exponents=source_exponents,
+    return ComponentInterpolated(impedance_input=impedance_input,
+                                 wake_input=wake_input, plane=plane,
+                                 source_exponents=source_exponents,
                                  test_exponents=test_exponents, name=name,
                                  interpolation_frequencies=interpolation_frequencies,
+                                 interpolation_times=interpolation_times,
                                  f_rois=f_rois, t_rois=t_rois)
+
+
+def create_component_from_arrays(interpolation_frequencies: ArrayLike = None,
+                                 impedance_samples: ArrayLike = None,
+                                 interpolation_times: ArrayLike = None,
+                                 wake_samples: ArrayLike = None,
+                                 plane: str = None,
+                                 source_exponents: Tuple[int, int] = None,
+                                 test_exponents: Tuple[int, int] = None,
+                                 name: str = "Interpolated Component",
+                                 f_rois: Optional[List[Tuple[float, float]]] = None,
+                                 t_rois: Optional[List[Tuple[float, float]]] = None):
+    """
+    Creates a component from impedance and/or wake functions defined discretely
+    through arrays
+    :param interpolation_frequencies: the frequencies where the impedance
+    function is evaluated for the interpolation
+    :param impedance_samples: Aan array of impedance values at the interpolation
+    frequencies
+    the wake function is defined.
+    :param interpolation_times: the times where the wake function is evaluated
+    for the interpolation
+    :param wake_samples: an array of wake values at the interpolation times
+    Component. Can be undefined if the impedance function is defined.
+    :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
+    specified for valid initialization
+    :param source_exponents: The exponents in the x and y planes experienced by
+    the source particle
+    :param test_exponents: The exponents in the x and y planes experienced by
+    the test particle
+    :param name: An optional user-specified name of the component
+    :param f_rois: a list of frequency regions of interest
+    :param t_rois: a list of time regions of interest
+    """
+    return ComponentFromArrays(impedance_samples=impedance_samples,
+                               wake_samples=wake_samples,
+                               plane=plane, source_exponents=source_exponents,
+                               test_exponents=test_exponents, name=name,
+                               interpolation_frequencies=interpolation_frequencies,
+                               interpolation_times=interpolation_times,
+                               f_rois=f_rois, t_rois=t_rois)
+
+
+def create_element_from_table(wake_table: pd.DataFrame = None,
+                              impedance_table: pd.DataFrame = None,
+                              use_components: List['str'] = None,
+                              length: float = 0,
+                              beta_x: float = 0, beta_y: float = 0,
+                              name: str = "Unnamed Element",
+                              tag: str = "", description: str = ""):
+    '''
+    Create an element whose components are defined point-by-point in a wake
+    table and/or an impedance table. The tables are given as pandas dataframes
+    and they must specify the time and frequency columns respectively and all
+    the components specified in the use_components list. If both the wake and
+    impedance tables are given, the tables must contain the same components.
+
+    Parameters
+    ----------
+    wake_table : pd.dataframe
+        A pandas dataframe containing the wake function values at least for
+        all the components specified in use_components. The dataframe must
+        contain a column named 'time' which specifies the times at which the
+        components are evaluated.
+    impedance_table : pd.dataframe
+        A pandas dataframe containing the impedance function values at least
+        for all the components specified in use_components. The dataframe must
+        contain a column named 'frequency' which specifies the frequencies at
+        which the components are evaluated.
+    use_components : List[str]
+        A list of strings specifying the components to be used in the
+        ElementFromTable object. The following components are allowed:
+        longitudinal, constant_x, constant_y, dipole_x, dipole_y,
+        dipole_xy, dipole_yx, quadrupole_x, quadrupole_y, quadrupole_xy,
+        quadrupole_yx.
+    length : float
+        The length of the element in meters
+    beta_x : float
+        The beta function in the x-plane at the position of the element in meters
+    beta_y : float
+        The beta function in the y-plane at the position of the element in meters
+    name : str
+        An optional user-specified name of the element
+    tag : str
+        A string to tag the element
+    description : str
+        A description for the element
+    '''
+    return ElementFromTable(wake_table=wake_table,
+                            impedance_table=impedance_table,
+                            use_components=use_components, length=length,
+                            beta_x=beta_x, beta_y=beta_y, name=name,
+                            tag=tag, description=description)

@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from pywit.component import (Component,
                              mix_fine_and_rough_sampling)
 from test_common import functions

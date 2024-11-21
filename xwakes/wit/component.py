@@ -1,3 +1,8 @@
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
+
 from __future__ import annotations
 
 from .interface_dataclasses import Layer, FlatIW2DInput, RoundIW2DInput
@@ -9,6 +14,7 @@ import numpy as np
 from scipy.constants import c as c_light, mu_0 as mu0, epsilon_0 as eps0
 from numpy.typing import ArrayLike
 from scipy import special as sp
+from scipy.interpolate import interp1d
 
 if hasattr(np, 'trapezoid'):
     trapz = np.trapezoid # numpy 2.0
@@ -90,10 +96,11 @@ class Component:
         referred to as 'a' and 'b'. Must be specified for valid initialization
         :param name: An optional user-specified name of the component
         :param f_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
-        sampling of the impedance function. If not specified, the impedance function will be sampled uniformly on a
-        logarithmic scale.
+        sampling of the impedance function. If not specified, upon discretization the impedance function will be
+        sampled uniformly on a logarithmic scale.
         :param t_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
-        sampling of the wake function. If not specified, the wake function will be sampled uniformly on a logarithmic scale.
+        sampling of the wake function. If not specified, upon discretization the wake function will be sampled
+        uniformly on a logarithmic scale.
         """
 
         if kind is not None:
@@ -297,14 +304,14 @@ class Component:
         Implements the __radd__ method for the Component class. This is only done to facilitate the syntactically
         practical use of the sum() method for Components. sum(iterable) works by adding all of the elements of the
         iterable to 0 sequentially. Thus, the behavior of the initial 0 + iterable[0] needs to be defined. In the case
-        that the left addend of any addition involving a Component is not itself a Component, the resulting sum
+        that the left addend of any addition involving a Component is 0, the resulting sum
         is simply defined to be the right addend.
         :param other: The left addend of an addition
         :return: The sum of self and other if other is a Component, otherwise just self.
         """
 
         # Checks if the left addend, other, is not a Component
-        if  isinstance(other, int):
+        if other == 0:
             # In which case, the right addend is simply returned
             return self
         elif not isinstance(other, Component):
@@ -580,20 +587,19 @@ class ComponentResonator(Component):
         plane = self.plane
         omega_r = 2 * np.pi * f_r
         root_term = np.sqrt(1 - 1 / (4 * q ** 2) + 0J)
+        omega_bar = omega_r * root_term
+        alpha = omega_r / (2 * q)
         if plane == 'z':
-            omega_bar = omega_r * root_term
-            alpha = omega_r / (2 * q)
             out = np.zeros_like(t)
             mask = t >= 0
             out[mask] = factor * (omega_r * r * np.exp(-alpha * t[mask]) * (
                    np.cos(omega_bar * t[mask]) -
                    alpha * np.sin(omega_bar * t[mask]) / omega_bar) / q).real
         else:
-            omega_bar = omega_r * root_term
             out = np.zeros_like(t)
             mask = t >= 0
-            out[mask] = factor * (omega_r * r * np.exp(-omega_r * t[mask] / (2 * q)) *
-                   np.sin(omega_r * root_term * t[mask]) /
+            out[mask] = factor * (omega_r * r * np.exp(-alpha * t[mask]) *
+                   np.sin(omega_bar * t[mask]) /
                    (q * root_term)).real
         return out
 
@@ -711,17 +717,18 @@ class ComponentClassicThickWall(Component):
         # Transverse dipolar impedance
         elif ((plane == 'x' and exponents == (1, 0, 0, 0)) or
                 (plane == 'y' and exponents == (0, 1, 0, 0))):
-            out = factor * length * ((1 + np.sign(f)*1j) * material_resistivity
-                            / (np.pi * radius**3 * (2 * np.pi * f * np.sqrt(eps0 * mu0)))
-                            / self.delta_skin(f, material_resistivity,
-                                              material_magnetic_permeability))
+            out = factor * c_light * length * ((1 + np.sign(f)*1j)
+                * material_resistivity
+                / (np.pi * radius**3 * (2 * np.pi * f ))
+                / self.delta_skin(f, material_resistivity,
+                                    material_magnetic_permeability))
         else:
             raise ValueError("Resistive wall wake not implemented for "
                   "component {}{}. Set to zero".format(plane, exponents))
 
         return out
 
-    def wake(self, t, beta0=None):
+    def wake(self, t):
         layer = self.layer
         if layer is not None:
             self._check_layer(layer) # Checks that there are no unsupported layer properties
@@ -734,8 +741,6 @@ class ComponentClassicThickWall(Component):
         factor = self.factor
         length = self.length
         exponents = tuple(self.source_exponents + self.test_exponents)
-
-        beta0 = beta0 if beta0 is not None else 1
 
         isscalar = np.isscalar(t)
         t = np.atleast_1d(t)
@@ -784,8 +789,8 @@ class ComponentClassicThickWall(Component):
         assert dt > 0
         mask_zero = np.abs(t) < dt * self.zero_rel_tol
         out = np.zeros_like(t)
-        out[mask_zero] = self.wake(dt * self.zero_rel_tol, beta0=beta0)
-        out[~mask_zero] = self.wake(t[~mask_zero], beta0=beta0)
+        out[mask_zero] = self.wake(dt * self.zero_rel_tol)
+        out[~mask_zero] = self.wake(t[~mask_zero])
 
         if isscalar:
             out = out[0]
@@ -1293,6 +1298,11 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
 
 
 class ComponentInterpolated(Component):
+    """
+    Creates a component in which the impedance function is evaluated directly
+    only on few points and it is interpolated everywhere else. This helps when
+    the impedance function is very slow to evaluate.
+    """
     def __init__(self,
                 interpolation_frequencies: ArrayLike = None,
                 impedance_input: Optional[Callable] = None,
@@ -1305,7 +1315,27 @@ class ComponentInterpolated(Component):
                 name: str = "Interpolated Component",
                 f_rois: Optional[List[Tuple[float, float]]] = None,
                 t_rois: Optional[List[Tuple[float, float]]] = None):
+        """
+        The init of the ComponentInterpolated class
 
+        :param interpolation_frequencies: the frequencies where the impedance
+        function is evaluated for the interpolation
+        :param impedance_input: A callable function representing the impedance
+        function of the Component. Can be undefined if the wake function is defined
+        :param interpolation_times: the times where the wake function is evaluated
+        for the interpolation
+        :param wake_input: A callable function representing the wake function of the
+        Component. Can be undefined if the impedance function is defined.
+        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
+        specified for valid initialization
+        :param source_exponents: The exponents in the x and y planes experienced by
+        the source particle
+        :param test_exponents: The exponents in the x and y planes experienced by
+        the test particle
+        :param name: An optional user-specified name of the component
+        :param f_rois: a list of frequency regions of interest
+        :param t_rois: a list of time regions of interest
+        """
         assert ((interpolation_frequencies is not None) ==
                 (impedance_input is not None)), ("Either both or none of the "
                 "impedance and the interpolation frequencies must be given")
@@ -1317,14 +1347,14 @@ class ComponentInterpolated(Component):
                             plane=plane)
 
         self.interpolation_frequencies = interpolation_frequencies
-        self.impedance_input = impedance_input
+        self.impedance_samples = impedance_input(self.interpolation_frequencies)
 
         assert ((interpolation_times is not None) ==
                 (wake_input is not None)), ("Either both or none of the wake "
                 "and the interpolation times must be given")
 
         self.interpolation_times = interpolation_times
-        self.wake_input = wake_input
+        self.wake_samples = wake_input(self.interpolation_times)
 
         super().__init__(impedance=lambda x: 0, wake=lambda x: 0, plane=plane,
                        source_exponents=source_exponents,
@@ -1333,19 +1363,92 @@ class ComponentInterpolated(Component):
                        name=name)
 
     def impedance(self, f):
-        if self.impedance_input is not None:
+        if hasattr(self, 'impedance_samples') is not None:
             return np.interp(f, self.interpolation_frequencies,
-                             self.impedance_input)
+                             self.impedance_samples)
         else:
             return np.zeros_like(f)
 
     def wake(self, t):
-        if self.wake_input is not None:
-            return np.interp(t, self.interpolation_times, self.wake_input,
+        if hasattr(self, 'wake_samples'):
+            return np.interp(t, self.interpolation_times, self.wake_samples,
                              left=0, right=0 # pad with zeros outside the range
             )
         else:
             return np.zeros_like(t)
+
+
+class ComponentFromArrays(Component):
+    """
+    A component from impedance and/or wake functions defined discretely
+    through arrays
+    """
+    def __init__(self,
+                 interpolation_frequencies: ArrayLike = None,
+                 impedance_samples: ArrayLike = None,
+                 interpolation_times: ArrayLike = None,
+                 wake_samples: ArrayLike = None,
+                 kind: str = None,
+                 plane: str = None,
+                 source_exponents: Tuple[int, int] = None,
+                 test_exponents: Tuple[int, int] = None,
+                 name: str = "Interpolated Component",
+                 f_rois: Optional[List[Tuple[float, float]]] = None,
+                 t_rois: Optional[List[Tuple[float, float]]] = None):
+        """
+        The init of the ComponentFromArrays class
+
+        :param interpolation_frequencies: the frequencies where the impedance
+        function is evaluated for the interpolation
+        :param impedance_samples: Aan array of impedance values at the interpolation
+        frequencies
+        the wake function is defined.
+        :param interpolation_times: the times where the wake function is evaluated
+        for the interpolation
+        :param wake_samples: an array of wake values at the interpolation times
+        Component. Can be undefined if the impedance function is defined.
+        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
+        specified for valid initialization
+        :param source_exponents: The exponents in the x and y planes experienced by
+        the source particle
+        :param test_exponents: The exponents in the x and y planes experienced by
+        the test particle
+        :param name: An optional user-specified name of the component
+        :param f_rois: a list of frequency regions of interest
+        :param t_rois: a list of time regions of interest
+        """
+        source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
+                            kind=kind, exponents=None,
+                            source_exponents=source_exponents,
+                            test_exponents=test_exponents,
+                            plane=plane)
+
+        self.interpolation_frequencies = interpolation_frequencies
+        self.impedance_samples = impedance_samples
+
+        self.interpolation_times = interpolation_times
+        self.wake_samples = wake_samples
+
+        if self.interpolation_frequencies is not None:
+            impedance = interp1d(self.interpolation_frequencies,
+                                 self.impedance_samples)
+        else:
+            impedance = lambda f: 0
+
+        if self.interpolation_times is not None:
+            wake = interp1d(self.interpolation_times,
+                            self.wake_samples,
+                            # pad with zeros outside the range
+                            fill_value=0, bounds_error=False
+                            )
+        else:
+            wake = lambda t: 0
+
+        super().__init__(impedance=impedance, wake=wake, plane=plane,
+                         source_exponents=source_exponents,
+                         test_exponents=test_exponents,
+                         f_rois=f_rois, t_rois=t_rois,
+                         name=name)
 
     def function_vs_t(self, t, beta0, dt):
 
@@ -1357,11 +1460,17 @@ class ComponentInterpolated(Component):
 
         out = self.wake(t)
 
-        # Handle discontinuity at edges (consistently with beam loading theorem)
+        # At the edges of the provided wake table we take half the provided
+        # value. This is equivalent to assume the next sample (not provided) is
+        # zero. The advantage is that for longitudinal ultra-relativistic wakes
+        # that have a discontinuity in zero, it provides a kick consistent with
+        # the fundamental theorem of beam loading (see A. Chao, Physics of
+        # Collective Beam Instabilities in High Energy Accelerators, Wiley, 
+        # 1993, Fig.2.6)
         mask_left_edge = np.abs(t - self.interpolation_times[0]) < dt / 2
-        out[mask_left_edge] = self.wake_input[0] / 2.
+        out[mask_left_edge] = self.wake_samples[0] / 2.
         mask_right_edge = np.abs(t - self.interpolation_times[-1]) < dt / 2
-        out[mask_right_edge] = self.wake_input[-1] / 2.
+        out[mask_right_edge] = self.wake_samples[-1] / 2.
 
         if isscalar:
             out = out[0]
@@ -1369,18 +1478,19 @@ class ComponentInterpolated(Component):
         return out
 
 
+
 def _handle_plane_and_exponents_input(kind, exponents, source_exponents, test_exponents, plane):
 
     if kind is not None:
         assert exponents is None, (
-            "If kind is specified, `exponents` should not be specified.")
+            "If `kind` is specified, `exponents` should not be specified.")
         assert source_exponents is None and test_exponents is None, (
-            "If kind is specified, `source_exponents` and test_exponents should "
+            "If `kind` is specified, `source_exponents` and `test_exponents` should "
             "not be specified.")
         assert test_exponents is None, (
-            "If kind is specified, `test_exponents` should not be specified.")
+            "If `kind` is specified, `test_exponents` should not be specified.")
         assert plane is None, (
-            "If kind is specified, `plane` should not be specified.")
+            "If `kind` is specified, `plane` should not be specified.")
         assert kind in KIND_DEFINITIONS, f'Unknown kind {kind}'
         source_exponents, test_exponents, plane = (
             KIND_DEFINITIONS[kind]['source_exponents'],

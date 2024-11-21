@@ -1,5 +1,7 @@
-
-# Run with: mpiexec -n 2 python 002_multibunch_example_LHC.py
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
 
 import xtrack as xt
 import xpart as xp
@@ -74,7 +76,6 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
             bunch_spacing_buckets=10,
             bucket_length=bucket_length_m,
-            # prepare_line_and_particles_for_mpi_wake_sim=True
 )
 
 particles.x += 1e-3

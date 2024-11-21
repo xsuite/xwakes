@@ -1,6 +1,6 @@
 # copyright ############################### #
-# This file is part of the Xtrack Package.  #
-# Copyright (c) CERN, 2021.                 #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
 # ######################################### #
 
 import pathlib
@@ -30,9 +30,9 @@ from PyHEADTAIL.trackers.transverse_tracking import TransverseSegmentMap
 from PyHEADTAIL.trackers.longitudinal_tracking import LinearMap
 from PyHEADTAIL.trackers.detuners import ChromaticitySegment, AmplitudeDetuningSegment
 
-nTurn = 5000  # int(1E4)
+nTurn = 2000  # int(1E4)
 bunch_intensity = 1.8e11
-n_macroparticles = int(1e4)
+n_macroparticles = 200_000
 energy = 7e3  # [GeV]
 gamma = energy * 1e9 / protonMass
 betar = np.sqrt(1 - 1 / gamma ** 2)
@@ -216,14 +216,17 @@ t_xt_start = time.time()
 turns = np.arange(nTurn)
 x_xt = np.zeros(nTurn, dtype=float)
 ttbatch = time.time()
+n_batch = 500
 for turn in range(nTurn):
     line.track(particles)
 
     x_xt[turn] = np.average(particles.x[particles.state>0])
-    if turn % 1000 == 0:
+    if turn % n_batch == 0:
         new_ttbatch = time.time()
-        print(f"PyHtXt - turn {turn} {new_ttbatch - ttbatch}")
+        dt_last_batch_xs = new_ttbatch - ttbatch
+        print(f"Xsuite - turn {turn} {new_ttbatch - ttbatch}")
         ttbatch = time.time()
+
 
 t_xt_end = time.time()
 
@@ -283,4 +286,7 @@ plt.xlabel("Turn")
 plt.ylabel("x [$\sigma_x$]")
 
 print(f'{gr_pyht=}, {gr_xtpyht=} {gr_pyht-gr_xtpyht=}')
+
+print(f'PyHT time:   {(t_pyht_end - t_pyht_start) / nTurn:.2e} s')
+print(f'Xsuite time: {dt_last_batch_xs / n_batch:.2e} s')
 plt.show()
