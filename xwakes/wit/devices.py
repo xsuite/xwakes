@@ -180,8 +180,8 @@ def _integral_stupakov(half_gap_small: float, half_gap_big: float,
 
     else:
         # computes numerically the integral instead of using its approximation
-        i, err = integrate.quadrature(_integrand_stupakov, half_gap_small, half_gap_big,
-                                      tol=1.e-3, maxiter=200, vec_func=False)
+        i, err = integrate.quad(_integrand_stupakov, half_gap_small,  # noqa
+                                half_gap_big, epsabs=1.e-3, limit=200)
 
     return i
 

@@ -70,7 +70,7 @@ def test_config_pipeline_for_wakes(test_context):
 
         line = xt.Line(elements=[wake1, wake2, wake3, wake_no_config, drift])
 
-        particles = xt.Particles(context=test_context)
+        particles = xt.Particles(_context=test_context)
 
         pipeline_manager = xw.config_pipeline_for_wakes(particles, line, communicator,
                                     elements_to_configure=None)
