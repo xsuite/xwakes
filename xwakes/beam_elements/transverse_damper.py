@@ -50,13 +50,16 @@ class TransverseDamper(xt.BeamElement):
             'py': gain_y,
         }
 
+        self.xoinitialize(**kwargs)
+
         self.slicer = xf.UniformBinSlicer(
             filling_scheme=filling_scheme,
             bunch_selection=bunch_selection,
             zeta_range=zeta_range,
             num_slices=num_slices,
             bunch_spacing_zeta=bunch_spacing_zeta,
-            moments=['px', 'py']
+            moments=['px', 'py'],
+            _context=self.context
         )
 
         if filling_scheme is not None:
@@ -74,7 +77,8 @@ class TransverseDamper(xt.BeamElement):
                 bunch_spacing_zeta=bunch_spacing_zeta,
                 num_periods=num_periods,
                 num_turns=1,
-                circumference=circumference
+                circumference=circumference,
+                _context=self.context
             )
 
     def _reconfigure_for_parallel(self, n_procs, my_rank):
