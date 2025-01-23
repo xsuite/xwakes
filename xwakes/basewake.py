@@ -17,6 +17,7 @@ class BaseWake:
                                filling_scheme=None,
                                circumference=None,
                                bunch_selection=None,
+                               _context=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
         from xfields.beam_elements.waketracker import WakeTracker
@@ -29,9 +30,10 @@ class BaseWake:
             filling_scheme=filling_scheme,
             circumference=circumference,
             bunch_selection=bunch_selection,
+            _context=_context,
             **kwargs)
 
-    def _reconfigure_for_parallel(self, n_procs, my_rank) -> None:
+    def _reconfigure_for_parallel(self, n_procs, my_rank, _context) -> None:
 
         filled_slots = self._wake_tracker.slicer.filled_slots
         scheme = np.zeros(np.max(filled_slots) + 1,
@@ -49,6 +51,7 @@ class BaseWake:
                           bunch_selection=bunch_selection_rank[my_rank],
                           num_turns=self._wake_tracker.num_turns,
                           circumference=self._wake_tracker.circumference,
+                          _context=_context
                           )
 
     def track(self, particles) -> None:
