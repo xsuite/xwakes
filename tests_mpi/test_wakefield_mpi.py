@@ -150,7 +150,7 @@ def test_wakes_with_filling_scheme_mpi():
 
     for conv_data_mpi_key in conv_data_mpi_dict:
         assert conv_data_mpi_key in conv_data_ref_dict
-        if conv_data_mpi_key == 'component' or conv_data_mpi_key == 'waketracker':
+        if conv_data_mpi_key in ('component', 'waketracker', '_context'):
             continue
         xo.assert_allclose(conv_data_mpi_dict[conv_data_mpi_key],
                         conv_data_ref_dict[conv_data_mpi_key],
