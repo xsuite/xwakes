@@ -44,9 +44,11 @@ setup(
         'numpy>=1.0',
         'scipy',
         'pyyaml',
-        'pandas'
+        'pandas',
+        'xpart',
+        'xfields'
         ],
     extras_require={
-        'tests': ['pytest', 'PyHEADTAIL'],
+        'tests': ['pytest', 'PyHEADTAIL', 'nafflib'],
         },
     )
