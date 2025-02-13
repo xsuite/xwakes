@@ -11,7 +11,7 @@ from .wit.component import KIND_DEFINITIONS
 
 class WakeFromTable(BaseWake):
 
-    def __init__(self, table, columns=None):
+    def __init__(self, table, columns=None, method = "Interpolated"):
 
         if isinstance(table, dict):
             table = pd.DataFrame(table)
@@ -33,7 +33,7 @@ class WakeFromTable(BaseWake):
             component = ComponentFromArrays(
                 interpolation_times=table['time'].values,
                 wake_samples=table[cc].values,
-                kind=cc)
+                kind=cc, method = method)
             components.append(component)
 
         self.components = components
