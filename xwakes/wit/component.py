@@ -1431,6 +1431,8 @@ class ComponentFromArrays(Component):
         self.interpolation_times = interpolation_times
         self.wake_samples = wake_samples
 
+        self.method = method
+
         if self.interpolation_frequencies is not None:
             impedance = interp1d(self.interpolation_frequencies,
                                  self.impedance_samples)
