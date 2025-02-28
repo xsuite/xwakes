@@ -34,7 +34,7 @@ def test_headail_table_read():
     for i_component, component in enumerate(wake_file_columns):
         if component != 'time':
             if component == 'longitudinal':
-                conversion_factor = 1E12
+                conversion_factor = -1E12
             else:
                 conversion_factor = 1E15
 
