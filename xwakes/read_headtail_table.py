@@ -36,7 +36,7 @@ def read_headtail_file(wake_file, wake_file_columns):
         if component != 'time':
             assert component in valid_wake_components
             if component == 'longitudinal':
-                conversion_factor = 1E12
+                conversion_factor = -1E12
             else:
                 conversion_factor = 1E15
 
