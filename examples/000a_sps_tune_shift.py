@@ -64,7 +64,7 @@ wf_sps.configure_for_tracking(
 )
 
 # initialize a damper with 100 turns gain
-transverse_damper = xf.TransverseDamper(
+transverse_damper = xw.TransverseDamper(
     gain_x=2/100, gain_y=2/100,
     zeta_range=(-0.5*bucket_length, 0.5*bucket_length),
     num_slices=100,
@@ -73,7 +73,7 @@ transverse_damper = xf.TransverseDamper(
 )
 
 # initialize a monitor for the average transverse positions
-monitor = xf.CollectiveMonitor(
+monitor = xw.CollectiveMonitor(
     base_file_name=f'sps_tune_shift',
     monitor_bunches=True,
     monitor_slices=False,
