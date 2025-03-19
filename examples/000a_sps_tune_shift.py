@@ -10,7 +10,6 @@ import h5py
 
 import xwakes as xw
 import xtrack as xt
-import xfields as xf
 import xpart as xp
 import nafflib
 
