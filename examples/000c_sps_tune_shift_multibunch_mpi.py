@@ -11,7 +11,6 @@ from mpi4py import MPI
 
 import xwakes as xw
 import xtrack as xt
-import xfields as xf
 import xpart as xp
 import nafflib
 
@@ -77,7 +76,7 @@ wf_sps.configure_for_tracking(
 )
 
 # initialize a damper with 100 turns gain
-transverse_damper = xf.TransverseDamper(
+transverse_damper = xw.TransverseDamper(
     gain_x=2/100, gain_y=2/100,
     zeta_range=(-0.5*bucket_length, 0.5*bucket_length),
     num_slices=100,
@@ -88,7 +87,7 @@ transverse_damper = xf.TransverseDamper(
 
 # initialize a monitor for the average transverse positions
 my_rank = MPI.COMM_WORLD.Get_rank()
-monitor = xf.CollectiveMonitor(
+monitor = xw.CollectiveMonitor(
     base_file_name=f'sps_tune_shift_rank{my_rank}',
     monitor_bunches=True,
     monitor_slices=False,

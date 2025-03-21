@@ -73,6 +73,8 @@ class CollectiveMonitor(ElementWithSlicer):
         Use flattened wakes
     """
 
+    iscollective = True
+
     _stats_to_store = [
         'mean_x', 'mean_px', 'mean_y', 'mean_py', 'mean_zeta',
         'mean_delta', 'sigma_x', 'sigma_y', 'sigma_zeta',
