@@ -12,7 +12,6 @@ context = xo.ContextCpu()
 energy = 7E3
 qx = 62.31
 qy = 60.32
-momentumCompaction = 3.48e-04
 basic_slot_time = 25E-9
 n_bunch_max = 3000
 n_bunch = 100
@@ -88,11 +87,12 @@ wfy.configure_for_tracking(zeta_range=zeta_range,
                     )
 
 
-for turn in range(n_turns_wake):
-    px0 = np.copy(particles.px)
-    wfx.track(particles)
-    py0 = np.copy(particles.py)
-    wfy.track(particles)
+px0 = np.copy(particles.px)
+wfx.track(particles)
+kicks_x_from_track = particles.px-px0
+py0 = np.copy(particles.py)
+wfy.track(particles)
+kicks_y_from_track = particles.py-py0
 
 moments_data = wfx._xfields_wf.moments_data
 z,x = moments_data.get_moment_profile('x',0)
@@ -115,15 +115,12 @@ assert np.allclose(x/sigma_x,positions_x)
 assert np.allclose(y/sigma_y,positions_y)
 
 
+scaling_constant = particles.q0**2 * cst.e**2 / (particles.p0c[0] * particles.beta0[0] * cst.e)
 for i_slice in range(num_slices):
     zetas_slice = zeta0[i_slice]-zetas
-
-    scaling_constant = particles.q0**2 * cst.e**2 / (particles.p0c[0] * particles.beta0[0] * cst.e)
     kicks = positions_x*sigma_x*scaling_constant*slice_intensity*wfx.function_vs_zeta(zetas_slice,beta0=betar,dzeta=moments_data.dz)
-    kick_from_track = particles.px[i_slice]-px0[i_slice]
-    assert np.isclose(np.sum(kicks),kick_from_track)
+    assert np.isclose(np.sum(kicks),kicks_x_from_track[i_slice])
     kicks = positions_x*sigma_x*scaling_constant*slice_intensity*wfy.function_vs_zeta(zetas_slice,beta0=betar,dzeta=moments_data.dz)
-    kick_from_track = particles.py[i_slice]-py0[i_slice]
-    assert np.isclose(np.sum(kicks),kick_from_track)
+    assert np.isclose(np.sum(kicks),kicks_y_from_track[i_slice])
 
 
