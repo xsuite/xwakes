@@ -51,8 +51,8 @@ def test_tune_shift_transverse(wake_type, plane):
 
     one_turn_map = xt.LineSegmentMap(length=1, qx=0.28, qy=0.31, qs=0.1e-3, bets=100)
 
-    line_no_wake = xt.Line(elements=[one_turn_map])
-    line_with_wake = xt.Line(elements=[one_turn_map, wake])
+    line_no_wake = xt.Line(elements=[one_turn_map.copy()])
+    line_with_wake = xt.Line(elements=[one_turn_map.copy(), wake])
 
     line_no_wake.particle_ref = xt.Particles(p0c=2e9)
     line_with_wake.particle_ref = xt.Particles(p0c=2e9)
@@ -126,8 +126,8 @@ def test_tune_shift_longitudinal():
 
     one_turn_map = xt.LineSegmentMap(length=1, qx=0.28, qy=0.31, qs=5e-3, bets=100)
 
-    line_no_wake = xt.Line(elements=[one_turn_map])
-    line_with_wake = xt.Line(elements=[one_turn_map, wake])
+    line_no_wake = xt.Line(elements=[one_turn_map.copy()])
+    line_with_wake = xt.Line(elements=[one_turn_map.copy(), wake])
 
     line_no_wake.particle_ref = xt.Particles(p0c=2e9)
     line_with_wake.particle_ref = xt.Particles(p0c=2e9)
