@@ -110,17 +110,16 @@ zetas = zetas[indices]
 positions_x = positions_x[indices]
 positions_y = positions_y[indices]
 
-assert np.allclose(z,zetas)
+assert np.allclose(z/sigma_z,zetas/sigma_z)
 assert np.allclose(x/sigma_x,positions_x)
 assert np.allclose(y/sigma_y,positions_y)
-
 
 scaling_constant = particles.q0**2 * cst.e**2 / (particles.p0c[0] * particles.beta0[0] * cst.e)
 for i_slice in range(num_slices):
     zetas_slice = zeta0[i_slice]-zetas
     kicks = positions_x*sigma_x*scaling_constant*slice_intensity*wfx.function_vs_zeta(zetas_slice,beta0=betar,dzeta=moments_data.dz)
-    assert np.isclose(np.sum(kicks),kicks_x_from_track[i_slice])
-    kicks = positions_x*sigma_x*scaling_constant*slice_intensity*wfy.function_vs_zeta(zetas_slice,beta0=betar,dzeta=moments_data.dz)
-    assert np.isclose(np.sum(kicks),kicks_y_from_track[i_slice])
+    assert np.isclose(np.sum(kicks),kicks_x_from_track[i_slice],atol=1E-15)
+    kicks = positions_y*sigma_y*scaling_constant*slice_intensity*wfy.function_vs_zeta(zetas_slice,beta0=betar,dzeta=moments_data.dz)
+    assert np.isclose(np.sum(kicks),kicks_y_from_track[i_slice],atol=1E-15)
 
 
