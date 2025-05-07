@@ -121,7 +121,10 @@ class CollectiveMonitor(ElementWithSlicer):
                  stats_to_store=None,
                  stats_to_store_particles=None,
                  backend='hdf5',
-                 _flatten=False):
+                 _flatten=False,
+                 **kwargs):
+
+        self.xoinitialize(**kwargs)
 
         slicer_moments = []
         if stats_to_store is not None:
@@ -194,7 +197,8 @@ class CollectiveMonitor(ElementWithSlicer):
             bunch_spacing_zeta=bunch_spacing_zeta,  # This is P in the paper
             filling_scheme=filling_scheme,
             bunch_selection=bunch_selection,
-            with_compressed_profile=False
+            with_compressed_profile=False,
+            _context=self._context
         )
 
     def _reconfigure_for_parallel(self, n_procs, my_rank):
@@ -213,7 +217,8 @@ class CollectiveMonitor(ElementWithSlicer):
             zeta_range=self.slicer.zeta_range,
             num_slices=self.slicer.num_slices,
             bunch_spacing_zeta=self.slicer.bunch_spacing_zeta,
-            moments=self.slicer.moments
+            moments=self.slicer.moments,
+            _context=self._context
         )
 
     def track(self, particles, _slice_result=None, _other_bunch_slicers=None):
@@ -326,7 +331,7 @@ class CollectiveMonitor(ElementWithSlicer):
 
                 # here we need to use self.i_turn - 1 because the turn is
                 # incremented before calling this method
-                self.bunch_buffer[bid][stat][(self.i_turn - 1) %
+                self.bunch_buffer[int(bid)][stat][(self.i_turn - 1) %
                                              self.flush_data_every] = val
 
     def _update_slice_buffer(self, particles):
