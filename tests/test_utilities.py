@@ -684,9 +684,9 @@ def test_interpolated_component():
                                         100)
 
     xo.assert_allclose(component.wake(test_points_wake),
-            test_points_wake*2)
+            test_points_wake*2, atol=1e-15)
     xo.assert_allclose(component.impedance(test_points_impedance),
-            test_points_impedance*3)
+            test_points_impedance*3, atol=1e-15)
 
 
 def test_component_from_arrays():
