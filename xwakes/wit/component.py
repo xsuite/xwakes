@@ -233,7 +233,7 @@ class Component:
                                **kwargs # for multibuunch compatibility
                                ) -> None:
         import xfields as xf
-        self._xfields_wf = xf.Wakefield(components=[self], zeta_range=zeta_range,
+        self._xfields_wf = xf.WakeTracker(components=[self], zeta_range=zeta_range,
                                         num_slices=num_slices, **kwargs)
 
     def track(self, particles):
@@ -794,6 +794,7 @@ class ComponentClassicThickWall(Component):
 
         if isscalar:
             out = out[0]
+            
         return out
 
     @staticmethod
