@@ -19,7 +19,7 @@ from xwakes.wit.component import KIND_DEFINITIONS as kind_to_parameters
 test_data_folder = pathlib.Path(__file__).parent.joinpath(
     '../test_data').absolute()
 
-exclude_contexts = ['ContextPyopencl', 'ContextCupy']
+exclude_contexts = ['ContextPyopencl', 'ContextCpu']
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
@@ -71,12 +71,13 @@ def test_wake_kick_single_bunch(test_context, kind, wake_type):
         zeta_range=zeta_range,
         num_slices=num_slices,
         bunch_spacing_zeta=circumference/h_bunch,
-        circumference=circumference
+        circumference=circumference,
+        _context=test_context
         )
 
     line = xt.Line(elements=[wf])
-    line.build_tracker()
-    line.particle_ref=xp.Particles(p0c=p0c)
+    line.build_tracker(_context=test_context)
+    line.particle_ref = xp.Particles(p0c=p0c)
 
     particles = xp.Particles(p0c=p0c,
                         zeta=wf.slicer.zeta_centers.flatten(),
@@ -122,14 +123,18 @@ def test_wake_kick_single_bunch(test_context, kind, wake_type):
         assert comp.test_exponents == kind_to_parameters[kk]['test_exponents']
 
         expected = np.zeros_like(particles.zeta)
+        x_cpu = test_context.nparray_from_context_array(particles.x)
+        y_cpu = test_context.nparray_from_context_array(particles.y)
+        zeta_cpu = test_context.nparray_from_context_array(particles.zeta)
+        beta0_cpu = test_context.nparray_from_context_array(particles.beta0)
 
-        for i_test, z_test in enumerate(particles.zeta):
-            expected[i_test] += (particles.x[i_test]**comp.test_exponents[0] *
-                                particles.y[i_test]**comp.test_exponents[1] *
-                                np.dot(particles.x**comp.source_exponents[0] *
-                                        particles.y**comp.source_exponents[1],
-                                        comp.function_vs_zeta(z_test - particles.zeta,
-                                                            beta0=particles.beta0[0],
+        for i_test, z_test in enumerate(zeta_cpu):
+            expected[i_test] += (x_cpu[i_test]**comp.test_exponents[0] *
+                                 y_cpu[i_test]**comp.test_exponents[1] *
+                                 np.dot(x_cpu**comp.source_exponents[0] *
+                                        y_cpu**comp.source_exponents[1],
+                                        comp.function_vs_zeta(z_test - zeta_cpu,
+                                                            beta0=beta0_cpu[0],
                                                             dzeta=1e-12)) * scale)
 
         xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1],
@@ -172,12 +177,13 @@ def test_wake_kick_multi_bunch(test_context, kind):
         filling_scheme=filling_scheme,
         bunch_spacing_zeta=circumference/h_bunch,
         bunch_selection=bunch_selection,
-        circumference=circumference
+        circumference=circumference,
+        _context=test_context
         )
 
     line = xt.Line(elements=[wf])
-    line.build_tracker()
-    line.particle_ref=xp.Particles(p0c=p0c)
+    line.build_tracker(_context=test_context)
+    line.particle_ref = xp.Particles(p0c=p0c)
 
     particles = xp.Particles(p0c=p0c,
                             zeta=wf.slicer.zeta_centers.flatten(),
@@ -211,6 +217,11 @@ def test_wake_kick_multi_bunch(test_context, kind):
 
     assert len(wf.components) == len(kind)
 
+    if hasattr(particles.zeta, 'get'):
+        particles_zeta = particles.zeta.get()
+    else:
+        particles_zeta = particles.zeta
+
     for comp, kk in zip(wf.components, kind):
         if comp.plane == 'z':
             scale = -particles.q0**2 * qe**2 / (
@@ -222,15 +233,20 @@ def test_wake_kick_multi_bunch(test_context, kind):
         assert comp.source_exponents == kind_to_parameters[kk]['source_exponents']
         assert comp.test_exponents == kind_to_parameters[kk]['test_exponents']
 
-        expected = np.zeros_like(particles.zeta)
+        expected = np.zeros_like(particles_zeta)
 
-        for i_test, z_test in enumerate(particles.zeta):
-            expected[i_test] += (particles.x[i_test]**comp.test_exponents[0] *
-                                particles.y[i_test]**comp.test_exponents[1] *
-                                np.dot(particles.x**comp.source_exponents[0] *
-                                        particles.y**comp.source_exponents[1],
-                                        comp.function_vs_zeta(z_test - particles.zeta,
-                                                            beta0=particles.beta0[0],
+        x_cpu = test_context.nparray_from_context_array(particles.x)
+        y_cpu = test_context.nparray_from_context_array(particles.y)
+        zeta_cpu = test_context.nparray_from_context_array(particles.zeta)
+        beta0_cpu = test_context.nparray_from_context_array(particles.beta0)
+
+        for i_test, z_test in enumerate(zeta_cpu):
+            expected[i_test] += (x_cpu[i_test]**comp.test_exponents[0] *
+                                 y_cpu[i_test]**comp.test_exponents[1] *
+                                 np.dot(x_cpu**comp.source_exponents[0] *
+                                        y_cpu**comp.source_exponents[1],
+                                        comp.function_vs_zeta(z_test - zeta_cpu,
+                                                            beta0=beta0_cpu[0],
                                                             dzeta=1e-12)) * scale)
 
         xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1],
@@ -266,11 +282,13 @@ def test_beam_loading_theorem(test_context):
     delta_bef = particles.delta.copy()
 
     wf = xw.WakeResonator(kind='longitudinal', r=1e8, q=1e7, f_r=1e3)
-    wf.configure_for_tracking(zeta_range=zeta_range, num_slices=n_slices)
+    wf.configure_for_tracking(zeta_range=zeta_range, num_slices=n_slices,
+                              _context=test_context)
 
     line = xt.Line(elements=[wf],
                    element_names=['wf'])
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
+    line.particle_ref = xp.Particles(p0c=p0c, _context=test_context)
     line.track(particles, num_turns=1)
 
     scale = -particles.q0**2 * qe**2 / (qe * particles.p0c[0] * particles.beta0[0]
@@ -315,7 +333,9 @@ def test_wake_kick_multiturn(test_context, kind):
     wf = xw.WakeResonator(kind=kind,
                           r=1e8, q=1e7, f_r=1e3)
     wf.configure_for_tracking(zeta_range=zeta_range, num_slices=n_slices,
-                              num_turns=num_turns_wake, circumference=circumference)
+                              num_turns=num_turns_wake,
+                              circumference=circumference,
+                              _context=test_context)
 
 
     i_source = -10
@@ -348,46 +368,53 @@ def test_wake_kick_multiturn(test_context, kind):
 
     line = xt.Line(elements=[wf],
                    element_names=['wf'])
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
+    line.particle_ref = xp.Particles(p0c=p0c, _context=test_context)
     line.track(particles, num_turns=3)
 
     scale = particles.q0**2 * qe**2 / (
-        particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
+        p0c * particles.beta0[0]* qe) * particles.weight[0]
+
+    x_cpu = test_context.nparray_from_context_array(particles.x)
+    y_cpu = test_context.nparray_from_context_array(particles.y)
+    zeta_cpu = test_context.nparray_from_context_array(particles.zeta)
+    beta0_cpu = test_context.nparray_from_context_array(particles.beta0)
+    weight_cpu = test_context.nparray_from_context_array(particles.weight)
 
     wake_kwargs = {
-        'beta0': particles.beta0[0],
+        'beta0': beta0_cpu[0],
         'dzeta': 1e-20,
     }
 
     for comp, kk in zip(wf.components, kind):
         if comp.plane == 'z':
             scale = -particles.q0**2 * qe**2 / (
-                particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
+                p0c * beta0_cpu[0]* qe) * weight_cpu[0]
         else:
             scale = particles.q0**2 * qe**2 / (
-                particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
+                p0c * beta0_cpu[0]* qe) * weight_cpu[0]
         assert comp.plane == kind_to_parameters[kk]['plane']
         assert comp.source_exponents == kind_to_parameters[kk]['source_exponents']
         assert comp.test_exponents == kind_to_parameters[kk]['test_exponents']
 
-        expected = np.zeros_like(particles.zeta)
+        expected = np.zeros_like(zeta_cpu)
 
-        for i_test, z_test in enumerate(particles.zeta):
+        for i_test, z_test in enumerate(zeta_cpu):
             expected[i_test] += (
-                particles.x[i_test]**comp.test_exponents[0] *
-                particles.y[i_test]**comp.test_exponents[1] *
-                np.dot(particles.x**comp.source_exponents[0] *
-                particles.y**comp.source_exponents[1],
-                comp.function_vs_zeta(z_test - particles.zeta,
+                x_cpu[i_test]**comp.test_exponents[0] *
+                y_cpu[i_test]**comp.test_exponents[1] *
+                np.dot(x_cpu**comp.source_exponents[0] *
+                y_cpu**comp.source_exponents[1],
+                comp.function_vs_zeta(z_test - zeta_cpu,
                                       **wake_kwargs)) *
                 scale * (num_turns_wake + 1))
 
             expected[i_test] += (
-                particles.x[i_test]**comp.test_exponents[0] *
-                particles.y[i_test]**comp.test_exponents[1] *
-                np.dot(particles.x**comp.source_exponents[0] *
-                       particles.y**comp.source_exponents[1],
-                       comp.function_vs_zeta(z_test - particles.zeta -
+                x_cpu[i_test]**comp.test_exponents[0] *
+                y_cpu[i_test]**comp.test_exponents[1] *
+                np.dot(x_cpu**comp.source_exponents[0] *
+                       y_cpu**comp.source_exponents[1],
+                       comp.function_vs_zeta(z_test - zeta_cpu -
                                              circumference, **wake_kwargs)) *
                 scale * num_turns_wake)
 
@@ -420,7 +447,9 @@ def test_wake_kick_multiturn_reset(test_context, kind):
     wf = xw.WakeResonator(kind=kind,
                           r=1e8, q=1e7, f_r=1e3)
     wf.configure_for_tracking(zeta_range=zeta_range, num_slices=n_slices,
-                              num_turns=num_turns_wake, circumference=circumference)
+                              num_turns=num_turns_wake,
+                              circumference=circumference,
+                              _context=test_context)
 
 
     i_source = -10
@@ -441,7 +470,8 @@ def test_wake_kick_multiturn_reset(test_context, kind):
 
     line = xt.Line(elements=[wf],
                    element_names=['wf'])
-    line.build_tracker()
+    line.build_tracker(_context=test_context)
+    line.particle_ref = xp.Particles(p0c=p0c, _context=test_context)
     line.track(particles, num_turns=num_turns_wake)
 
     particles.weight *= 0
@@ -565,7 +595,8 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 filling_scheme=filling_scheme,
                                 bunch_selection=bunch_selection_0,
                                 num_turns=n_turns_wake,
-                                circumference=circumference
+                                circumference=circumference,
+                                _context=test_context
                                 )
     wf_0._wake_tracker.init_pipeline(pipeline_manager=pipeline_manager,
                                         element_name='wake',
@@ -578,11 +609,12 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
                                 filling_scheme=filling_scheme,
                                 bunch_selection=bunch_selection_1,
                                 num_turns=n_turns_wake,
-                                circumference=circumference
+                                circumference=circumference,
+                                _context=test_context
                                 )
     wf_1._wake_tracker.init_pipeline(pipeline_manager=pipeline_manager,
-                                        element_name='wake',
-                                        partner_names=['b0'])
+                                     element_name='wake',
+                                     partner_names=['b0'])
 
     dict_p_bef_0 = {}
     dict_p_bef_1 = {}
@@ -604,8 +636,10 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     line_0 = xt.Line(elements=[wf_0])
     line_1 = xt.Line(elements=[wf_1])
     print('Initialising multitracker')
-    line_0.build_tracker()
-    line_1.build_tracker()
+    line_0.build_tracker(_context=test_context)
+    line_1.build_tracker(_context=test_context)
+    line_0.particle_ref = xp.Particles(p0c=p0c, _context=test_context)
+    line_1.particle_ref = xp.Particles(p0c=p0c, _context=test_context)
     multitracker = xt.PipelineMultiTracker(
         branches=[xt.PipelineBranch(line=line_0, particles=particles_0),
                   xt.PipelineBranch(line=line_1, particles=particles_1)])
@@ -615,6 +649,14 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     print('loading test data')
     particles_tot = xt.Particles.merge([particles_0, particles_1])
 
+    x_cpu = test_context.nparray_from_context_array(particles.x)
+    y_cpu = test_context.nparray_from_context_array(particles.y)
+    zeta_cpu = test_context.nparray_from_context_array(particles.zeta)
+    x_tot_cpu = test_context.nparray_from_context_array(particles_tot.x)
+    y_tot_cpu = test_context.nparray_from_context_array(particles_tot.y)
+    zeta_tot_cpu = test_context.nparray_from_context_array(particles.zeta)
+    beta0_cpu = test_context.nparray_from_context_array(particles.beta0)
+
     for particles, dict_p_bef, wf in [(particles_0, dict_p_bef_0, wf_0),
                                       (particles_1, dict_p_bef_1, wf_1)]:
 
@@ -623,24 +665,24 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
         for comp, kk in zip(wf.components, kind):
             if comp.plane == 'z':
                 scale = -particles.q0**2 * qe**2 / (
-                    particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
+                    p0c * beta0_cpu * qe) * particles.weight[0]
             else:
                 scale = particles.q0**2 * qe**2 / (
-                    particles.p0c[0] * particles.beta0[0]* qe) * particles.weight[0]
+                    p0c * beta0_cpu * qe) * particles.weight[0]
             assert comp.plane == kind_to_parameters[kk]['plane']
             assert comp.source_exponents == kind_to_parameters[kk]['source_exponents']
             assert comp.test_exponents == kind_to_parameters[kk]['test_exponents']
 
-            expected = np.zeros_like(particles.zeta)
+            expected = np.zeros_like(zeta_cpu)
 
-            for i_test, z_test in enumerate(particles.zeta):
-                expected[i_test] += (particles.x[i_test]**comp.test_exponents[0] *
-                                        particles.y[i_test]**comp.test_exponents[1] *
-                                        np.dot(particles_tot.x**comp.source_exponents[0] *
-                                            particles_tot.y**comp.source_exponents[1],
-                                            comp.function_vs_zeta(z_test - particles_tot.zeta,
-                                                                    beta0=particles_tot.beta0[0],
-                                                                    dzeta=1e-12)) * scale)
+            for i_test, z_test in enumerate(zeta_cpu):
+                expected[i_test] += (x_cpu[i_test]**comp.test_exponents[0] *
+                                     y_cpu[i_test]**comp.test_exponents[1] *
+                                     np.dot(x_tot_cpu**comp.source_exponents[0] *
+                                            y_tot_cpu**comp.source_exponents[1],
+                                            comp.function_vs_zeta(z_test - zeta_tot_cpu,
+                                                                  beta0=beta0_cpu[0],
+                                                                  dzeta=1e-12)) * scale)
 
             xo.assert_allclose(getattr(particles, dict_p_bef[kk][0]) - dict_p_bef[kk][1],
                     expected, rtol=1e-4, atol=1e-20)
