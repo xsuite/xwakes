@@ -1,6 +1,6 @@
 import numpy as np
 from scipy.special import exp1
-from scipy.optimize import bisect
+from scipy.optimize import bisect, newton
 
 from typing import Sequence, Tuple
 
@@ -62,7 +62,7 @@ def dispersion_integral_2d(tune_shift: np.ndarray, b_direct: float, b_cross: flo
 def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, reference_b_direct: float, reference_b_cross: float,
                                    added_b_direct: float = 0, added_b_cross: float = 0,
                                    fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                                   distribution: str = 'gaussian', tolerance=1e-10):
+                                   distribution: str = 'gaussian', algorithm: str = 'newton', tolerance=1e-10):
     """
     Compute the detuning coefficients (multiplied by sigma) corresponding to stability diagram threshold for a complex
     tune shift.
@@ -80,10 +80,11 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, reference_b_
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tune shift up to this fraction of q_s (default=5%)
-    :param tolerance: tolerance on difference w.r.t stability diagram, for Newton's root finding
+    :param algorithm: root-solving algorithm ('bisect' or 'newton')
+    :param tolerance: tolerance on difference w.r.t stability diagram, for root finding
     and for the final check that the roots are actually proper roots.
     :return: the detuning coefficients corresponding to the stability diagram threshold if the corresponding mode is
-    unstable, 0 if the corresponding mode is stable or np.nan if the threshold cannot be found (failure of Newton's
+    unstable, 0 if the corresponding mode is stable or np.nan if the threshold cannot be found (failure of root-solving
     algorithm).
     """
     # evaluate azimuthal mode number
@@ -107,13 +108,20 @@ def find_detuning_coeffs_threshold(tune_shift: complex, q_s: float, reference_b_
             return tune_shift.imag - np.interp(tune_shift.real, np.real(stab)[::int(np.sign(b_direct_i))],
                                                np.imag(stab)[::int(np.sign(b_direct_i))])
 
-        # Newton root finding
+        # root finding
         try:
-            # we use 1e-15 as a bound instead of 0 because 0 would cause a divsion by 0 in dispersion_integral_2d
-            if reference_b_direct > 0:
-                b_direct_new = bisect(f, 1e-15, 100 * reference_b_direct)
+            if algorithm=='bisect':
+                # we use 1e-15 as a bound instead of 0 because 0 would cause a divsion by 0 in dispersion_integral_2d
+                if reference_b_direct > 0:
+                    b_direct_new = bisect(f, 1e-15, 100 * reference_b_direct)
+                else:
+                    b_direct_new = bisect(f, 100 * reference_b_direct, -1e-15)
+
+            elif algorithm=='newton':
+                b_direct_new = newton(f, reference_b_direct, tol=tolerance)
+
             else:
-                b_direct_new = bisect(f, 100 * reference_b_direct, -1e-15)
+                raise ValueError("algorithm must be either 'newton' or 'bisect'")
 
         except RuntimeError:
             b_direct_new = np.nan
@@ -138,7 +146,7 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
                                                     added_b_direct: float = 0, added_b_cross: float = 0,
                                                     distribution: str = 'gaussian',
                                                     fraction_of_qs_allowed_on_positive_side: float = 0.05,
-                                                    tolerance=1e-10):
+                                                    algorithm: str = 'newton', tolerance = 1e-10):
     """
     Compute the detuning coefficients corresponding to the most stringent stability diagram threshold for a sequence of
     complex tune shifts. It keeps fixed the ratio between reference_b_direct and reference_b_cross.
@@ -155,17 +163,18 @@ def find_detuning_coeffs_threshold_many_tune_shifts(tune_shifts: Sequence[comple
     :param distribution: the transverse distribution of the beam. It can be 'gaussian' or 'parabolic'
     :param fraction_of_qs_allowed_on_positive_side: to determine azimuthal mode number l_mode (around which is drawn the
     stability diagram), one can consider positive tuneshift up to this fraction of q_s (default=5%)
-    :param tolerance: tolerance on difference w.r.t stability diagram, for Newton's root finding
+    :param algorithm: root-solving algorithm ('bisect' or 'newton')
+    :param tolerance: tolerance on difference w.r.t stability diagram, for root finding
     and for the final check that the roots are actually proper roots.
     :return: the detuning coefficients corresponding to the most stringent stability diagram threshold for all the
     given tune shifts if the corresponding mode is unstable, 0 if all modes are stable or np.nan if the
-    no threshold can be found (failure of Newton's algorithm).
+    no threshold can be found (failure of root-solving algorithm).
     """
     # find max octupole current required from a list of modes, given their tuneshifts
     b_coefficients = np.array([find_detuning_coeffs_threshold(
         tune_shift=tune_shift, q_s=q_s, reference_b_direct=reference_b_direct,
         reference_b_cross=reference_b_cross, added_b_direct=added_b_direct, added_b_cross=added_b_cross, distribution=distribution,
         fraction_of_qs_allowed_on_positive_side=fraction_of_qs_allowed_on_positive_side,
-        tolerance=tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
+        algorithm=algorithm, tolerance=tolerance) for tune_shift in tune_shifts if tune_shift is not np.nan])
 
     return max(b_coefficients, key=abs_first_item_or_nan)
