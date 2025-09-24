@@ -1,0 +1,1 @@
+mpiexec -n 3 pytest -v test_wakefield_mpi.py

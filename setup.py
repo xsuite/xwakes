@@ -1,65 +1,54 @@
-from setuptools import setup, find_packages
-from setuptools.command.install import install
-from setuptools.command.develop import develop
-from os import makedirs
-import pickle
-import pathlib
+# copyright ############################### #
+# This file is part of the Xwakes Package.  #
+# Copyright (c) CERN, 2024.                 #
+# ######################################### #
 
+from setuptools import setup, find_packages, Extension
+from pathlib import Path
 
-def _initialize_pywit_directory() -> None:
-    home_path = pathlib.Path.home()
-    paths = [home_path.joinpath('pywit').joinpath(ext) for ext in ('config', 'IW2D/bin', 'IW2D/projects')]
-    for path in paths:
-        makedirs(path, exist_ok=True)
-    with open(pathlib.Path(paths[0]).joinpath('iw2d_settings.yaml'), 'w') as file:
-        file.write(f'binary_directory: {paths[1]}\n'
-                   f'project_directory: {paths[2]}')
+#######################################
+# Prepare list of compiled extensions #
+#######################################
 
-    filenames = ('component', 'element', 'iw2d_inputs')
-    for filename in filenames:
-        open(paths[0].joinpath(f"{filename}.yaml"), 'w').close()
+extensions = []
 
-    with open(paths[2].joinpath('hashmap.pickle'), 'wb') as handle:
-        pickle.dump(dict(), handle, protocol=pickle.HIGHEST_PROTOCOL)
+#########
+# Setup #
+#########
 
-
-class PostInstallCommand(install):
-    def run(self):
-        install.run(self)
-        _initialize_pywit_directory()
-
-class PostDevelopCommand(develop):
-    def run(self):
-        develop.run(self)
-        _initialize_pywit_directory()
-
-requirements = {
-    "core": [
-        "numpy",
-        "scipy",
-        "matplotlib",
-        "sortednp",
-        "pyyaml",
-        "joblib",
-    ],
-    "test":[
-        "pytest",
-    ]
-}
+version_file = Path(__file__).parent / 'xwakes/_version.py'
+dd = {}
+with open(version_file.absolute(), 'r') as fp:
+    exec(fp.read(), dd)
+__version__ = dd['__version__']
 
 setup(
-    name='pywit',
-    version='1.0.0',
+    name='xwakes',
+    version=__version__,
+    description='Wake and impedance toolbox',
+    long_description='Toolbox to build and manipulate impedance and wake'
+        ' function models, usable in Xsuite, DELPHI and others',
+    url='https://xsuite.web.cern.ch/',
+    author='M. Rognlien, L. Giacomel, D. Amorim, E. Vik, G. Iadarola '
+        'and N. Mounet',
+    license='Apache 2.0',
+    download_url="https://pypi.python.org/pypi/xwakes",
+    project_urls={
+            "Bug Tracker": "https://github.com/xsuite/xwakes/issues",
+            "Source Code": "https://github.com/xsuite/xwakes/",
+        },
     packages=find_packages(),
-    url='https://gitlab.cern.ch/IRIS/pywit',
-    license='MIT',
-    author='Markus Kongstein Rognlien',
-    author_email='marro98@gmail.com',
-    description='Python Wake and Impedance Toolbox',
-    cmdclass={'install': PostInstallCommand,
-              'develop': PostDevelopCommand},
-    python_requires=">=3.7",
-    install_requires=requirements["core"],
-    extras_require=requirements,
-    package_data={'pywit': ['materials.json']},
-)
+    ext_modules = extensions,
+    include_package_data=True,
+    install_requires=[
+        'numpy>=1.0',
+        'scipy',
+        'pyyaml',
+        'pandas',
+        'xpart',
+        'xfields'
+        ],
+    extras_require={
+        'tests': ['pytest', 'PyHEADTAIL', 'nafflib'],
+        },
+    )

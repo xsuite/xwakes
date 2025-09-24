@@ -4,4 +4,7 @@ include pyproject.toml
 include *.md
 
 # Include the license file
-include LICENSE.txt
+include LICENSE
+
+# Include the data files
+include xwakes/wit/materials.json
