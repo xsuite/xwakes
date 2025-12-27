@@ -7,6 +7,36 @@ import pandas as pd
 import numpy as np
 
 def read_headtail_file(wake_file, wake_file_columns):
+    """
+    Read legacy HEADTAIL/PyHEADTAIL wake tables into a pandas DataFrame.
+
+    Parameters
+    ----------
+    wake_file : str | path-like
+        Path to the ASCII wake table file.
+    wake_file_columns : list[str]
+        Ordered list of column names in the file. Must include ``'time'`` and
+        can contain any of the valid wake components (e.g. ``'longitudinal'``,
+        ``'dipolar_x'``, ``'quadrupolar_y'``). Length must match the number of
+        columns in the file.
+
+    Returns
+    -------
+    pandas.DataFrame
+        Columns are converted to SI units (time in seconds, wakes scaled to
+        V/C/m^n according to component).
+
+    Examples
+    --------
+    .. code-block:: python
+
+        import xwakes as xw
+
+        cols = ['time', 'longitudinal', 'dipolar_x', 'quadrupolar_x']
+        table = xw.read_headtail_file('HLLHC_wake.dat', cols)
+        wf = xw.WakeFromTable(table, columns=['dipolar_x'])
+        wf.configure_for_tracking(zeta_range=(-0.4, 0.4), num_slices=100)
+    """
     valid_wake_components = ['constant_x', 'constant_y', 'dipolar_x',
                              'dipolar_y', 'dipolar_xy', 'dipolar_yx',
                              'dipole_x', 'dipole_y', 'dipole_xy',
