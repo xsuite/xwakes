@@ -37,19 +37,56 @@ class WakeResonator(BaseWake):
     Examples
     --------
     Single component:
-        ``xw.WakeResonator(kind='dipolar_x', r=1e8, q=1e5, f_r=1e9)``
+        .. code-block:: python
+
+            xw.WakeResonator(
+                kind='dipolar_x',
+                r=1e8,
+                q=1e5,
+                f_r=1e9,
+            )
 
     Multiple components:
-        ``xw.WakeResonator(kind=['dipolar_x', 'dipolar_y'], r=1e8, q=1e5, f_r=1e9)``
+        .. code-block:: python
+
+            xw.WakeResonator(
+                kind=['dipolar_x', 'dipolar_y'],
+                r=1e8,
+                q=1e5,
+                f_r=1e9,
+            )
 
     Weighted components:
-        ``xw.WakeResonator(kind={'dipolar_x': 2.0, 'dipolar_y': 1.0}, r=1e8, q=1e5, f_r=1e9)``
+        .. code-block:: python
+
+            xw.WakeResonator(
+                kind={'dipolar_x': 2.0, 'dipolar_y': 1.0},
+                r=1e8,
+                q=1e5,
+                f_r=1e9,
+            )
 
     Custom polynomial term:
-        ``xw.WakeResonator(plane='y', source_exponents=(1, 0), test_exponents=(0, 2), r=1e8, q=1e5, f_r=1e9)``
+        .. code-block:: python
+
+            xw.WakeResonator(
+                plane='y',
+                source_exponents=(1, 0),
+                test_exponents=(0, 2),
+                r=1e8,
+                q=1e5,
+                f_r=1e9,
+            )
 
     Yokoya factors:
-        ``xw.WakeResonator(kind=xw.Yokoya('flat_horizontal'), r=1e8, q=1e5, f_r=1e9)``
+        .. code-block:: python
+
+            xw.WakeResonator(
+                kind=xw.Yokoya('flat_horizontal'),
+                r=1e8,
+                q=1e5,
+                f_r=1e9,
+            )
     """
 
     def __init__(self, kind: str = None,
