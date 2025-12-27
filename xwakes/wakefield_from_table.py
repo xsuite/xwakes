@@ -10,6 +10,47 @@ from .wit.component import KIND_DEFINITIONS
 
 
 class WakeFromTable(BaseWake):
+    """
+    Build wake components from sampled tables (e.g. HEADTAIL format).
+
+    Parameters
+    ----------
+    table : pandas.DataFrame | dict
+        Must contain a ``'time'`` column plus one or more wake columns matching
+        ``KIND_DEFINITIONS`` keys (e.g. ``'longitudinal'``, ``'dipolar_x'``).
+        Dict input is converted to a DataFrame.
+    columns : iterable[str], optional
+        Subset of columns to use. Defaults to all columns except ``'time'``.
+
+    Examples
+    --------
+    .. code-block:: python
+
+        import pandas as pd
+        import numpy as np
+        import xwakes as xw
+
+        # Minimal example table: time plus dipolar and quadrupolar components
+        table = pd.DataFrame({
+            'time': np.linspace(0, 1e-9, 5),
+            'dipolar_x': [0.0, 1.0, 0.5, -0.2, 0.0],
+            'quadrupolar_x': [0.0, -0.5, -0.25, 0.1, 0.0],
+        })
+
+        wf = xw.WakeFromTable(table, columns=['dipolar_x', 'quadrupolar_x'])
+        wf.configure_for_tracking(zeta_range=(-0.4, 0.4), num_slices=100)
+
+    You can also read legacy HEADTAIL/PyHEADTAIL tables directly:
+
+    .. code-block:: python
+
+        import xwakes as xw
+
+        cols = ['time', 'dipolar_x', 'dipolar_y', 'quadrupolar_x', 'quadrupolar_y']
+        table = xw.read_headtail_file('HLLHC_wake.dat', cols)
+        wf = xw.WakeFromTable(table, columns=['dipolar_x', 'dipolar_y'])
+        wf.configure_for_tracking(zeta_range=(-0.4, 0.4), num_slices=100)
+    """
 
     def __init__(self, table, columns=None):
 
@@ -38,4 +79,3 @@ class WakeFromTable(BaseWake):
 
         self.components = components
         self.columns = columns
-
