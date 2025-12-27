@@ -34,25 +34,46 @@ class WakeThickResistiveWall(BaseWake):
     Examples
     --------
     Single component:
-        ``xw.WakeThickResistiveWall(
-                kind='longitudinal', radius=0.02,
-                length=1.0, resistivity=1.7e-8)``
+        .. code-block:: python
+
+            xw.WakeThickResistiveWall(
+                kind='longitudinal',
+                radius=0.02,
+                length=1.0,
+                resistivity=1.7e-8,
+            )
 
     Multiple components:
-        ``xw.WakeThickResistiveWall(
+        .. code-block:: python
+
+            xw.WakeThickResistiveWall(
                 kind=['dipolar_x', 'dipolar_y'],
-                radius=0.02, length=1.0, resistivity=1.7e-8)``
+                radius=0.02,
+                length=1.0,
+                resistivity=1.7e-8,
+            )
 
     Weighted components:
-        ``xw.WakeThickResistiveWall(
+        .. code-block:: python
+
+            xw.WakeThickResistiveWall(
                 kind={'dipolar_x': 2.0, 'dipolar_y': 1.0},
-                radius=0.02, length=1.0, resistivity=1.7e-8)``
+                radius=0.02,
+                length=1.0,
+                resistivity=1.7e-8,
+            )
 
     Custom polynomial term:
-        ``xw.WakeThickResistiveWall(
-                plane='z', source_exponents=(0, 0),
-                test_exponents=(0, 0), radius=0.02, length=1.0,
-                resistivity=1.7e-8)``
+        .. code-block:: python
+
+            xw.WakeThickResistiveWall(
+                plane='z',
+                source_exponents=(0, 0),
+                test_exponents=(0, 0),
+                radius=0.02,
+                length=1.0,
+                resistivity=1.7e-8,
+            )
     """
 
     def __init__(self, kind: str = None,
