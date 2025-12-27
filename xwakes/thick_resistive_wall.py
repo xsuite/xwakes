@@ -10,6 +10,50 @@ from .wit import ComponentClassicThickWall
 
 
 class WakeThickResistiveWall(BaseWake):
+    """
+    Classic thick-wall resistive wake builder.
+
+    Parameters
+    ----------
+    kind : str | list[str] | tuple[str] | dict[str, float], optional
+        Predefined wake kind(s). A dict scales each kind by its value. If
+        None, a custom term must be defined via `plane` and exponent arguments.
+    plane : {'x','y','z'}, optional
+        Plane used only when `kind` is None to define a custom component.
+    source_exponents : tuple[int, int], optional
+        Exponents (x^a y^b) on the source coordinates when `kind` is None.
+    test_exponents : tuple[int, int], optional
+        Exponents (x^c y^d) on the test coordinates when `kind` is None.
+    radius : float
+        Beam pipe radius [m].
+    length : float, default 1.0
+        Effective length of the wall segment [m].
+    resistivity : float
+        Material resistivity [Ohm*m].
+
+    Examples
+    --------
+    Single component:
+        ``xw.WakeThickResistiveWall(
+                kind='longitudinal', radius=0.02,
+                length=1.0, resistivity=1.7e-8)``
+
+    Multiple components:
+        ``xw.WakeThickResistiveWall(
+                kind=['dipolar_x', 'dipolar_y'],
+                radius=0.02, length=1.0, resistivity=1.7e-8)``
+
+    Weighted components:
+        ``xw.WakeThickResistiveWall(
+                kind={'dipolar_x': 2.0, 'dipolar_y': 1.0},
+                radius=0.02, length=1.0, resistivity=1.7e-8)``
+
+    Custom polynomial term:
+        ``xw.WakeThickResistiveWall(
+                plane='z', source_exponents=(0, 0),
+                test_exponents=(0, 0), radius=0.02, length=1.0,
+                resistivity=1.7e-8)``
+    """
 
     def __init__(self, kind: str = None,
                 plane: str = None,
