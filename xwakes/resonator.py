@@ -20,7 +20,8 @@ class WakeResonator(BaseWake):
         None, a custom polynomial term must be provided via `plane` and
         exponent arguments.
     plane : {'x','y','z'}, optional
-        Plane used only when `kind` is None to define a custom component.
+        Plane used only when `kind` is None to define a the plane in which the
+        wake acts.
     source_exponents : tuple[int, int], optional
         Exponents (x^a y^b) on the source coordinates when `kind` is None.
     test_exponents : tuple[int, int], optional
