@@ -10,6 +10,47 @@ from .wit import ComponentResonator
 
 
 class WakeResonator(BaseWake):
+    """
+    Analytic resonator wake builder.
+
+    Parameters
+    ----------
+    kind : str | list[str] | tuple[str] | dict[str, float] | xwakes.Yokoya, optional
+        Predefined wake kind(s). A dict scales each kind by its value. If
+        None, a custom polynomial term must be provided via `plane` and
+        exponent arguments.
+    plane : {'x','y','z'}, optional
+        Plane used only when `kind` is None to define a custom component.
+    source_exponents : tuple[int, int], optional
+        Exponents (x^a y^b) on the source coordinates when `kind` is None.
+    test_exponents : tuple[int, int], optional
+        Exponents (x^c y^d) on the test coordinates when `kind` is None.
+    r : float
+        Shunt impedance (units depend on kind, e.g. Ohm/m for dipolar).
+    q : float
+        Quality factor.
+    f_r : float
+        Resonant frequency [Hz].
+    f_roi_level : float, default 0.5
+        Fractional cutoff used to build ROI meshes for impedance/wake sampling.
+
+    Examples
+    --------
+    Single component:
+        ``xw.WakeResonator(kind='dipolar_x', r=1e8, q=1e5, f_r=1e9)``
+
+    Multiple components:
+        ``xw.WakeResonator(kind=['dipolar_x', 'dipolar_y'], r=1e8, q=1e5, f_r=1e9)``
+
+    Weighted components:
+        ``xw.WakeResonator(kind={'dipolar_x': 2.0, 'dipolar_y': 1.0}, r=1e8, q=1e5, f_r=1e9)``
+
+    Custom polynomial term:
+        ``xw.WakeResonator(plane='y', source_exponents=(1, 0), test_exponents=(0, 2), r=1e8, q=1e5, f_r=1e9)``
+
+    Yokoya factors:
+        ``xw.WakeResonator(kind=xw.Yokoya('flat_horizontal'), r=1e8, q=1e5, f_r=1e9)``
+    """
 
     def __init__(self, kind: str = None,
                 plane: str = None,
