@@ -87,6 +87,13 @@ class WakeResonator(BaseWake):
                 q=1e5,
                 f_r=1e9,
             )
+
+    Notes
+    -----
+    Additional information on the definition of element properties and the
+    implemented physics and models can be found in the "Wakefields and
+    impedances" section of the Xsuite physics guide:
+    https://xsuite.readthedocs.io/en/latest/physicsguide.html
     """
 
     def __init__(self, kind: str = None,

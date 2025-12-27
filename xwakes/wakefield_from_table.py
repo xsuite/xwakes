@@ -50,6 +50,13 @@ class WakeFromTable(BaseWake):
         table = xw.read_headtail_file('HLLHC_wake.dat', cols)
         wf = xw.WakeFromTable(table, columns=['dipolar_x', 'dipolar_y'])
         wf.configure_for_tracking(zeta_range=(-0.4, 0.4), num_slices=100)
+
+    Notes
+    -----
+    Additional information on the definition of element properties and the
+    implemented physics and models can be found in the "Wakefields and
+    impedances" section of the Xsuite physics guide:
+    https://xsuite.readthedocs.io/en/latest/physicsguide.html
     """
 
     def __init__(self, table, columns=None):
