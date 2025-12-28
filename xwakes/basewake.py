@@ -12,7 +12,6 @@ class Wake:
     def __init__(self, components):
 
         self.components = components
-        self._wake_tracker = None
 
     def configure_for_tracking(self, zeta_range: Tuple[float, float],
                                num_slices: int,
