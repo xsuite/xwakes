@@ -5,11 +5,11 @@
 
 from typing import Tuple
 
-from .basewake import BaseWake, _handle_kind
+from .basewake import Wake, _handle_kind
 from .wit import ComponentResonator
 
 
-class WakeResonator(BaseWake):
+class WakeResonator(Wake):
     """
     Analytic resonator wake builder.
 

@@ -7,7 +7,7 @@ from typing import Tuple
 import xpart as xp
 import numpy as np
 
-class BaseWake:
+class Wake:
     pass
 
     def configure_for_tracking(self, zeta_range: Tuple[float, float],
@@ -19,6 +19,9 @@ class BaseWake:
                                bunch_selection=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
+
+        # We import here so that xfields is not a dependency of xwakes (which
+        # can be used in standalone mode for defining impedance models)
         from xfields.beam_elements.waketracker import WakeTracker
         self._wake_tracker = WakeTracker(
             components=_expand_components(self.components),
@@ -83,7 +86,7 @@ def _add_wakes(wake1, wake2):
     return CombinedWake(components=out_components)
 
 
-class CombinedWake(BaseWake):
+class CombinedWake(Wake):
 
     def __init__(self, components):
         self.components = components

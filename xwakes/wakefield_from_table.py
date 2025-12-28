@@ -4,12 +4,12 @@
 # ######################################### #
 
 import pandas as pd
-from .basewake import BaseWake
+from .basewake import Wake
 from .wit import ComponentFromArrays
 from .wit.component import KIND_DEFINITIONS
 
 
-class WakeFromTable(BaseWake):
+class WakeFromTable(Wake):
     """
     Build wake components from sampled tables (e.g. HEADTAIL format).
 

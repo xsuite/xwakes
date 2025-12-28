@@ -5,11 +5,11 @@
 
 from typing import Tuple
 
-from .basewake import BaseWake, _handle_kind
+from .basewake import Wake, _handle_kind
 from .wit import ComponentClassicThickWall
 
 
-class WakeThickResistiveWall(BaseWake):
+class WakeThickResistiveWall(Wake):
     """
     Classic thick-wall resistive wake builder.
 
