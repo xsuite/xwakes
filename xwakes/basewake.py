@@ -82,18 +82,12 @@ def _add_wakes(wake1, wake2):
     for ww in [wake1, wake2]:
         if ww is None or ww == 0:
             continue
-        if isinstance(ww, CombinedWake):
+        if isinstance(ww, Wake):
             out_components.extend(ww.components)
         else:
             out_components.append(ww)
 
-    return CombinedWake(components=out_components)
-
-
-class CombinedWake(Wake):
-
-    def __init__(self, components):
-        self.components = components
+    return Wake(components=out_components)
 
 
 def _handle_kind(kind):

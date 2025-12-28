@@ -114,5 +114,6 @@ class WakeThickResistiveWall(Wake):
                         factor=ff, length=length)
             components = [cc]
 
-        self.components = components
         self.kind = kind
+
+        super().__init__(components=components)

@@ -84,5 +84,6 @@ class WakeFromTable(Wake):
                 kind=cc)
             components.append(component)
 
-        self.components = components
         self.columns = columns
+
+        super().__init__(components=components)

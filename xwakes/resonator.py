@@ -123,5 +123,6 @@ class WakeResonator(Wake):
                                     test_exponents=test_exponents)
             components = [cc]
 
-        self.components = components
         self.kind = kind
+
+        super().__init__(components=components)
