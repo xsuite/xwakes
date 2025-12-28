@@ -8,6 +8,8 @@ from .general import _pkg_root
 
 from .wit import Component
 
+from .basewake import Wake
+
 from .init_pywit_directory import initialize_pywit_directory
 from .resonator import WakeResonator
 from .wakefield_from_table import WakeFromTable
