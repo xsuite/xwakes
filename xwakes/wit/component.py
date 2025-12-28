@@ -49,17 +49,28 @@ KIND_DEFINITIONS = {
 def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
                                 fine_points: int, rois: List[Tuple[float, float]]):
     """
-    Mix a fine and rough (geometric) sampling between start and stop,
-    refined in the regions of interest rois.
-    :param start: The lowest bound of the sampling
-    :param stop: The highest bound of the sampling
-    :param rough_points: The total number of data points to be
-                         generated for the rough grid, between start
-                         and stop.
-    :param fine_points: The number of points in the fine grid of each roi.
-    :param rois: List of unique tuples with the lower and upper bound of
-                 of each region of interest.
-    :return: An array with the sampling obtained.
+    Mix a geometric coarse grid with locally refined regions.
+
+    Parameters
+    ----------
+    start : float
+        Lower bound of the sampling range.
+    stop : float
+        Upper bound of the sampling range.
+    rough_points : int
+        Number of points for the coarse geometric grid between `start` and
+        `stop`.
+    fine_points : int
+        Number of points to use for each fine grid inside a region of interest.
+    rois : list of tuple[float, float]
+        Unique pairs defining the lower and upper bounds of each region of
+        interest.
+
+    Returns
+    -------
+    np.ndarray
+        Sorted sampling containing both coarse and refined points with
+        duplicates removed within seven significant figures.
     """
     intervals = [np.linspace(max(i, start), min(f, stop), fine_points)
                  for i, f in rois
@@ -74,7 +85,34 @@ def mix_fine_and_rough_sampling(start: float, stop: float, rough_points: int,
 
 class Component:
     """
-    A data structure representing the impedance- and wake functions of some Component in a specified plane.
+    Data structure representing the impedance- and wake functions of some Component in a specified plane.
+
+    Parameters
+    ----------
+    impedance : Callable or None
+        Impedance function. May be omitted if `wake` is provided.
+    wake : Callable or None
+        Wake function. May be omitted if `impedance` is provided.
+    plane : str or None
+        Component plane (`'x'`, `'y'`, or `'z'`). Required unless `kind`
+        defines it.
+    source_exponents : tuple[int, int]
+        Exponents experienced by the source particle in the x and y planes
+        (a, b).
+    test_exponents : tuple[int, int]
+        Exponents experienced by the test particle in the x and y planes
+        (c, d).
+    kind : str or None
+        Preset key specifying plane and exponents.
+    name : str
+        Human-readable identifier for the component.
+    f_rois : list[tuple[float, float]] or None
+        Regions of interest for impedance sampling. If omitted, sampling is
+        uniform on a logarithmic scale.
+    t_rois : list[tuple[float, float]] or None
+        Regions of interest for wake sampling. If omitted, sampling is
+        uniform on a logarithmic scale.
+
     """
 
     def __init__(self, impedance: Optional[Callable] = None, wake: Optional[Callable] = None,
@@ -83,25 +121,6 @@ class Component:
                  kind: str = None,
                  name: str = "Unnamed Component", f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None):
-        """
-        The initialization function for the Component class.
-        :param impedance: A callable function representing the impedance function of the Component. Can be undefined if
-        the wake function is defined.
-        :param wake: A callable function representing the wake function of the Component. Can be undefined if
-        the impedance function is defined.
-        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be specified for valid initialization
-        :param source_exponents: The exponents in the x and y planes experienced by the source particle. Also
-        referred to as 'a' and 'b'. Must be specified for valid initialization
-        :param test_exponents: The exponents in the x and y planes experienced by the source particle. Also
-        referred to as 'a' and 'b'. Must be specified for valid initialization
-        :param name: An optional user-specified name of the component
-        :param f_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
-        sampling of the impedance function. If not specified, upon discretization the impedance function will be
-        sampled uniformly on a logarithmic scale.
-        :param t_rois: A list of tuples, each containing two floats, specifying the Regions Of Interest (ROIs) for the
-        sampling of the wake function. If not specified, upon discretization the wake function will be sampled
-        uniformly on a logarithmic scale.
-        """
 
         if kind is not None:
             assert kind in KIND_DEFINITIONS, (f"Invalid kind specified: {kind}."
@@ -179,9 +198,11 @@ class Component:
 
     def generate_wake_from_impedance(self) -> None:
         """
-        Uses the impedance function of the Component object to generate its wake function, using
-        a Fourier transform.
-        :return: Nothing
+        Generate the wake from the impedance via Fourier transform.
+
+        Returns
+        -------
+        None
         """
         # # If the object already has a wake function, there is no need to generate it.
         # if self.wake:
@@ -196,9 +217,11 @@ class Component:
 
     def generate_impedance_from_wake(self) -> None:
         """
-        Uses the wake function of the Component object to generate its impedance function, using
-        a Fourier transform.
-        :return: Nothing
+        Generate the impedance from the wake via Fourier transform.
+
+        Returns
+        -------
+        None
         """
         # # If the object already has an impedance function, there is no need to generate it.
         # if self.impedance:
@@ -213,11 +236,18 @@ class Component:
 
     def is_compatible(self, other: Component) -> bool:
         """
-        Compares all parameters of the self-object with the argument of the function and returns True if all of their
-        attributes, apart from the impedance and wake functions, are identical.
-        i.e. Returns True if self and other are compatible for Component addition, False otherwise
-        :param other: Another Component
-        :return: True if self and other can be added together, False otherwise
+        Check whether another component matches the non-function attributes.
+
+        Parameters
+        ----------
+        other : Component
+            Component to compare with `self`.
+
+        Returns
+        -------
+        bool
+            True if plane and exponent attributes match (suitable for
+            addition), False otherwise.
         """
         if not isinstance(other, Component):
             return False
@@ -246,11 +276,17 @@ class Component:
 
     def __add__(self, other: Component) -> Component:
         """
-        Defines the addition operator for two Components
-        :param self: The left addend
-        :param other: The right addend
-        :return: A new Component whose impedance and wake functions are the sums
-        of the respective functions of the two addends.
+        Add two components by summing their impedance and wake functions.
+
+        Parameters
+        ----------
+        other : Component
+            Right-hand addend.
+
+        Returns
+        -------
+        Component
+            Component with summed functions and concatenated ROIs.
         """
 
         if not isinstance(other, Component):
@@ -301,13 +337,18 @@ class Component:
 
     def __radd__(self, other: Union[int, Component]) -> Component:
         """
-        Implements the __radd__ method for the Component class. This is only done to facilitate the syntactically
-        practical use of the sum() method for Components. sum(iterable) works by adding all of the elements of the
-        iterable to 0 sequentially. Thus, the behavior of the initial 0 + iterable[0] needs to be defined. In the case
-        that the left addend of any addition involving a Component is 0, the resulting sum
-        is simply defined to be the right addend.
-        :param other: The left addend of an addition
-        :return: The sum of self and other if other is a Component, otherwise just self.
+        Handle right-hand addition to support `sum` and similar patterns.
+
+        Parameters
+        ----------
+        other : int or Component
+            Left-hand operand.
+
+        Returns
+        -------
+        Component
+            `self` when `other` is zero, otherwise the standard addition
+            result.
         """
 
         # Checks if the left addend, other, is not a Component
@@ -322,10 +363,17 @@ class Component:
 
     def __mul__(self, scalar: complex) -> Component:
         """
-        Defines the behavior of multiplication of a Component by some, potentially complex, scalar
-        :param scalar: A scalar value to be multiplied with some Component
-        :return: A newly initialized Component identical to self in every way apart from the impedance-
-        and wake functions, which have been multiplied by the scalar.
+        Multiply the component by a scalar.
+
+        Parameters
+        ----------
+        scalar : complex or float or int
+            Value used to scale the impedance and wake.
+
+        Returns
+        -------
+        Component
+            New component with scaled impedance and wake.
         """
         # Throws an AssertionError if scalar is not of the type complex, float or int
         assert isinstance(scalar, complex) or isinstance(scalar, float) or isinstance(scalar, int)
@@ -339,33 +387,47 @@ class Component:
 
     def __rmul__(self, scalar: complex) -> Component:
         """
-        Generalizes scalar multiplication of Component to be possibly from left and right. Both of these operations
-        are identical.
-        :param scalar: A scalar value to be multiplied with some Component
-        :return: The result of calling Component.__mul__(self, scalar): A newly initialized Component identical to self
-        in every way apart from the impedance- and wake functions, which have been multiplied by the scalar.
+        Support scalar multiplication with the scalar on the left.
+
+        Parameters
+        ----------
+        scalar : complex or float or int
+            Scaling factor.
+
+        Returns
+        -------
+        Component
+            Result of calling `self * scalar`.
         """
         # Simply swaps the places of scalar and self in order to invoke the previously defined __mul__ function
         return self * scalar
 
     def __truediv__(self, scalar: complex) -> Component:
         """
-        Implements the __truediv__ method for the Component class in order to produce the expected behavior when
-        dividing a Component by some scalar. That is, the scalar multiplication of the multiplicative inverse of
-        the scalar.
-        :param scalar: A scalar value for the Component to be divided by
-        :return: The result of calling Component.__mul__(self, 1 / scalar): A newly initialized Component identical to
-        self in every way apart from the impedance- and wake functions, which have been multiplied by (1 / scalar).
+        Divide the component by a scalar.
+
+        Parameters
+        ----------
+        scalar : complex or float or int
+            Divisor applied to the impedance and wake.
+
+        Returns
+        -------
+        Component
+            Component scaled by the reciprocal of `scalar`.
         """
         # Defines the operation c / z to be equivalent to c * (1 / z) for some Component c and scalar z.
         return self * (1 / scalar)
 
     def __str__(self) -> str:
         """
-        Implements the __str__ method for the Component class, providing an informative printout of the attributes
-        of the Component.
-        :return: A multi-line string containing information about the attributes of self, including which of the
-        impedance- and wake functions are defined.
+        Build a human-readable summary of the component.
+
+        Returns
+        -------
+        str
+            Multi-line string describing the plane, exponents, function
+            availability, and ROIs.
         """
         return f"{self.name} with parameters:\nPlane:\t\t\t{self.plane}\n" \
                f"Source exponents:\t{', '.join(str(i) for i in self.source_exponents)}\n" \
@@ -377,12 +439,18 @@ class Component:
 
     def __lt__(self, other: Component) -> bool:
         """
-        Implements the __lt__ (less than) method for the Component class. This has no real physical interpretation,
-        it is just syntactically practical when iterating through the Components when adding two Elements.
-        (see Element.__add__)
-        :param other: The right hand side of a "<"-inequality
-        :return: True if the self-Component is "less than" the other-Component by some arbitrary, but consistent,
-        comparison.
+        Provide a sortable ordering for components.
+
+        Parameters
+        ----------
+        other : Component
+            Right-hand operand in the comparison.
+
+        Returns
+        -------
+        bool
+            True when `self` precedes `other` according to plane and
+            exponent ordering.
         """
         # The two Components are compared by their attributes
         return [self.plane, self.source_exponents, self.test_exponents] < \
@@ -390,18 +458,21 @@ class Component:
 
     def __eq__(self, other: Component) -> bool:
         """
-        Implements the __eq__ method for the Component class. Two Components are designated as "equal" if the following
-        two conditions hold:
-        1. They are compatible for addition. That is, all of their attributes, apart from impedance- and wake functions,
-        are exactly equal.
-        2. The resulting values from evaluating the impedance functions of the two components respectively for 50
-        points between 1 and 10000 all need to be close within some given tolerance. The same has to hold for the wake
-        function.
-        This somewhat approximated numerical approach to the equality comparator aims to compensate for small
-        numerical/precision errors accumulated for two Components which have taken different "paths" to what should
-        analytically be identical Components.
-        :param other: The right hand side of the equality comparator
-        :return: True if the two Components have identical attributes and sufficiently close functions, False otherwise
+        Compare two components for equality.
+
+        Components are equal when their non-function attributes match and the
+        impedance and wake evaluations agree numerically within tolerances.
+
+        Parameters
+        ----------
+        other : Component
+            Component to compare with `self`.
+
+        Returns
+        -------
+        bool
+            True if attributes match and sampled functions are close, False
+            otherwise.
         """
         # First checks if the two Components are compatible for addition, i.e. if they have the same non-function
         # attributes
@@ -420,22 +491,25 @@ class Component:
                            stop: float = MAX_FREQ,
                            precision_factor: float = FREQ_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Produces a frequency grid based on the f_rois attribute of the component and evaluates the component's
-        impedance function at these frequencies.
-        :param rough_points: The total number of data points to be
-                             generated for the rough grid, between start
-                             and stop.
-        :param start: The lowest frequency in the desired frequency grid
-        :param stop: The highest frequency in the desired frequency grid
-        :param precision_factor: A number indicating the ratio of points
-               which should be placed within the regions of interest.
-               If =0, the frequency grid will ignore the intervals in f_rois.
-               If =1, the points will be distributed 1:1 between the
-               rough grid and the fine grid on each roi. In general, =n
-               means that there will be n times more points in the fine
-               grid of each roi, than in the rough grid.
-        :return: A tuple of two numpy arrays with same shape, giving
-                 the frequency grid and impedances respectively
+        Build a frequency grid and evaluate the impedance.
+
+        Parameters
+        ----------
+        rough_points : int
+            Number of points for the coarse grid between `start` and `stop`.
+        start : float, optional
+            Lowest frequency of the grid.
+        stop : float, optional
+            Highest frequency of the grid.
+        precision_factor : float, optional
+            Ratio of fine-grid points inside each ROI to coarse-grid points.
+            A value of 0 ignores ROIs; 1 distributes points 1:1; `n` places
+            `n` times more points in each fine region than in the coarse grid.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Frequencies and impedance values at those frequencies.
         """
         if len(self.f_rois) == 0:
             xs = np.geomspace(start, stop, rough_points)
@@ -456,22 +530,25 @@ class Component:
                       stop: float = MAX_TIME,
                       precision_factor: float = TIME_P_FACTOR) -> Tuple[np.ndarray, np.ndarray]:
         """
-        Produces a time grid based on the t_rois attribute of the component and evaluates the component's
-        wake function at these time points.
-        :param rough_points: The total number of data points to be
-                             generated for the rough grid, between start
-                             and stop.
-        :param start: The lowest time in the desired time grid
-        :param stop: The highest time in the desired time grid
-        :param precision_factor: A number indicating the ratio of points
-               which should be placed within the regions of interest.
-               If =0, the frequency grid will ignore the intervals in t_rois.
-               If =1, the points will be distributed 1:1 between the
-               rough grid and the fine grid on each roi. In general, =n
-               means that there will be n times more points in the fine
-               grid of each roi, than in the rough grid.
-        :return: A tuple of two numpy arrays with same shape, giving the
-                 time grid and wakes respectively
+        Build a time grid and evaluate the wake.
+
+        Parameters
+        ----------
+        rough_points : int
+            Number of points for the coarse grid between `start` and `stop`.
+        start : float, optional
+            Lowest time in the grid.
+        stop : float, optional
+            Highest time in the grid.
+        precision_factor : float, optional
+            Ratio of fine-grid points inside each ROI to coarse-grid points.
+            A value of 0 ignores ROIs; 1 distributes points 1:1; `n` places
+            `n` times more points in each fine region than in the coarse grid.
+
+        Returns
+        -------
+        tuple[np.ndarray, np.ndarray]
+            Time points and wake values.
         """
         if len(self.t_rois) == 0:
             xs = np.geomspace(start, stop, rough_points)
@@ -494,26 +571,44 @@ class Component:
                    time_precision_factor: float = TIME_P_FACTOR) -> Tuple[
         Tuple[np.ndarray, np.ndarray], Tuple[np.ndarray, np.ndarray]]:
         """
-        Combines the two discretization-functions in order to fully discretize the wake and impedance of the object
-        as specified by a number of parameters.
-        :param freq_points: The total number of frequency/impedance points
-        :param time_points: The total number of time/wake points
-        :param freq_start: The lowest frequency in the frequency grid
-        :param freq_stop: The highest frequency in the frequency grid
-        :param time_start: The lowest time in the time grid
-        :param time_stop: The highest time in the time grid
-        :param freq_precision_factor: The ratio of points in the fine frequency grid
-        (#points in frequency ROIs / rough frequency points)
-        :param time_precision_factor: The ratio of points in the fine time grid
-        (#points in time ROIs / rough time points)
-        :return: A tuple of two tuples, containing the results of impedance_to_array and wake_to_array respectively
+        Discretize both impedance and wake using the configured ROIs.
+
+        Parameters
+        ----------
+        freq_points : int
+            Total number of frequency/impedance points.
+        time_points : int
+            Total number of time/wake points.
+        freq_start : float, optional
+            Lower bound of the frequency grid.
+        freq_stop : float, optional
+            Upper bound of the frequency grid.
+        time_start : float, optional
+            Lower bound of the time grid.
+        time_stop : float, optional
+            Upper bound of the time grid.
+        freq_precision_factor : float, optional
+            Ratio of fine frequency points inside ROIs to coarse points.
+        time_precision_factor : float, optional
+            Ratio of fine time points inside ROIs to coarse points.
+
+        Returns
+        -------
+        tuple[tuple[np.ndarray, np.ndarray], tuple[np.ndarray, np.ndarray]]
+            Frequency grid with impedance values and time grid with wake
+            values.
         """
         return (self.impedance_to_array(freq_points, freq_start, freq_stop, freq_precision_factor),
                 self.wake_to_array(time_points, time_start, time_stop, time_precision_factor))
 
     def get_shorthand_type(self) -> str:
         """
-        :return: A 5-character string indicating the plane as well as source- and test exponents of the component
+        Return a shorthand identifier for plane and exponents.
+
+        Returns
+        -------
+        str
+            Five-character string encoding plane and source/test exponents.
         """
         return self.plane + "".join(str(x) for x in (self.source_exponents + self.test_exponents))
 
@@ -529,20 +624,35 @@ class ComponentResonator(Component):
                 f_roi_level: float = 0.5,
                 factor=1.0) -> ComponentResonator:
         """
-        Creates a resonator component with the given parameters
-        :param plane: the plane the component corresponds to
-        :param exponents: four integers corresponding to (source_x, source_y,
-        test_x, test_y) aka (a, b, c, d)
-        :param r: the shunt impedance of the given component of the resonator
-        :param q: the quality factor of the given component of the resonator
-        :param f_r: the resonance frequency of the given component of the
-        resonator
-        :param f_roi_level: fraction of the peak ok the resonator which is
-        covered by the ROI. I.e. the roi will cover
-        the frequencies for which the resonator impedance is larger than
-        f_roi_level*r
-        :return: A component object of a resonator, specified by the input
-        arguments
+        Create a resonator component with the given parameters.
+
+        Parameters
+        ----------
+        kind : str or None
+            Preset specifying plane and exponents.
+        plane : str or None
+            Component plane; used when `kind` is not provided.
+        exponents : tuple[int, int, int, int] or None
+            Combined (a, b, c, d) exponents for source and test particles.
+        source_exponents : tuple[int, int] or None
+            Source exponents if not using `exponents`.
+        test_exponents : tuple[int, int] or None
+            Test exponents if not using `exponents`.
+        r : float
+            Shunt impedance.
+        q : float
+            Quality factor.
+        f_r : float
+            Resonance frequency.
+        f_roi_level : float, optional
+            Fraction of the peak covered by the ROI; frequencies with impedance
+            above this level are included.
+        factor : float, optional
+            Multiplicative factor applied to impedance and wake.
+
+        Returns
+        -------
+        None
         """
         self.r = r
         self.q = q
@@ -649,17 +759,36 @@ class ComponentClassicThickWall(Component):
                  zero_rel_tol: float = 0.01
                  ) -> ComponentClassicThickWall:
         """
-        Creates a single component object modeling a resistive wall
-        impedance/wake, based on the "classic thick wall formula" (see e.g.
-        A. W. Chao, chap. 2 in "Physics of Collective Beams Instabilities in
-        High Energy Accelerators", John Wiley and Sons, 1993).
-        Only longitudinal and transverse dipolar impedances are supported here.
-        :param plane: the plane the component corresponds to
-        :param exponents: four integers corresponding to (source_x, source_y,
-        test_x, test_y) aka (a, b, c, d)
-        :param layer: the chamber material, as a wit Layer object
-        :param radius: the chamber radius in m
-        :return: A component object
+        Model a resistive wall using the classic thick wall formula.
+
+        Parameters
+        ----------
+        kind : str or None
+            Preset specifying plane and exponents.
+        plane : str or None
+            Component plane; used when `kind` is not provided.
+        exponents : tuple[int, int, int, int] or None
+            Combined (a, b, c, d) exponents for source and test particles.
+        source_exponents : tuple[int, int] or None
+            Source exponents if not using `exponents`.
+        test_exponents : tuple[int, int] or None
+            Test exponents if not using `exponents`.
+        layer : Layer or None
+            Chamber material. Mutually exclusive with `resistivity`.
+        radius : float
+            Chamber radius in meters.
+        resistivity : float or None
+            Material resistivity when `layer` is not provided.
+        factor : float, optional
+            Multiplicative factor applied to impedance and wake.
+        length : float, optional
+            Total length of the resistive section in meters.
+        zero_rel_tol : float, optional
+            Relative tolerance around zero used when sampling the wake.
+
+        Returns
+        -------
+        None
         """
 
         if (layer is None and resistivity is None):
@@ -821,26 +950,36 @@ class ComponentSingleLayerResistiveWall(Component):
                  input_data: Union[FlatIW2DInput, RoundIW2DInput] = None,
                  factor: float = 1.0):
         """
-        Creates a single component object modeling a resistive wall impedance,
-        based on the single-layer approximated formulas by E. Metral (see e.g.
-        Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10, TUPD053,
-        https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
-        Eq. 21 in F. Roncarolo et al, Phys. Rev. ST Accel. Beams 12, 084401,
-        2009, https://doi.org/10.1103/PhysRevSTAB.12.084401)
-        :param plane: the plane the component corresponds to
-        :param exponents: four integers corresponding to (source_x, source_y,
-        test_x, test_y) aka (a, b, c, d)
-        :param input_data: an IW2D input object (flat or round). If the input
-        is of type FlatIW2DInput and symmetric, we apply to the round formula
-        the Yokoya factors for an infinitely flat structure (see e.g. K. Yokoya,
-        KEK Preprint 92-196 (1993), and Part. Accel. 41 (1993) pp.221-248,
-        https://cds.cern.ch/record/248630/files/p221.pdf),
-        while for a single plate we use those from A. Burov and V. Danilov,
-        PRL 82,11 (1999), https://doi.org/10.1103/PhysRevLett.82.2286. Other
-        kinds of asymmetric structure will raise an error.
-        If the input is of type RoundIW2DInput, the structure is in principle
-        round but the Yokoya factors put in the input will be used.
-        :return: A component object
+        Create a single-layer resistive wall component.
+
+        Based on the single-layer approximated formulas by E. Metral (e.g.
+        N. Mounet and E. Metral, IPAC'10, TUPD053; F. Roncarolo et al., Phys.
+        Rev. ST Accel. Beams 12, 084401, 2009). For flat symmetric inputs,
+        Yokoya factors for infinitely flat structures are used; for a single
+        plate, the A. Burov and V. Danilov factors are applied.
+
+        Parameters
+        ----------
+        kind : str or None
+            Preset specifying plane and exponents.
+        plane : str or None
+            Component plane; used when `kind` is not provided.
+        exponents : tuple[int, int, int, int] or None
+            Combined (a, b, c, d) exponents for source and test particles.
+        source_exponents : tuple[int, int] or None
+            Source exponents if not using `exponents`.
+        test_exponents : tuple[int, int] or None
+            Test exponents if not using `exponents`.
+        input_data : FlatIW2DInput or RoundIW2DInput
+            Geometry/material definition. Symmetric flat inputs reuse round
+            formulas with Yokoya factors; asymmetric structures other than a
+            single plate are not supported.
+        factor : float, optional
+            Multiplicative factor applied to impedance and wake.
+
+        Returns
+        -------
+        None
         """
         self.input_data = input_data
         self.plane = plane
@@ -956,20 +1095,26 @@ class ComponentSingleLayerResistiveWall(Component):
                                          layer: Layer, radius: float,
                                          length: float) -> ArrayLike:
         """
-        Function to compute the longitudinal resistive-wall impedance from
-        the single-layer, approximated formula for a cylindrical structure,
-        by E. Metral (see e.g. Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10,
-        TUPD053, https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
-        Eq. 21 in F. Roncarolo et al, Phys. Rev. ST Accel. Beams 12, 084401,
-        2009, https://doi.org/10.1103/PhysRevSTAB.12.084401)
-        :param frequencies: the frequencies (array) (in Hz)
-        :param gamma: relativistic mass factor
-        :param layer: a layer with material properties (only resistivity,
-        relaxation time and magnetic susceptibility are taken into account
-        at this stage)
-        :param radius: the radius of the structure (in m)
-        :param length: the total length of the resistive object (in m)
-        :return: Zlong, the longitudinal impedance at these frequencies
+        Compute longitudinal impedance with the single-layer approximation.
+
+        Parameters
+        ----------
+        frequencies : ArrayLike
+            Frequencies in Hz.
+        gamma : float
+            Relativistic mass factor.
+        layer : Layer
+            Material properties (resistivity, relaxation time, magnetic
+            susceptibility).
+        radius : float
+            Structure radius in meters.
+        length : float
+            Length of the resistive object in meters.
+
+        Returns
+        -------
+        ArrayLike
+            Longitudinal impedance values.
         """
         beta = np.sqrt(1 - 1 / gamma**2)
         omega = 2 * np.pi * frequencies
@@ -998,20 +1143,26 @@ class ComponentSingleLayerResistiveWall(Component):
                                         layer: Layer, radius: float,
                                         length: float) -> ArrayLike:
         """
-        Function to compute the transverse dipolar resistive-wall impedance from
-        the single-layer, approximated formula for a cylindrical structure,
-        Eqs. 13-14 in N. Mounet and E. Metral, IPAC'10, TUPD053,
-        https://accelconf.web.cern.ch/IPAC10/papers/tupd053.pdf, and
-        Eq. 21 in F. Roncarolo et al, Phys. Rev. ST Accel. Beams 12, 084401,
-        2009, https://doi.org/10.1103/PhysRevSTAB.12.084401)
-        :param frequencies: the frequencies (array) (in Hz)
-        :param gamma: relativistic mass factor
-        :param layer: a layer with material properties (only resistivity,
-        relaxation time and magnetic susceptibility are taken into account
-        at this stage)
-        :param radius: the radius of the structure (in m)
-        :param length: the total length of the resistive object (in m)
-        :return: Zdip, the transverse dipolar impedance at these frequencies
+        Compute transverse dipolar impedance with the single-layer approximation.
+
+        Parameters
+        ----------
+        frequencies : ArrayLike
+            Frequencies in Hz.
+        gamma : float
+            Relativistic mass factor.
+        layer : Layer
+            Material properties (resistivity, relaxation time, magnetic
+            susceptibility).
+        radius : float
+            Structure radius in meters.
+        length : float
+            Length of the resistive object in meters.
+
+        Returns
+        -------
+        ArrayLike
+            Transverse dipolar impedance values.
         """
         beta = np.sqrt(1 - 1 / gamma**2)
         omega = 2 * np.pi * frequencies
@@ -1049,30 +1200,40 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                  step_size: float = 1e-3,
                  factor: float = 1.0) -> ComponentTaperSingleLayerRestsistiveWall:
         """
-        Creates a single component object modeling a round or flat taper (flatness
-        along the horizontal direction, change of half-gap along the vertical one)
-        resistive-wall impedance, using the integration of the radius-dependent
-        approximated formula for a cylindrical structure (see
-        the above functions), over the length of the taper.
-        :param plane: the plane the component corresponds to
-        :param exponents: four integers corresponding to (source_x, source_y, test_x, test_y) aka (a, b, c, d)
-        :param input_data: an IW2D input object (flat or round). If the input
-        is of type FlatIW2DInput and symmetric, we apply to the round formula the
-        Yokoya factors for an infinitely flat structure (see e.g. K. Yokoya,
-        KEK Preprint 92-196 (1993), and Part. Accel. 41 (1993) pp.221-248,
-        https://cds.cern.ch/record/248630/files/p221.pdf),
-        while for a single plate we use those from A. Burov and V. Danilov,
-        PRL 82,11 (1999), https://doi.org/10.1103/PhysRevLett.82.2286. Other
-        kinds of asymmetric structure will raise an error.
-        If the input is of type RoundIW2DInput, the structure is in principle
-        round but the Yokoya factors put in the input will be used.
-        Note that the radius or half-gaps in input_data are not used (replaced
-        by the scan from radius_small to radius_large, for the integration).
-        :param radius_small: the smallest radius of the taper (in m)
-        :param radius_large: the largest radius of the taper (in m)
-        :param step_size: the step size (in the radial or vertical direction)
-        for the integration (in m)
-        :return: A component object
+        Create a taper resistive-wall component by integrating along the radius.
+
+        Based on the radius-dependent single-layer approximation for a
+        cylindrical structure. For flat symmetric inputs, Yokoya factors for
+        infinitely flat structures are used; for a single plate, the A. Burov
+        and V. Danilov factors are applied. Radii in `input_data` are replaced
+        by the scan from `radius_small` to `radius_large` for the integration.
+
+        Parameters
+        ----------
+        kind : str or None
+            Preset specifying plane and exponents.
+        plane : str or None
+            Component plane; used when `kind` is not provided.
+        exponents : tuple[int, int, int, int] or None
+            Combined (a, b, c, d) exponents for source and test particles.
+        source_exponents : tuple[int, int] or None
+            Source exponents if not using `exponents`.
+        test_exponents : tuple[int, int] or None
+            Test exponents if not using `exponents`.
+        input_data : FlatIW2DInput or RoundIW2DInput
+            Geometry/material definition for the taper.
+        radius_small : float
+            Smallest radius of the taper in meters.
+        radius_large : float
+            Largest radius of the taper in meters.
+        step_size : float, optional
+            Step size for the integration in meters.
+        factor : float, optional
+            Multiplicative factor applied to impedance and wake.
+
+        Returns
+        -------
+        None
         """
         self.input_data = input_data
         self.radius_large = radius_large
@@ -1198,21 +1359,30 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                                     radius_large: float, length: float,
                                     step_size: float = 1e-3) -> ArrayLike:
         """
-        Function to compute the longitudinal resistive-wall impedance for a
-        round taper, integrating the radius-dependent approximated formula
-        for a cylindrical structure (see_zlong_round_single_layer_approx above),
-        over the length of the taper.
-        :param frequencies: the frequencies (array) (in Hz)
-        :param gamma: relativistic mass factor
-        :param layer: a layer with material properties (only resistivity,
-        relaxation time and magnetic susceptibility are taken into account
-        at this stage)
-        :param radius_small: the smallest radius of the taper (in m)
-        :param radius_large: the largest radius of the taper (in m)
-        :param length: the total length of the taper (in m)
-        :param step_size: the step size (in the radial direction) for the
-        integration (in m)
-        :return: the longitudinal impedance at these frequencies
+        Compute longitudinal impedance of a round taper via integration.
+
+        Parameters
+        ----------
+        frequencies : ArrayLike
+            Frequencies in Hz.
+        gamma : float
+            Relativistic mass factor.
+        layer : Layer
+            Material properties (resistivity, relaxation time, magnetic
+            susceptibility).
+        radius_small : float
+            Smallest radius of the taper in meters.
+        radius_large : float
+            Largest radius of the taper in meters.
+        length : float
+            Length of the taper in meters.
+        step_size : float, optional
+            Step size for the radial integration in meters.
+
+        Returns
+        -------
+        ArrayLike
+            Longitudinal impedance across the provided frequencies.
         """
         if np.isscalar(frequencies):
             frequencies = np.array(frequencies)
@@ -1250,21 +1420,30 @@ class ComponentTaperSingleLayerRestsistiveWall(Component):
                                     radius_large: float, length: float,
                                     step_size: float = 1e-3) -> ArrayLike:
         """
-        Function to compute the transverse dip. resistive-wall impedance for a
-        round taper, integrating the radius-dependent approximated formula
-        for a cylindrical structure (see_zdip_round_single_layer_approx above),
-        over the length of the taper.
-        :param frequencies: the frequencies (array) (in Hz)
-        :param gamma: relativistic mass factor
-        :param layer: a layer with material properties (only resistivity,
-        relaxation time and magnetic susceptibility are taken into account
-        at this stage)
-        :param radius_small: the smallest radius of the taper (in m)
-        :param radius_large: the largest radius of the taper (in m)
-        :param length: the total length of the taper (in m)
-        :param step_size: the step size (in the radial direction) for the
-        integration (in m)
-        :return: the transverse dipolar impedance at these frequencies
+        Compute transverse dipolar impedance of a round taper via integration.
+
+        Parameters
+        ----------
+        frequencies : ArrayLike
+            Frequencies in Hz.
+        gamma : float
+            Relativistic mass factor.
+        layer : Layer
+            Material properties (resistivity, relaxation time, magnetic
+            susceptibility).
+        radius_small : float
+            Smallest radius of the taper in meters.
+        radius_large : float
+            Largest radius of the taper in meters.
+        length : float
+            Length of the taper in meters.
+        step_size : float, optional
+            Step size for the radial integration in meters.
+
+        Returns
+        -------
+        ArrayLike
+            Transverse dipolar impedance across the provided frequencies.
         """
         if np.isscalar(frequencies):
             frequencies = np.array(frequencies)
@@ -1316,25 +1495,36 @@ class ComponentInterpolated(Component):
                 f_rois: Optional[List[Tuple[float, float]]] = None,
                 t_rois: Optional[List[Tuple[float, float]]] = None):
         """
-        The init of the ComponentInterpolated class
+        Initialize a component with interpolated impedance and wake.
 
-        :param interpolation_frequencies: the frequencies where the impedance
-        function is evaluated for the interpolation
-        :param impedance_input: A callable function representing the impedance
-        function of the Component. Can be undefined if the wake function is defined
-        :param interpolation_times: the times where the wake function is evaluated
-        for the interpolation
-        :param wake_input: A callable function representing the wake function of the
-        Component. Can be undefined if the impedance function is defined.
-        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
-        specified for valid initialization
-        :param source_exponents: The exponents in the x and y planes experienced by
-        the source particle
-        :param test_exponents: The exponents in the x and y planes experienced by
-        the test particle
-        :param name: An optional user-specified name of the component
-        :param f_rois: a list of frequency regions of interest
-        :param t_rois: a list of time regions of interest
+        Parameters
+        ----------
+        interpolation_frequencies : ArrayLike or None
+            Frequencies at which the impedance function is sampled.
+        impedance_input : Callable or None
+            Impedance function to be sampled for interpolation.
+        interpolation_times : ArrayLike or None
+            Times at which the wake function is sampled.
+        wake_input : Callable or None
+            Wake function to be sampled for interpolation.
+        kind : str or None
+            Preset specifying plane and exponents.
+        plane : str or None
+            Component plane; used when `kind` is not provided.
+        source_exponents : tuple[int, int] or None
+            Source exponents if not using `kind`.
+        test_exponents : tuple[int, int] or None
+            Test exponents if not using `kind`.
+        name : str, optional
+            Human-readable identifier for the component.
+        f_rois : list[tuple[float, float]] or None
+            Frequency regions of interest.
+        t_rois : list[tuple[float, float]] or None
+            Time regions of interest.
+
+        Returns
+        -------
+        None
         """
         assert ((interpolation_frequencies is not None) ==
                 (impedance_input is not None)), ("Either both or none of the "
@@ -1396,26 +1586,36 @@ class ComponentFromArrays(Component):
                  f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None):
         """
-        The init of the ComponentFromArrays class
+        Initialize a component from discrete impedance and wake samples.
 
-        :param interpolation_frequencies: the frequencies where the impedance
-        function is evaluated for the interpolation
-        :param impedance_samples: Aan array of impedance values at the interpolation
-        frequencies
-        the wake function is defined.
-        :param interpolation_times: the times where the wake function is evaluated
-        for the interpolation
-        :param wake_samples: an array of wake values at the interpolation times
-        Component. Can be undefined if the impedance function is defined.
-        :param plane: The plane of the Component, either 'x', 'y' or 'z'. Must be
-        specified for valid initialization
-        :param source_exponents: The exponents in the x and y planes experienced by
-        the source particle
-        :param test_exponents: The exponents in the x and y planes experienced by
-        the test particle
-        :param name: An optional user-specified name of the component
-        :param f_rois: a list of frequency regions of interest
-        :param t_rois: a list of time regions of interest
+        Parameters
+        ----------
+        interpolation_frequencies : ArrayLike or None
+            Frequencies corresponding to the impedance samples.
+        impedance_samples : ArrayLike or None
+            Impedance values at `interpolation_frequencies`.
+        interpolation_times : ArrayLike or None
+            Times corresponding to the wake samples.
+        wake_samples : ArrayLike or None
+            Wake values at `interpolation_times`.
+        kind : str or None
+            Preset specifying plane and exponents.
+        plane : str or None
+            Component plane; used when `kind` is not provided.
+        source_exponents : tuple[int, int] or None
+            Source exponents if not using `kind`.
+        test_exponents : tuple[int, int] or None
+            Test exponents if not using `kind`.
+        name : str, optional
+            Human-readable identifier for the component.
+        f_rois : list[tuple[float, float]] or None
+            Frequency regions of interest.
+        t_rois : list[tuple[float, float]] or None
+            Time regions of interest.
+
+        Returns
+        -------
+        None
         """
         source_exponents, test_exponents, plane = _handle_plane_and_exponents_input(
                             kind=kind, exponents=None,
