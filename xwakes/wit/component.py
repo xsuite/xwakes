@@ -173,11 +173,11 @@ class Component:
     def t_rois(self) -> List[Tuple[float, float]]:
         return self._t_rois
 
-    def function_vs_t(self, t, beta0, dt):
+    def function_vs_t(self, t, beta0, dt=0):
         out = self.wake(t)
         return out
 
-    def function_vs_zeta(self, zeta, beta0, dzeta):
+    def function_vs_zeta(self, zeta, beta0, dzeta=0):
         out = self.function_vs_t(-zeta / beta0 / c_light, beta0,
                                  dzeta / beta0 / c_light)
         return out
