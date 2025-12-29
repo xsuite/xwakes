@@ -14,7 +14,6 @@ from .interface_dataclasses import FlatIW2DInput, RoundIW2DInput
 from .interface import component_names
 from .materials import Layer
 
-from yaml import load, SafeLoader
 from typing import Tuple, Dict, List, Union, Sequence, Optional, Callable
 from collections import defaultdict
 
@@ -59,6 +58,7 @@ def create_component_from_config(identifier: str) -> Component:
     :param identifier: A unique identifier-string corresponding to a component specification in config/component.yaml
     :return: A Component object initialized according to the specification
     """
+    from yaml import load, SafeLoader
     with open("config/component.yaml", "r") as f:
         cdict = load(f, Loader=SafeLoader)[identifier]
         wake = vectorize(lambda x: eval(cdict['wake'], {'exp': exp, 'sqrt': sqrt,
