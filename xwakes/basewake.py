@@ -11,6 +11,15 @@ class Wake:
 
     def __init__(self, components):
 
+        """
+        Generic wake object handling multiple wake components.
+
+        Parameters
+        ----------
+        components : list[xwakes.wit.Component]
+            List of wake components.
+        """
+
         self.components = components
 
     def configure_for_tracking(self, zeta_range: Tuple[float, float],
