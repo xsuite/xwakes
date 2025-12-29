@@ -16,7 +16,6 @@ from pathlib import Path
 from hashlib import sha256
 
 import numpy as np
-from yaml import load, BaseLoader
 from scipy.interpolate import interp1d
 
 # A dictionary mapping the datafile-prefixes (as used in IW2D) to (is_impedance, plane, (a, b, c, d))
@@ -60,6 +59,7 @@ def get_component_name(is_impedance, plane, exponents):
 
 
 def get_iw2d_config_value(key: str) -> Any:
+    from yaml import load, BaseLoader
     with open(IW2D_SETTINGS_PATH, 'r') as file:
         config = load(file, Loader=BaseLoader)
 
