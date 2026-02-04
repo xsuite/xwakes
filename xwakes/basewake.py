@@ -48,7 +48,10 @@ class Wake:
             _context=_context,
             **kwargs)
 
-    def _reconfigure_for_parallel(self, n_procs, my_rank, _context) -> None:
+    def _reconfigure_for_parallel(self, n_procs, my_rank, _context=None) -> None:
+
+        if _context == None:
+            _context = self._wake_tracker._context
 
         filled_slots = self._wake_tracker.slicer.filled_slots
         scheme = np.zeros(np.max(filled_slots) + 1,
