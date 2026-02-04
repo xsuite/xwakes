@@ -75,8 +75,7 @@ def test_transverse_damper(test_context):
         zeta_range=zeta_range,
         num_slices=n_slices,
         bunch_spacing_zeta=bunch_spacing_buckets*bucket_length,
-        circumference=circumference,
-        mode='bunch-by-bunch'
+        circumference=circumference
     )
 
     line = xt.Line(elements=[[one_turn_map, transverse_damper][0]],
