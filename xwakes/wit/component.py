@@ -1597,7 +1597,7 @@ class ComponentFromArrays(Component):
                  name: str = "Interpolated Component",
                  f_rois: Optional[List[Tuple[float, float]]] = None,
                  t_rois: Optional[List[Tuple[float, float]]] = None,
-                 method: str = "Interpolated"):
+                 method: str = "interpolated"):
         """
         Initialize a component from discrete impedance and wake samples.
 
@@ -1673,9 +1673,9 @@ class ComponentFromArrays(Component):
         if isscalar:
             t = np.array([t])
 
-        if self.method == "Interpolated":
+        if self.method == "interpolated":
             out = self.wake(t)
-        elif self.method == "Integrated":
+        elif self.method == "integrated":
             integrated_bins = []
             if self.interpolation_times is not None:
                 for i, time_bins in enumerate(t[0]):
@@ -1686,7 +1686,7 @@ class ComponentFromArrays(Component):
             
             out = integrated_function(t)
         else:
-            raise NotImplementedError("Only the Interpolated and Integrated methods are supported")
+            raise NotImplementedError("Only the interpolated and integrated methods are supported")
 
         # At the edges of the provided wake table we take half the provided
         # value. This is equivalent to assume the next sample (not provided) is

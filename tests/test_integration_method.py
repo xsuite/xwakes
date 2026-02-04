@@ -29,7 +29,7 @@ def test_xwakes_kick_vs_pyheadtail_table():
         wake_file_columns=['time', 'dipolar_x', 'dipolar_y','quadrupolar_x', 'quadrupolar_y'])
     
     wake_from_table = xw.WakeFromTable(table, columns=['time', 'dipolar_x', 'dipolar_y','quadrupolar_x', 'quadrupolar_y'], 
-                                       method="Integrated")
+                                       method="integrated")
     wake_from_table.configure_for_tracking(zeta_range=(-1, 1), num_slices=100)
 
     # Zotter convention

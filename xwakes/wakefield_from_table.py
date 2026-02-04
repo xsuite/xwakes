@@ -59,7 +59,7 @@ class WakeFromTable(Wake):
     https://xsuite.readthedocs.io/en/latest/physicsguide.html
     """
 
-    def __init__(self, table, columns=None, method = "Interpolated"):
+    def __init__(self, table, columns=None, method = "interpolated"):
 
         if isinstance(table, dict):
             table = pd.DataFrame(table)
