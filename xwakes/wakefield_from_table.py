@@ -59,7 +59,7 @@ class WakeFromTable(Wake):
     https://xsuite.readthedocs.io/en/latest/physicsguide.html
     """
 
-    def __init__(self, table, columns=None):
+    def __init__(self, table, columns=None, method = "Interpolated"):
 
         if isinstance(table, dict):
             table = pd.DataFrame(table)
@@ -81,7 +81,7 @@ class WakeFromTable(Wake):
             component = ComponentFromArrays(
                 interpolation_times=table['time'].values,
                 wake_samples=table[cc].values,
-                kind=cc)
+                kind=cc, method = method)
             components.append(component)
 
         self.columns = columns

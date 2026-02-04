@@ -15,6 +15,7 @@ from scipy.constants import c as c_light, mu_0 as mu0, epsilon_0 as eps0
 from numpy.typing import ArrayLike
 from scipy import special as sp
 from scipy.interpolate import interp1d
+from scipy.integrate import quad
 
 if hasattr(np, 'trapezoid'):
     trapz = np.trapezoid # numpy 2.0
@@ -1595,7 +1596,8 @@ class ComponentFromArrays(Component):
                  test_exponents: Tuple[int, int] = None,
                  name: str = "Interpolated Component",
                  f_rois: Optional[List[Tuple[float, float]]] = None,
-                 t_rois: Optional[List[Tuple[float, float]]] = None):
+                 t_rois: Optional[List[Tuple[float, float]]] = None,
+                 method: str = "Interpolated"):
         """
         Initialize a component from discrete impedance and wake samples.
 
@@ -1640,6 +1642,8 @@ class ComponentFromArrays(Component):
         self.interpolation_times = interpolation_times
         self.wake_samples = wake_samples
 
+        self.method = method
+
         if self.interpolation_frequencies is not None:
             impedance = interp1d(self.interpolation_frequencies,
                                  self.impedance_samples)
@@ -1669,7 +1673,20 @@ class ComponentFromArrays(Component):
         if isscalar:
             t = np.array([t])
 
-        out = self.wake(t)
+        if self.method == "Interpolated":
+            out = self.wake(t)
+        elif self.method == "Integrated":
+            integrated_bins = []
+            if self.interpolation_times is not None:
+                for i, time_bins in enumerate(t[0]):
+                    integrated_bins.append(quad(self.wake, t[0][i], t[0][i] + dt, 
+                                                limit=200)[0]/dt)
+        
+            integrated_function = interp1d(t[0], integrated_bins)
+            
+            out = integrated_function(t)
+        else:
+            raise NotImplementedError("Only the Interpolated and Integrated methods are supported")
 
         # At the edges of the provided wake table we take half the provided
         # value. This is equivalent to assume the next sample (not provided) is
