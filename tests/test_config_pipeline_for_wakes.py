@@ -39,7 +39,8 @@ def test_config_pipeline_for_wakes(test_context):
             filling_scheme=filling_scheme,
             bunch_spacing_zeta=bunch_spacing_zeta,
             num_turns=num_turns,
-            circumference=circumference
+            circumference=circumference,
+            _context=test_context
         )
 
         wake2 = xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6)
@@ -50,7 +51,8 @@ def test_config_pipeline_for_wakes(test_context):
             filling_scheme=filling_scheme,
             bunch_spacing_zeta=bunch_spacing_zeta,
             num_turns=num_turns,
-            circumference=circumference
+            circumference=circumference,
+            _context=test_context
         )
 
         wake3 = wake1 + wake2
@@ -61,7 +63,8 @@ def test_config_pipeline_for_wakes(test_context):
             filling_scheme=filling_scheme,
             bunch_spacing_zeta=bunch_spacing_zeta,
             num_turns=num_turns,
-            circumference=circumference
+            circumference=circumference,
+            _context=test_context
         )
 
         wake_no_config = xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6)
