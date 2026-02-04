@@ -49,6 +49,8 @@ class TransverseDamper(xt.BeamElement):
             'px': gain_x,
             'py': gain_y,
         }
+        
+        self.xoinitialize(**kwargs)
 
         self.xoinitialize(**kwargs)
 
@@ -58,6 +60,7 @@ class TransverseDamper(xt.BeamElement):
             zeta_range=zeta_range,
             num_slices=num_slices,
             bunch_spacing_zeta=bunch_spacing_zeta,
+
             moments=['px', 'py'],
             _context=self.context
         )
