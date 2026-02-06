@@ -25,7 +25,7 @@ def config_pipeline_for_wakes(particles, line, communicator,
     if elements_to_configure is None:
         from xfields.beam_elements.element_with_slicer import ElementWithSlicer
         from xwakes.beam_elements.transverse_damper import TransverseDamper
-        from xwakes.beam_elements.collective_monitor import CollectiveMonitor
+        from xfields.beam_elements.collective_monitor import CollectiveMonitor
 
         elements_to_configure = []
         for nn in line.element_names:
