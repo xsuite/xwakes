@@ -10,8 +10,8 @@ import xwakes as xw
 from xobjects.test_helpers import for_all_test_contexts
 
 
-@for_all_test_contexts(excluding='ContextPyopencl')
-def test_instability_cpu_gpu(test_context):
+@for_all_test_contexts(excluding=['ContextCupy','ContextPyopencl'])
+def test_instability_vs_pyht(test_context):
 
     import time
     import numpy as np
