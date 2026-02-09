@@ -649,26 +649,28 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     print('loading test data')
     particles_tot = xt.Particles.merge([particles_0, particles_1])
 
-    x_cpu = test_context.nparray_from_context_array(particles.x)
-    y_cpu = test_context.nparray_from_context_array(particles.y)
-    zeta_cpu = test_context.nparray_from_context_array(particles.zeta)
     x_tot_cpu = test_context.nparray_from_context_array(particles_tot.x)
     y_tot_cpu = test_context.nparray_from_context_array(particles_tot.y)
-    zeta_tot_cpu = test_context.nparray_from_context_array(particles.zeta)
-    beta0_cpu = test_context.nparray_from_context_array(particles.beta0)
+    zeta_tot_cpu = test_context.nparray_from_context_array(particles_tot.zeta)
 
     for particles, dict_p_bef, wf in [(particles_0, dict_p_bef_0, wf_0),
                                       (particles_1, dict_p_bef_1, wf_1)]:
 
         assert len(wf.components) == len(kind)
 
+        x_cpu = test_context.nparray_from_context_array(particles.x)
+        y_cpu = test_context.nparray_from_context_array(particles.y)
+        zeta_cpu = test_context.nparray_from_context_array(particles.zeta)
+        beta0_cpu = test_context.nparray_from_context_array(particles.beta0)
+        weight_cpu = test_context.nparray_from_context_array(particles.weight)
+
         for comp, kk in zip(wf.components, kind):
             if comp.plane == 'z':
                 scale = -particles.q0**2 * qe**2 / (
-                    p0c * beta0_cpu * qe) * particles.weight[0]
+                    p0c * beta0_cpu[0] * qe) * weight_cpu[0]
             else:
                 scale = particles.q0**2 * qe**2 / (
-                    p0c * beta0_cpu * qe) * particles.weight[0]
+                    p0c * beta0_cpu[0] * qe) * weight_cpu[0]
             assert comp.plane == kind_to_parameters[kk]['plane']
             assert comp.source_exponents == kind_to_parameters[kk]['source_exponents']
             assert comp.test_exponents == kind_to_parameters[kk]['test_exponents']
@@ -678,9 +680,9 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
             for i_test, z_test in enumerate(zeta_cpu):
                 expected[i_test] += (x_cpu[i_test]**comp.test_exponents[0] *
                                      y_cpu[i_test]**comp.test_exponents[1] *
-                                     np.dot(x_tot_cpu**comp.source_exponents[0] *
-                                            y_tot_cpu**comp.source_exponents[1],
-                                            comp.function_vs_zeta(z_test - zeta_tot_cpu,
+                                     np.dot(x_cpu**comp.source_exponents[0] *
+                                            y_cpu**comp.source_exponents[1],
+                                            comp.function_vs_zeta(z_test - zeta_cpu,
                                                                   beta0=beta0_cpu[0],
                                                                   dzeta=1e-12)) * scale)
 
