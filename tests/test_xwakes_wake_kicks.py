@@ -19,7 +19,7 @@ from xwakes.wit.component import KIND_DEFINITIONS as kind_to_parameters
 test_data_folder = pathlib.Path(__file__).parent.joinpath(
     '../test_data').absolute()
 
-exclude_contexts = ['ContextPyopencl', 'ContextCpu']
+exclude_contexts = ['ContextPyopencl']
 
 
 @for_all_test_contexts(excluding=exclude_contexts)
@@ -680,9 +680,9 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
             for i_test, z_test in enumerate(zeta_cpu):
                 expected[i_test] += (x_cpu[i_test]**comp.test_exponents[0] *
                                      y_cpu[i_test]**comp.test_exponents[1] *
-                                     np.dot(x_cpu**comp.source_exponents[0] *
-                                            y_cpu**comp.source_exponents[1],
-                                            comp.function_vs_zeta(z_test - zeta_cpu,
+                                     np.dot(x_tot_cpu**comp.source_exponents[0] *
+                                            y_tot_cpu**comp.source_exponents[1],
+                                            comp.function_vs_zeta(z_test - zeta_tot_cpu,
                                                                   beta0=beta0_cpu[0],
                                                                   dzeta=1e-12)) * scale)
 
