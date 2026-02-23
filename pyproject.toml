@@ -4,3 +4,8 @@ requires = [
     'setuptools >= 43.0.0',
     'numpy',
 ]
+
+[tool.pytest]
+markers = [
+    "context_dependent: marks test as one that depends on the execution context",
+]
