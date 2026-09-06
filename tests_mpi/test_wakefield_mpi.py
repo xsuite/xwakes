@@ -12,7 +12,7 @@ import xobjects as xo
 import xwakes as xw
 
 
-def test_wakes_with_filling_scheme_mpi():
+def test_wakes_with_filling_pattern_mpi():
 
     from mpi4py import MPI
 
@@ -29,7 +29,7 @@ def test_wakes_with_filling_scheme_mpi():
         ww.configure_for_tracking(
             zeta_range=(-1, 1),
             num_slices=10,
-            filling_scheme=[1, 0, 1, 1, 1],
+            filling_pattern=[1, 0, 1, 1, 1],
             bunch_spacing_zeta=5,
             num_turns=num_turns,
             circumference=100)

@@ -162,9 +162,9 @@ def test_wake_kick_multi_bunch(test_context, kind):
     zeta_range = (-0.5*bucket_length, 0.5*bucket_length)
     num_slices = 100
 
-    filling_scheme = np.zeros(h_bunch)
-    filling_scheme[0] = 1
-    filling_scheme[1] = 1
+    filling_pattern = np.zeros(h_bunch)
+    filling_pattern[0] = 1
+    filling_pattern[1] = 1
     bunch_selection = [0, 1]
 
     wf = xw.WakeResonator(
@@ -174,7 +174,7 @@ def test_wake_kick_multi_bunch(test_context, kind):
     wf.configure_for_tracking(
         zeta_range=zeta_range,
         num_slices=num_slices,
-        filling_scheme=filling_scheme,
+        filling_pattern=filling_pattern,
         bunch_spacing_zeta=circumference/h_bunch,
         bunch_selection=bunch_selection,
         circumference=circumference,
@@ -509,14 +509,14 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     # and check that the wake kicks are consistent with the definitions
     p0c = 1e9
 
-    # Filling scheme
+    # Filling pattern
     n_slots = 100
-    filling_scheme = np.array(np.floor(np.random.rand(n_slots)+0.1), dtype=int)
-    while np.sum(filling_scheme) < 2:
+    filling_pattern = np.array(np.floor(np.random.rand(n_slots)+0.1), dtype=int)
+    while np.sum(filling_pattern) < 2:
         # if less than 2 slots are filled, try again
-        filling_scheme = np.array(np.floor(np.random.rand(n_slots)+0.1), dtype=int)
-    filling_scheme[0] = 1
-    filled_slots = np.nonzero(filling_scheme)[0]
+        filling_pattern = np.array(np.floor(np.random.rand(n_slots)+0.1), dtype=int)
+    filling_pattern[0] = 1
+    filled_slots = np.nonzero(filling_pattern)[0]
     n_bunches = len(filled_slots)
     n_bunches_0 = int(np.floor(n_bunches/2))
     bunch_selection_0 = np.arange(n_bunches_0, dtype=int)
@@ -592,7 +592,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     wf_0.configure_for_tracking(zeta_range=zeta_range,
                                 num_slices=num_slices,
                                 bunch_spacing_zeta=bunch_spacing,
-                                filling_scheme=filling_scheme,
+                                filling_pattern=filling_pattern,
                                 bunch_selection=bunch_selection_0,
                                 num_turns=n_turns_wake,
                                 circumference=circumference,
@@ -606,7 +606,7 @@ def test_wake_kick_multibunch_pipeline(test_context, kind):
     wf_1.configure_for_tracking(zeta_range=zeta_range,
                                 num_slices=num_slices,
                                 bunch_spacing_zeta=bunch_spacing,
-                                filling_scheme=filling_scheme,
+                                filling_pattern=filling_pattern,
                                 bunch_selection=bunch_selection_1,
                                 num_turns=n_turns_wake,
                                 circumference=circumference,

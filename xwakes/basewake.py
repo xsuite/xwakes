@@ -7,6 +7,17 @@ from typing import Tuple
 import xpart as xp
 import numpy as np
 
+
+def _resolve_filling_pattern(filling_pattern, filling_scheme):
+    if filling_pattern is not None and filling_scheme is not None:
+        raise ValueError(
+            'Only one of `filling_pattern` and `filling_scheme` can be '
+            'provided.')
+    if filling_pattern is not None:
+        return filling_pattern
+    return filling_scheme
+
+
 class Wake:
 
     def __init__(self, components):
@@ -26,12 +37,19 @@ class Wake:
                                num_slices: int,
                                num_turns=1,
                                bunch_spacing_zeta=None,  # This is P in the paper
-                               filling_scheme=None,
+                               filling_pattern=None,
                                circumference=None,
                                bunch_selection=None,
                                _context=None,
+                               filling_scheme=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
+        """Configure tracking; ``filling_scheme`` is a compatibility alias
+        for the canonical ``filling_pattern`` argument.
+        """
+
+        filling_pattern = _resolve_filling_pattern(
+            filling_pattern, filling_scheme)
 
         # We import here so that xfields is not a dependency of xwakes (which
         # can be used in standalone mode for defining impedance models)
@@ -42,7 +60,7 @@ class Wake:
             num_slices=num_slices,
             num_turns=num_turns,
             bunch_spacing_zeta=bunch_spacing_zeta,
-            filling_scheme=filling_scheme,
+            filling_pattern=filling_pattern,
             circumference=circumference,
             bunch_selection=bunch_selection,
             _context=_context,
@@ -54,18 +72,17 @@ class Wake:
             _context = self._wake_tracker._context
 
         filled_slots = _context.nparray_from_context_array(self._wake_tracker.slicer.filled_slots)
-        scheme = np.zeros(int(np.max(filled_slots)) + 1,
-                         dtype=np.int64)
-        scheme[filled_slots] = 1
+        filling_pattern = np.zeros(int(np.max(filled_slots)) + 1,
+                                   dtype=np.int64)
+        filling_pattern[filled_slots] = 1
 
-        split_scheme = xp.matched_gaussian.split_scheme
-        bunch_selection_rank = split_scheme(filling_scheme=scheme,
-                                             n_chunk=int(n_procs))
+        bunch_selection_rank = xp.split_filling_pattern(
+            filling_pattern=filling_pattern, n_chunk=int(n_procs))
 
         self.configure_for_tracking(zeta_range=self._wake_tracker.zeta_range,
                           num_slices=self._wake_tracker.num_slices,
                           bunch_spacing_zeta=self._wake_tracker.bunch_spacing_zeta,
-                          filling_scheme=scheme,
+                          filling_pattern=filling_pattern,
                           bunch_selection=bunch_selection_rank[my_rank],
                           num_turns=self._wake_tracker.num_turns,
                           circumference=self._wake_tracker.circumference,

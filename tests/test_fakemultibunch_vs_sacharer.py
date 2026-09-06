@@ -45,7 +45,7 @@ def test_fakemultibunch_vs_sacherer():
         averageRadius = circumference / (2.0*np.pi)
         sigma_pz = qs*sigma_z/(averageRadius*np.abs(eta))
         zeta_range=(-3*sigma_z, 3*sigma_z)
-        filling_scheme = np.ones(n_bunch,dtype=int)
+        filling_pattern = np.ones(n_bunch,dtype=int)
         omegarev= 2.0*np.pi*cst.c/circumference
 
         n_part = int(2E4)
@@ -100,7 +100,7 @@ def test_fakemultibunch_vs_sacherer():
                                 bunch_spacing_zeta=bunch_spacing_zeta,
                                 num_turns=n_turns_wake,
                                 circumference=circumference,
-                                filling_scheme = filling_scheme,
+                                filling_pattern = filling_pattern,
                                 bunch_selection = [selected_bunch],
                                 fake_coupled_bunch_phase_x = 2.0*np.pi*coupled_bunch_mode_number/n_bunch,
                                 beta_x = beta_x,

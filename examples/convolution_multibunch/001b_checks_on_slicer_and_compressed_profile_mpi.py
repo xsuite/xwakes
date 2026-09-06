@@ -27,7 +27,7 @@ for ww in [wake_ref, wake_mpi]:
     ww.configure_for_tracking(
         zeta_range=(-1, 1),
         num_slices=10,
-        filling_scheme=[1, 0, 1, 1, 1],
+        filling_pattern=[1, 0, 1, 1, 1],
         bunch_spacing_zeta=5,
         num_turns=num_turns,
         circumference=100)

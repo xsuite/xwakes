@@ -20,9 +20,9 @@ one_turn_map = xt.LineSegmentMap(
     qs=1e-3, bets=100
 )
 
-filling_scheme = np.zeros(3564)
-filling_scheme[0] = 1
-filling_scheme[1] = 1
+filling_pattern = np.zeros(3564)
+filling_pattern[0] = 1
+filling_pattern[1] = 1
 bunch_selection = [0, 1]
 
 wake = xw.WakeResonator(
@@ -30,7 +30,7 @@ wake = xw.WakeResonator(
     r=1e8, q=1e5, f_r=600e6)
 
 wake.configure_for_tracking(zeta_range=(-20e-2, 20e-2), num_slices=500,
-    filling_scheme=filling_scheme,
+    filling_pattern=filling_pattern,
     bunch_spacing_zeta=26000/3564,
     bunch_selection=bunch_selection
     )
@@ -41,7 +41,7 @@ line.particle_ref=xp.Particles(p0c=7000e9)
 
 particles = xp.generate_matched_gaussian_multibunch_beam(
     particle_ref=line.particle_ref,
-    filling_scheme=filling_scheme,
+    filling_pattern=filling_pattern,
     bunch_num_particles=100000,
     bunch_intensity_particles=1e11,
     nemitt_x=1e-6, nemitt_y=2e-6,

@@ -36,10 +36,10 @@ Q_x = 20.13
 Q_y = 20.18
 xi = 0.05
 
-# prepare the filling scheme
-filling_scheme = np.zeros(int(h_RF[0]/bunch_spacing_buckets))
+# prepare the filling pattern
+filling_pattern = np.zeros(int(h_RF[0]/bunch_spacing_buckets))
 n_bunches = 12
-filling_scheme[0:n_bunches] = 1
+filling_pattern[0:n_bunches] = 1
 
 # initialize the one turn map
 one_turn_map = xt.LineSegmentMap(
@@ -72,7 +72,7 @@ wf_sps.configure_for_tracking(
     bunch_spacing_zeta=5*bucket_length,
     num_turns=37,
     circumference=circumference,
-    filling_scheme=filling_scheme
+    filling_pattern=filling_pattern
 )
 
 # initialize a damper with 100 turns gain
@@ -82,7 +82,7 @@ transverse_damper = xw.TransverseDamper(
     num_slices=100,
     bunch_spacing_zeta=5*bucket_length,
     circumference=circumference,
-    filling_scheme=filling_scheme
+    filling_pattern=filling_pattern
 )
 
 # initialize a monitor for the average transverse positions
@@ -98,7 +98,7 @@ monitor = xw.CollectiveMonitor(
     zeta_range=(-0.5*bucket_length, 0.5*bucket_length),
     num_slices=100,
     bunch_spacing_zeta=5*bucket_length,
-    filling_scheme=filling_scheme
+    filling_pattern=filling_pattern
 )
 
 elements = [one_turn_map, wf_sps, transverse_damper, monitor]
@@ -114,7 +114,7 @@ particles = xp.generate_matched_gaussian_multibunch_beam(
     bunch_intensity_particles=2.3e11,
     nemitt_x=2e-6, nemitt_y=2e-6,
     sigma_z=0.21734953205,
-    filling_scheme=filling_scheme,
+    filling_pattern=filling_pattern,
     bucket_length=bucket_length,
     bunch_spacing_buckets=bunch_spacing_buckets,
     circumference=circumference,

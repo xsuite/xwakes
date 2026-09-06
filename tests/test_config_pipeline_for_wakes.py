@@ -5,6 +5,7 @@
 
 import xtrack as xt
 import xwakes as xw
+import pytest
 from xobjects.test_helpers import for_all_test_contexts
 
 class DummyCommunicator:
@@ -18,6 +19,22 @@ class DummyCommunicator:
     def Get_rank(self):
         return self.rank
 
+
+def test_filling_scheme_compatibility_alias():
+    wake = xw.WakeResonator(kind='dipole_x', r=1e9, q=5, f_r=20e6)
+    wake.configure_for_tracking(
+        zeta_range=(-1, 1), num_slices=2,
+        filling_scheme=[1, 0, 1], bunch_spacing_zeta=5,
+        num_turns=1, circumference=20)
+    assert list(wake.slicer.filled_slots) == [0, 2]
+
+    with pytest.raises(ValueError, match='Only one'):
+        wake.configure_for_tracking(
+            zeta_range=(-1, 1), num_slices=2,
+            filling_pattern=[1, 0, 1], filling_scheme=[1, 0, 1],
+            bunch_spacing_zeta=5, num_turns=1, circumference=20)
+
+
 @for_all_test_contexts
 def test_config_pipeline_for_wakes(test_context):
     comm_size = 3
@@ -26,7 +43,7 @@ def test_config_pipeline_for_wakes(test_context):
 
         zeta_range = (-1, 1)
         num_slices = 10
-        filling_scheme = [1, 0, 1, 1, 1]
+        filling_pattern = [1, 0, 1, 1, 1]
         bunch_spacing_zeta = 5
         num_turns = 1
         circumference = 100
@@ -36,7 +53,7 @@ def test_config_pipeline_for_wakes(test_context):
         wake1.configure_for_tracking(
             zeta_range=zeta_range,
             num_slices=num_slices,
-            filling_scheme=filling_scheme,
+            filling_pattern=filling_pattern,
             bunch_spacing_zeta=bunch_spacing_zeta,
             num_turns=num_turns,
             circumference=circumference,
@@ -48,7 +65,7 @@ def test_config_pipeline_for_wakes(test_context):
         wake2.configure_for_tracking(
             zeta_range=zeta_range,
             num_slices=num_slices,
-            filling_scheme=filling_scheme,
+            filling_pattern=filling_pattern,
             bunch_spacing_zeta=bunch_spacing_zeta,
             num_turns=num_turns,
             circumference=circumference,
@@ -60,7 +77,7 @@ def test_config_pipeline_for_wakes(test_context):
         wake3.configure_for_tracking(
             zeta_range=zeta_range,
             num_slices=num_slices,
-            filling_scheme=filling_scheme,
+            filling_pattern=filling_pattern,
             bunch_spacing_zeta=bunch_spacing_zeta,
             num_turns=num_turns,
             circumference=circumference,

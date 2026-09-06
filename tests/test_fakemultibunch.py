@@ -38,7 +38,7 @@ def test_fakemultibunch():
     sigma_y = np.sqrt(emit_norm*beta_y/gamma)
     betar = np.sqrt(1 - 1 / gamma ** 2)
     zeta_range=(-3*sigma_z, 3*sigma_z)
-    filling_scheme = np.ones(n_bunch,dtype=int)
+    filling_pattern = np.ones(n_bunch,dtype=int)
 
     n_part = num_slices
     slice_intensity = bunch_intensity/num_slices
@@ -69,7 +69,7 @@ def test_fakemultibunch():
                         bunch_spacing_zeta=bunch_spacing_zeta,
                         num_turns=n_turns_wake,
                         circumference=circumference,
-                        filling_scheme = np.ones(n_bunch,dtype=int),
+                        filling_pattern = np.ones(n_bunch,dtype=int),
                         bunch_selection = [selected_bunch],
                         fake_coupled_bunch_phase_x = coupled_bunch_phase_x,
                         beta_x = beta_x,
@@ -80,7 +80,7 @@ def test_fakemultibunch():
                         bunch_spacing_zeta=bunch_spacing_zeta,
                         num_turns=n_turns_wake,
                         circumference=circumference,
-                        filling_scheme = np.ones(n_bunch,dtype=int),
+                        filling_pattern = np.ones(n_bunch,dtype=int),
                         bunch_selection = [selected_bunch],
                         fake_coupled_bunch_phase_y = coupled_bunch_phase_y,
                         beta_y = beta_y,

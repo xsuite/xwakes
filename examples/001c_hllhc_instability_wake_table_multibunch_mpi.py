@@ -21,10 +21,10 @@ import pandas as pd
 n_turns = 10000
 p0c = 7000e9
 
-# Filling scheme
-filling_scheme = np.zeros(3564, dtype=int)
-filling_scheme[0] = 1
-filling_scheme[1] = 1
+# Filling pattern
+filling_pattern = np.zeros(3564, dtype=int)
+filling_pattern[0] = 1
+filling_pattern[1] = 1
 
 n_turns_wake = 1
 circumference = 26658.8832
@@ -44,7 +44,7 @@ wf= xw.WakeFromTable(wake_df, columns=['dipolar_x', 'dipolar_y'],
 wf.configure_for_tracking(zeta_range=(-0.5*bucket_length_m, 0.5*bucket_length_m),
                         num_slices=num_slices,
                         bunch_spacing_zeta=circumference/3564,
-                        filling_scheme=filling_scheme,
+                        filling_pattern=filling_pattern,
                         num_turns=n_turns_wake,
                         circumference=circumference
                         )
@@ -73,7 +73,7 @@ line.build_tracker()
 # handling parallel simulation in that case
 particles = xp.generate_matched_gaussian_multibunch_beam(
             line=line,
-            filling_scheme=filling_scheme,
+            filling_pattern=filling_pattern,
             bunch_num_particles=100_000, # This needs to be renamed
             bunch_intensity_particles=2.3e11, # This needs to be renamed
             nemitt_x=2e-6, nemitt_y=2e-6, sigma_z=0.075,
