@@ -5,17 +5,7 @@
 
 from typing import Tuple
 import xpart as xp
-import numpy as np
-
-
-def _resolve_filling_pattern(filling_pattern, filling_scheme):
-    if filling_pattern is not None and filling_scheme is not None:
-        raise ValueError(
-            'Only one of `filling_pattern` and `filling_scheme` can be '
-            'provided.')
-    if filling_pattern is not None:
-        return filling_pattern
-    return filling_scheme
+from xtrack._filling_pattern import _FillingPattern
 
 
 class Wake:
@@ -42,39 +32,48 @@ class Wake:
                                bunch_selection=None,
                                _context=None,
                                filling_scheme=None,
+                               filled_slots=None,
+                               num_slots=None,
                                **kwargs # for multibunch compatibility
                                ) -> None:
-        """Configure tracking; ``filling_scheme`` is a compatibility alias
-        for the canonical ``filling_pattern`` argument.
+        """Configure tracking.
+
+        The filling can be given as a dense ``filling_pattern`` or sparse
+        ``filled_slots`` (with optional ``num_slots``). ``filling_scheme`` is
+        a compatibility alias for ``filling_pattern``. These representations
+        are mutually exclusive and are copied during configuration.
         """
 
-        filling_pattern = _resolve_filling_pattern(
-            filling_pattern, filling_scheme)
+        filling = _FillingPattern.from_inputs(
+            filling_pattern=filling_pattern,
+            filled_slots=filled_slots,
+            filling_scheme=filling_scheme,
+            num_slots=num_slots)
 
         # We import here so that xfields is not a dependency of xwakes (which
         # can be used in standalone mode for defining impedance models)
         from xfields.beam_elements.waketracker import WakeTracker
-        self._wake_tracker = WakeTracker(
+        wake_tracker = WakeTracker(
             components=_expand_components(self.components),
             zeta_range=zeta_range,
             num_slices=num_slices,
             num_turns=num_turns,
             bunch_spacing_zeta=bunch_spacing_zeta,
-            filling_pattern=filling_pattern,
+            filling_pattern=(
+                None if filling is None else filling.filling_pattern),
             circumference=circumference,
             bunch_selection=bunch_selection,
             _context=_context,
             **kwargs)
+        self._wake_tracker = wake_tracker
+        self._filling = filling
 
     def _reconfigure_for_parallel(self, n_procs, my_rank, _context=None) -> None:
 
-        if _context == None:
+        if _context is None:
             _context = self._wake_tracker._context
 
-        filled_slots = _context.nparray_from_context_array(self._wake_tracker.slicer.filled_slots)
-        filling_pattern = np.zeros(int(np.max(filled_slots)) + 1,
-                                   dtype=np.int64)
-        filling_pattern[filled_slots] = 1
+        filling_pattern = self.filling_pattern
 
         bunch_selection_rank = xp.split_filling_pattern(
             filling_pattern=filling_pattern, n_chunk=int(n_procs))
@@ -107,6 +106,22 @@ class Wake:
         if hasattr(self, '_wake_tracker') and self._wake_tracker is not None:
             return self._wake_tracker.slicer
         return None
+
+    @property
+    def filled_slots(self):
+        """Filled physical slots as a host-side copy, if configured."""
+        if self.slicer is None:
+            return None
+        return self.slicer.filled_slots
+
+    @property
+    def filling_pattern(self):
+        """Slot-indexed occupancy as a host-side copy, if configured."""
+        if self.slicer is None:
+            return None
+        if getattr(self, '_filling', None) is not None:
+            return self._filling.filling_pattern
+        return self.slicer.filling_pattern
 
 def _add_wakes(wake1, wake2):
     out_components = []

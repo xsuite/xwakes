@@ -5,6 +5,7 @@
 
 import xtrack as xt
 import xwakes as xw
+import numpy as np
 import pytest
 from xobjects.test_helpers import for_all_test_contexts
 
@@ -33,6 +34,17 @@ def test_filling_scheme_compatibility_alias():
             zeta_range=(-1, 1), num_slices=2,
             filling_pattern=[1, 0, 1], filling_scheme=[1, 0, 1],
             bunch_spacing_zeta=5, num_turns=1, circumference=20)
+
+    source_slots = np.array([2, 0], dtype=np.int64)
+    wake.configure_for_tracking(
+        zeta_range=(-1, 1), num_slices=2,
+        filled_slots=source_slots, num_slots=4,
+        bunch_spacing_zeta=5, num_turns=1, circumference=20)
+    source_slots[:] = 1
+    exposed_slots = wake.filled_slots
+    exposed_slots[:] = 1
+    assert list(wake.filled_slots) == [0, 2]
+    assert list(wake.filling_pattern) == [1, 0, 1, 0]
 
 
 @for_all_test_contexts
