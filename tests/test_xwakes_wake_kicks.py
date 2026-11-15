@@ -7,7 +7,7 @@ import xtrack as xt
 import xpart as xp
 import xwakes as xw
 import xobjects as xo
-from xobjects.test_helpers import for_all_test_contexts
+from xobjects.test_helpers import for_all_test_contexts, fix_random_seed
 
 import pytest
 from scipy.constants import e as qe, c as c_light
@@ -502,6 +502,7 @@ def test_wake_kick_multiturn_reset(test_context, kind):
                                   ['quadrupolar_x','quadrupolar_y'],
                                   ['quadrupolar_xy','quadrupolar_yx']],
                                   ids=lambda x: '_'.join(x))
+@fix_random_seed(645284)
 def test_wake_kick_multibunch_pipeline(test_context, kind):
     # test multi-bunch wake kick with pipeline
     # in this test we place one particle in each slice for a random number of
